@@ -11,7 +11,6 @@
 | `Create Custom Session` | Session with custom settings |
 | `Create Digest Session` | Session with digest auth |
 | `Create Ntlm Session` | Session with NTLM auth |
-| `Delete Session` | Remove specific session |
 | `Delete All Sessions` | Remove all sessions |
 | `Session Exists` | Check if session exists |
 | `Update Session` | Modify session settings |

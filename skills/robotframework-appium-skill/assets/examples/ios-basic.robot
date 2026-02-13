@@ -91,11 +91,11 @@ Handle Initial Alerts
         ...    Wait Until Page Contains Element    class=XCUIElementTypeAlert    timeout=3s
         IF    not ${present}    BREAK
         ${allow_present}=    Run Keyword And Return Status
-        ...    Page Should Contain Element    ios=**/XCUIElementTypeButton[`name == 'Allow'`]
+        ...    Page Should Contain Element    chain=**/XCUIElementTypeButton[`name == 'Allow'`]
         IF    ${allow_present}
-            Click Element    ios=**/XCUIElementTypeButton[`name == 'Allow'`]
+            Click Element    chain=**/XCUIElementTypeButton[`name == 'Allow'`]
         ELSE
-            Click Element    ios=**/XCUIElementTypeButton[`name == 'OK'`]
+            Click Element    chain=**/XCUIElementTypeButton[`name == 'OK'`]
         END
         Sleep    1s
     END
@@ -138,11 +138,11 @@ Navigate To Settings List
 Select Table Row
     [Documentation]    Select a row in iOS table view by text
     [Arguments]    ${row_text}
-    Click Element    ios=**/XCUIElementTypeCell[`name CONTAINS '${row_text}'`]
+    Click Element    chain=**/XCUIElementTypeCell[`name CONTAINS '${row_text}'`]
 
 Go Back To Settings
     [Documentation]    Go back to settings using navigation bar button
-    Click Element    ios=**/XCUIElementTypeNavigationBar/XCUIElementTypeButton[1]
+    Click Element    chain=**/XCUIElementTypeNavigationBar/XCUIElementTypeButton[1]
     Wait Until Page Contains Element    accessibility_id=settingsTableView    timeout=10s
 
 Navigate To Form Screen
@@ -182,7 +182,7 @@ Handle Permission Alert
     [Documentation]    Handle iOS permission alert
     [Arguments]    ${button_name}
     Wait Until Page Contains Element    class=XCUIElementTypeAlert    timeout=5s
-    Click Element    ios=**/XCUIElementTypeAlert/**/XCUIElementTypeButton[`name == '${button_name}'`]
+    Click Element    chain=**/XCUIElementTypeAlert/**/XCUIElementTypeButton[`name == '${button_name}'`]
 
 Verify Permission Granted
     [Documentation]    Verify permission was granted
@@ -190,5 +190,5 @@ Verify Permission Granted
 
 Hide Keyboard
     [Documentation]    Hide the iOS keyboard
-    Run Keyword And Ignore Error    Click Element    ios=**/XCUIElementTypeButton[`name == 'Done'`]
-    Run Keyword And Ignore Error    Click Element    ios=**/XCUIElementTypeButton[`name == 'Return'`]
+    Run Keyword And Ignore Error    Click Element    chain=**/XCUIElementTypeButton[`name == 'Done'`]
+    Run Keyword And Ignore Error    Click Element    chain=**/XCUIElementTypeButton[`name == 'Return'`]

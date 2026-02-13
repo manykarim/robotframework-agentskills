@@ -16,8 +16,9 @@ Object    response body    {"type": "object", "required": ["id", "name"]}
 ### Schema From File
 
 ```robotframework
+# Set expectation BEFORE the request
+Expect Response Body    ${CURDIR}/schemas/user.json
 GET    /users/1
-Output Schema    response body    ${CURDIR}/schemas/user.json
 ```
 
 ## JSON Schema Basics
@@ -375,9 +376,10 @@ Output Schema    response body    ${CURDIR}/schemas/user.json
 ```robotframework
 *** Test Cases ***
 Validate User Response Schema
+    # Set expectation BEFORE the request
+    Expect Response Body    ${CURDIR}/schemas/user.json
     GET    /users/1
     Integer    response status    200
-    Output Schema    response body    ${CURDIR}/schemas/user.json
 ```
 
 ### Validate Nested Part
@@ -385,8 +387,10 @@ Validate User Response Schema
 ```robotframework
 *** Test Cases ***
 Validate User Profile Schema
+    # Note: Expect Response Body validates the full response body.
+    # For nested validation, use inline schema with Object keyword.
     GET    /users/1
-    Output Schema    response body profile    ${CURDIR}/schemas/profile.json
+    Object    response body profile    ${CURDIR}/schemas/profile.json
 ```
 
 ### Validate Array Items
@@ -394,9 +398,10 @@ Validate User Profile Schema
 ```robotframework
 *** Test Cases ***
 Validate Users List Schema
+    # Set expectation BEFORE the request
+    Expect Response Body    ${CURDIR}/schemas/users-list.json
     GET    /users
     Array    response body
-    Output Schema    response body    ${CURDIR}/schemas/users-list.json
 ```
 
 ### Inline Schema for Quick Checks
@@ -454,19 +459,19 @@ User API Contract
     [Tags]    contract    schema
 
     # GET user
+    Expect Response Body    ${CURDIR}/schemas/user.json
     GET    /users/1
     Integer    response status    200
-    Output Schema    response body    ${CURDIR}/schemas/user.json
 
     # GET users list
+    Expect Response Body    ${CURDIR}/schemas/user-list.json
     GET    /users
     Integer    response status    200
-    Output Schema    response body    ${CURDIR}/schemas/user-list.json
 
     # POST user
+    Expect Response Body    ${CURDIR}/schemas/user.json
     POST    /users    {"name": "Test", "email": "test@test.com"}
     Integer    response status    201
-    Output Schema    response body    ${CURDIR}/schemas/user.json
 ```
 
 ### Error Response Schema
@@ -504,9 +509,9 @@ User API Contract
 ```robotframework
 *** Test Cases ***
 Validate Error Response Schema
+    Expect Response Body    ${CURDIR}/schemas/error.json
     POST    /users    {"invalid": "data"}
     Integer    response status    400
-    Output Schema    response body    ${CURDIR}/schemas/error.json
     String    response body error code
     String    response body error message
 ```

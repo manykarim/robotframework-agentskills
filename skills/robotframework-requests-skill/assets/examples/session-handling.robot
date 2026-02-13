@@ -38,7 +38,7 @@ Session With Default Headers
     ${response}=    GET On Session    with_headers    /users
     ${response}=    GET On Session    with_headers    /posts
 
-    Delete Session    with_headers
+    Delete All Sessions
 
 Session With Authentication
     [Documentation]    Session with pre-configured authentication
@@ -51,7 +51,7 @@ Session With Authentication
     ${response}=    GET On Session    auth_session    /protected
     Status Should Be    200    ${response}
 
-    Delete Session    auth_session
+    Delete All Sessions
 
 Session With Bearer Token
     [Documentation]    Session using Bearer token authentication
@@ -64,7 +64,7 @@ Session With Bearer Token
     ${response}=    GET On Session    token_session    /users/me
     ${response}=    GET On Session    token_session    /users/me/settings
 
-    Delete Session    token_session
+    Delete All Sessions
 
 Session With Timeout Configuration
     [Documentation]    Session with custom timeout settings
@@ -78,7 +78,7 @@ Session With Timeout Configuration
     # Override timeout for specific request
     ${response}=    GET On Session    slow_api    /very-slow-endpoint    timeout=60
 
-    Delete Session    slow_api
+    Delete All Sessions
 
 Session With Retry Configuration
     [Documentation]    Session that automatically retries failed requests
@@ -91,7 +91,7 @@ Session With Retry Configuration
     # Will retry up to 3 times with exponential backoff
     ${response}=    GET On Session    retry_session    /flaky-endpoint
 
-    Delete Session    retry_session
+    Delete All Sessions
 
 Session With SSL Configuration
     [Documentation]    Session with custom SSL settings
@@ -102,7 +102,7 @@ Session With SSL Configuration
 
     ${response}=    GET On Session    insecure_api    /health
 
-    Delete Session    insecure_api
+    Delete All Sessions
 
 Session With Custom CA Certificate
     [Documentation]    Session using custom CA certificate
@@ -113,7 +113,7 @@ Session With Custom CA Certificate
 
     ${response}=    GET On Session    secure_api    /internal-data
 
-    Delete Session    secure_api
+    Delete All Sessions
 
 Session With Proxy
     [Documentation]    Session routing through proxy server
@@ -127,7 +127,7 @@ Session With Proxy
 
     ${response}=    GET On Session    proxied_api    /external-data
 
-    Delete Session    proxied_api
+    Delete All Sessions
 
 Multiple Sessions Different APIs
     [Documentation]    Manage multiple sessions to different services
@@ -144,9 +144,7 @@ Multiple Sessions Different APIs
     ${billing}=    GET On Session    billing_api    /users/1/invoices
 
     # Clean up
-    Delete Session    users_api
-    Delete Session    orders_api
-    Delete Session    billing_api
+    Delete All Sessions
 
 Session Override Headers Per Request
     [Documentation]    Override session headers for specific request
@@ -163,7 +161,7 @@ Session Override Headers Per Request
 
     ${response}=    GET On Session    api    /data    headers=${extra_headers}
 
-    Delete Session    api
+    Delete All Sessions
 
 Session Cookie Handling
     [Documentation]    Session maintains cookies across requests
@@ -183,7 +181,7 @@ Session Cookie Handling
     # Logout
     ${response}=    POST On Session    cookie_api    /logout
 
-    Delete Session    cookie_api
+    Delete All Sessions
 
 Check Session Exists Before Use
     [Documentation]    Safely check if session exists
@@ -199,7 +197,7 @@ Check Session Exists Before Use
 
     ${response}=    GET On Session    maybe_session    /health
 
-    Delete Session    maybe_session
+    Delete All Sessions
 
 Session With Debug Logging
     [Documentation]    Enable debug logging for troubleshooting
@@ -210,7 +208,7 @@ Session With Debug Logging
     # Requests will log detailed info
     ${response}=    GET On Session    debug_api    /users
 
-    Delete Session    debug_api
+    Delete All Sessions
 
 *** Keywords ***
 Initialize API Sessions

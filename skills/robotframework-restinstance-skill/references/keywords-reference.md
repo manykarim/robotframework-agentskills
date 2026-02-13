@@ -27,7 +27,7 @@
 | `Object` | Validate object type/schema |
 | `Output` | Log value (must exist) |
 | `Missing` | Validate field doesn't exist |
-| `Output Schema` | Validate against JSON Schema file |
+| `Expect Response Body` | Validate response body against JSON Schema file (set BEFORE request) |
 
 ### Configuration Keywords
 
@@ -338,19 +338,22 @@ Missing    response body password
 Missing    response body internal_data
 ```
 
-### Output Schema
+### Expect Response Body
 
 ```robotframework
-Output Schema    field    schema_file
+Expect Response Body    schema_file
 ```
 
-Validates response against JSON Schema file.
+Validates response body against a JSON Schema file. Must be called BEFORE the HTTP request.
 
 **Examples:**
 
 ```robotframework
-Output Schema    response body    ${CURDIR}/schemas/user.json
-Output Schema    response body    schemas/user-list.json
+Expect Response Body    ${CURDIR}/schemas/user.json
+GET    /users/1
+
+Expect Response Body    schemas/user-list.json
+GET    /users
 ```
 
 ## Configuration Keywords
@@ -461,6 +464,8 @@ User CRUD
 ```robotframework
 *** Test Cases ***
 Validate User Response
+    # Schema validation must be set BEFORE the request
+    Expect Response Body    ${CURDIR}/schemas/user.json
     GET    /users/1
     Integer    response status    200
 
@@ -475,9 +480,6 @@ Validate User Response
     # Missing fields
     Missing    response body password
     Missing    response body api_key
-
-    # Schema validation
-    Output Schema    response body    ${CURDIR}/schemas/user.json
 ```
 
 ### Error Handling

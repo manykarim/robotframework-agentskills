@@ -47,8 +47,10 @@ def _detect_embedded_style(project_root: str) -> bool:
                             in_keywords = False
                             continue
                         if in_keywords:
-                            if "${" in stripped or "@{" in stripped or "&{" in stripped:
-                                return True
+                            # Only check non-indented lines (keyword names), not body lines
+                            if not line.startswith(" ") and not line.startswith("\t"):
+                                if "${" in stripped or "@{" in stripped or "&{" in stripped:
+                                    return True
             except OSError:
                 continue
     return False
@@ -114,17 +116,21 @@ def _render_keyword_block(name: str, data: Dict[str, Any], warnings: List[str]) 
 
     setup = data.get("setup")
     if setup:
-        if not setup.get("keyword"):
-            warnings.append("Setup provided without keyword.")
-        setup_args = setup.get("args", [])
-        lines.append("    [Setup]    " + "    ".join([setup.get("keyword")] + [str(a) for a in setup_args]))
+        kw = setup.get("keyword")
+        if not kw:
+            warnings.append("Setup provided without keyword name - skipping.")
+        else:
+            setup_args = setup.get("args", [])
+            lines.append("    [Setup]    " + "    ".join([kw] + [str(a) for a in setup_args]))
 
     teardown = data.get("teardown")
     if teardown:
-        if not teardown.get("keyword"):
-            warnings.append("Teardown provided without keyword.")
-        teardown_args = teardown.get("args", [])
-        lines.append("    [Teardown]    " + "    ".join([teardown.get("keyword")] + [str(a) for a in teardown_args]))
+        kw = teardown.get("keyword")
+        if not kw:
+            warnings.append("Teardown provided without keyword name - skipping.")
+        else:
+            teardown_args = teardown.get("args", [])
+            lines.append("    [Teardown]    " + "    ".join([kw] + [str(a) for a in teardown_args]))
 
     timeout = data.get("timeout")
     if timeout:
@@ -138,6 +144,13 @@ def _render_keyword_block(name: str, data: Dict[str, Any], warnings: List[str]) 
     for step in steps:
         for rendered in _render_step(step):
             lines.append("    " + rendered)
+
+    return_value = data.get("return_value")
+    if return_value:
+        if isinstance(return_value, list):
+            lines.append("    RETURN    " + "    ".join(str(v) for v in return_value))
+        else:
+            lines.append(f"    RETURN    {return_value}")
 
     return "\n".join(lines)
 

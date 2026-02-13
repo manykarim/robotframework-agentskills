@@ -43,6 +43,32 @@ Detect embedded-argument style from an existing project:
 python scripts/keyword_builder.py --input keyword.json --project-root . --detect-embedded
 ```
 
+## Return values
+
+Use `"return_value"` to add a `RETURN` statement at the end of the keyword:
+
+```json
+{
+  "keyword_name": "Get Full Name",
+  "arguments": [{"name": "first"}, {"name": "last"}],
+  "steps": [{"assign": ["${result}"], "keyword": "Catenate", "args": ["${first}", "${last}"]}],
+  "return_value": "${result}"
+}
+```
+
+Multiple return values:
+
+```json
+"return_value": ["${var1}", "${var2}"]
+```
+
+## Notes
+
+- **RF 7+ type annotations**: Robot Framework 7 and later support type annotations
+  in `[Arguments]` using `${name}: type` syntax (e.g. `${count}: int`). This builder
+  does not yet generate that syntax; type information is recorded in `[Documentation]`
+  only.
+
 ## Output (JSON)
 - `artifact`: keyword block
 - `warnings` and `suggestions`

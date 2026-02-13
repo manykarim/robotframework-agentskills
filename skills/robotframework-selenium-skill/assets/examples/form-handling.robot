@@ -88,7 +88,7 @@ Fill Complete Registration Form
 
     # Password with confirmation
     Input Password    id=password         ${data}[password]
-    Input Password    id=confirm-password ${data}[password]
+    Input Password    id=confirm-password    ${data}[password]
 
     # Dropdown selection
     Select From List By Label    id=country    ${data}[country]

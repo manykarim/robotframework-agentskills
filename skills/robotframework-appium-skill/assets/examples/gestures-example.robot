@@ -59,12 +59,16 @@ Test Long Press For Context Menu
 
 Test Pinch To Zoom
     [Documentation]    Test pinch and zoom gestures on an image
+    ...    NOTE: Zoom (removed v3.2.0) and Pinch (removed v3.0.0) are no longer available.
+    ...    Use W3C Actions via Execute Script for multi-touch gestures instead.
     Navigate To Image Gallery
-    # Zoom in
-    Zoom    accessibility_id=gallery_image    percent=200    steps=10
+    # Zoom in using mobile: pinchOpen (W3C Actions alternative)
+    ${element}=    Get WebElement    accessibility_id=gallery_image
+    # Zoom in using W3C Actions: pass args as named parameters
+    Execute Script    mobile: pinchOpen    elementId=${element}    percent=${0.75}
     Sleep    1s
-    # Zoom out
-    Pinch    accessibility_id=gallery_image    percent=50    steps=10
+    # Zoom out using mobile: pinchClose (W3C Actions alternative)
+    Execute Script    mobile: pinchClose    elementId=${element}    percent=${0.5}
 
 Test Horizontal Carousel Swipe
     [Documentation]    Test swiping through a horizontal carousel
@@ -153,35 +157,39 @@ Navigate To Drag Drop Demo
 
 Swipe Right Dynamic
     [Documentation]    Swipe from left to right dynamically based on screen size
-    ${width}    ${height}=    Get Window Size
+    ${width}=     Get Window Width
+    ${height}=    Get Window Height
     ${start_x}=    Evaluate    int(${width} * 0.2)
     ${end_x}=      Evaluate    int(${width} * 0.8)
     ${y}=          Evaluate    ${height} // 2
-    Swipe    ${start_x}    ${y}    ${end_x}    ${y}    300
+    Swipe    start_x=${start_x}    start_y=${y}    end_x=${end_x}    end_y=${y}    duration=0:00:00.300
 
 Swipe Left Dynamic
     [Documentation]    Swipe from right to left dynamically based on screen size
-    ${width}    ${height}=    Get Window Size
+    ${width}=     Get Window Width
+    ${height}=    Get Window Height
     ${start_x}=    Evaluate    int(${width} * 0.8)
     ${end_x}=      Evaluate    int(${width} * 0.2)
     ${y}=          Evaluate    ${height} // 2
-    Swipe    ${start_x}    ${y}    ${end_x}    ${y}    300
+    Swipe    start_x=${start_x}    start_y=${y}    end_x=${end_x}    end_y=${y}    duration=0:00:00.300
 
 Swipe Up Dynamic
     [Documentation]    Swipe up (scroll down) dynamically
-    ${width}    ${height}=    Get Window Size
+    ${width}=     Get Window Width
+    ${height}=    Get Window Height
     ${x}=          Evaluate    ${width} // 2
     ${start_y}=    Evaluate    int(${height} * 0.8)
     ${end_y}=      Evaluate    int(${height} * 0.2)
-    Swipe    ${x}    ${start_y}    ${x}    ${end_y}    500
+    Swipe    start_x=${x}    start_y=${start_y}    end_x=${x}    end_y=${end_y}    duration=0:00:00.500
 
 Swipe Down Dynamic
     [Documentation]    Swipe down (scroll up) dynamically
-    ${width}    ${height}=    Get Window Size
+    ${width}=     Get Window Width
+    ${height}=    Get Window Height
     ${x}=          Evaluate    ${width} // 2
     ${start_y}=    Evaluate    int(${height} * 0.2)
     ${end_y}=      Evaluate    int(${height} * 0.8)
-    Swipe    ${x}    ${start_y}    ${x}    ${end_y}    500
+    Swipe    start_x=${x}    start_y=${start_y}    end_x=${x}    end_y=${end_y}    duration=0:00:00.500
 
 Scroll Down Until Element Visible
     [Documentation]    Scroll down until element becomes visible
@@ -197,16 +205,18 @@ Scroll Down Until Element Visible
 
 Pull To Refresh
     [Documentation]    Pull down to trigger refresh
-    ${width}    ${height}=    Get Window Size
+    ${width}=     Get Window Width
+    ${height}=    Get Window Height
     ${x}=          Evaluate    ${width} // 2
     ${start_y}=    Evaluate    int(${height} * 0.25)
     ${end_y}=      Evaluate    int(${height} * 0.75)
-    Swipe    ${x}    ${start_y}    ${x}    ${end_y}    600
+    Swipe    start_x=${x}    start_y=${start_y}    end_x=${x}    end_y=${end_y}    duration=0:00:00.600
 
 Long Press On Element
-    [Documentation]    Long press on an element
-    [Arguments]    ${locator}    ${duration}=2000
-    Long Press    ${locator}    duration=${duration}
+    [Documentation]    Long press on an element using Tap with duration
+    ...    Long Press was removed in AppiumLibrary v3.2.0.
+    [Arguments]    ${locator}    ${duration}=0:00:02
+    Tap    ${locator}    duration=${duration}
 
 Press Back If Android
     [Documentation]    Press back button on Android
@@ -216,20 +226,22 @@ Press Back If Android
 
 Swipe Carousel Next
     [Documentation]    Swipe to next carousel item
-    ${width}    ${height}=    Get Window Size
+    ${width}=     Get Window Width
+    ${height}=    Get Window Height
     ${start_x}=    Evaluate    int(${width} * 0.8)
     ${end_x}=      Evaluate    int(${width} * 0.2)
     ${y}=          Evaluate    int(${height} * 0.5)
-    Swipe    ${start_x}    ${y}    ${end_x}    ${y}    300
+    Swipe    start_x=${start_x}    start_y=${y}    end_x=${end_x}    end_y=${y}    duration=0:00:00.300
     Sleep    0.5s
 
 Swipe Carousel Previous
     [Documentation]    Swipe to previous carousel item
-    ${width}    ${height}=    Get Window Size
+    ${width}=     Get Window Width
+    ${height}=    Get Window Height
     ${start_x}=    Evaluate    int(${width} * 0.2)
     ${end_x}=      Evaluate    int(${width} * 0.8)
     ${y}=          Evaluate    int(${height} * 0.5)
-    Swipe    ${start_x}    ${y}    ${end_x}    ${y}    300
+    Swipe    start_x=${start_x}    start_y=${y}    end_x=${end_x}    end_y=${y}    duration=0:00:00.300
     Sleep    0.5s
 
 Drag Element To Element
@@ -243,7 +255,7 @@ Drag Element To Element
     ${start_y}=     Evaluate    ${src_loc['y']} + ${src_size['height']} // 2
     ${end_x}=       Evaluate    ${tgt_loc['x']} + ${tgt_size['width']} // 2
     ${end_y}=       Evaluate    ${tgt_loc['y']} + ${tgt_size['height']} // 2
-    Swipe    ${start_x}    ${start_y}    ${end_x}    ${end_y}    1000
+    Swipe    start_x=${start_x}    start_y=${start_y}    end_x=${end_x}    end_y=${end_y}    duration=0:00:01
 
 Get All List Items By Scrolling
     [Documentation]    Collect all item texts by scrolling through the list

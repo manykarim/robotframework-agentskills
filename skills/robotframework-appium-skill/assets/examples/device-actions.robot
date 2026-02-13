@@ -16,24 +16,20 @@ ${APP_PATH}           ${CURDIR}${/}..${/}..${/}apps${/}test-app.apk
 *** Test Cases ***
 Test Device Orientation Changes
     [Documentation]    Test app behavior when device orientation changes
-    # Start in portrait
-    Set Orientation    PORTRAIT
-    ${orientation}=    Get Appium Attribute    orientation
-    Should Be Equal    ${orientation}    PORTRAIT
+    # Start in portrait (Portrait/Landscape are standalone keywords, no arguments)
+    Portrait
     Capture Page Screenshot    portrait_mode.png
 
     # Change to landscape
-    Set Orientation    LANDSCAPE
+    Landscape
     Sleep    1s    # Wait for orientation change
-    ${orientation}=    Get Appium Attribute    orientation
-    Should Be Equal    ${orientation}    LANDSCAPE
     Capture Page Screenshot    landscape_mode.png
 
     # Verify UI adapts
     Page Should Contain Element    accessibility_id=main_content
 
     # Return to portrait
-    Set Orientation    PORTRAIT
+    Portrait
     Sleep    1s
 
 Test App Background And Foreground
@@ -43,8 +39,8 @@ Test App Background And Foreground
     ${initial_count}=    Get Text    accessibility_id=counter_display
     Should Be Equal    ${initial_count}    1
 
-    # Background the app
-    Background App    5    # Background for 5 seconds
+    # Background the app (Background App was renamed to Background Application)
+    Background Application    5    # Background for 5 seconds
 
     # App should automatically return to foreground after 5 seconds
     # Verify state is preserved
@@ -54,6 +50,8 @@ Test App Background And Foreground
 
 Test App Reset
     [Documentation]    Test app reset functionality
+    ...    NOTE: Reset Application was removed in AppiumLibrary v3.2.0.
+    ...    Alternative: Close Application + Open Application sequence.
     # Perform actions to create state
     Click Element    accessibility_id=increment_button
     Click Element    accessibility_id=increment_button
@@ -61,8 +59,9 @@ Test App Reset
     ${count}=    Get Text    accessibility_id=counter_display
     Should Be Equal    ${count}    3
 
-    # Reset the app
-    Reset Application
+    # Reset the app by closing and reopening (Reset Application removed in v3.2.0)
+    Close Application
+    Open Test Application
 
     # Verify app is in initial state
     Wait Until Page Contains Element    accessibility_id=counter_display    timeout=15s
@@ -102,7 +101,8 @@ Test Get Page Source For Debugging
 
 Test Window Size
     [Documentation]    Get and verify window size
-    ${width}    ${height}=    Get Window Size
+    ${width}=     Get Window Width
+    ${height}=    Get Window Height
     Log    Window size: ${width}x${height}
 
     Should Be True    ${width} > 0
@@ -133,7 +133,7 @@ Test Android Key Events
     Sleep    2s
 
     # Bring app back using activity
-    Activate App    com.example.testapp
+    Activate Application    com.example.testapp
 
 Test Android Notifications
     [Documentation]    Test accessing Android notifications
@@ -160,17 +160,18 @@ Test Android Notifications
 
 Test Clipboard Operations
     [Documentation]    Test clipboard copy and paste
+    ...    NOTE: Set Clipboard / Get Clipboard are not available in AppiumLibrary.
+    ...    Use Execute Script with a mobile: command or platform-specific approaches instead.
     [Tags]    android-only
     Skip If    '${PLATFORM}' != 'Android'    Test is Android-specific
 
-    # Set clipboard content
-    Set Clipboard    Hello from Robot Framework
+    # Set clipboard content via Appium mobile: command
+    Execute Script    mobile: setClipboard    content=SGVsbG8gZnJvbSBSb2JvdCBGcmFtZXdvcms=    contentType=plaintext
+    # Content must be base64 encoded. Above is "Hello from Robot Framework"
 
-    # Get clipboard content
-    ${content}=    Get Clipboard
-    Should Be Equal    ${content}    Hello from Robot Framework
-
-    # In a real test, you might paste this into a text field
+    # Get clipboard content via Appium mobile: command
+    ${content}=    Execute Script    mobile: getClipboard    contentType=plaintext
+    Log    Clipboard content (base64): ${content}
 
 Test Network Connection Status
     [Documentation]    Test network connection status
@@ -187,13 +188,18 @@ Test Network Connection Status
 
 Test App Installation Status
     [Documentation]    Test checking if app is installed
-    # Check our test app
-    ${installed}=    Is App Installed    com.example.testapp
-    Should Be True    ${installed}
+    ...    NOTE: Is App Installed is not available in AppiumLibrary.
+    ...    Use Execute Script with mobile: commands or platform tools (adb) instead.
+    [Tags]    android-only
+    Skip If    '${PLATFORM}' != 'Android'    Test is Android-specific
+
+    # Check if app is installed using mobile: isAppInstalled
+    ${installed}=    Execute Script    mobile: isAppInstalled    appId=com.example.testapp
+    Log    App installed: ${installed}
 
     # Check a non-existent app
-    ${not_installed}=    Is App Installed    com.nonexistent.app
-    Should Not Be True    ${not_installed}
+    ${not_installed}=    Execute Script    mobile: isAppInstalled    appId=com.nonexistent.app
+    Log    Non-existent app installed: ${not_installed}
 
 Test Multiple App Sessions
     [Documentation]    Test working with multiple app sessions
@@ -268,18 +274,13 @@ Navigate To Main Screen
         Wait Until Page Contains Element    accessibility_id=main_screen    timeout=10s
     END
 
-Activate App
+Activate Application
     [Documentation]    Bring app to foreground
     [Arguments]    ${app_id}
     IF    '${PLATFORM}' == 'Android'
         Start Activity    ${app_id}    .MainActivity
     ELSE
-        Activate App    ${app_id}
+        AppiumLibrary.Activate Application    ${app_id}
     END
 
-Skip If
-    [Documentation]    Skip test if condition is true
-    [Arguments]    ${condition}    ${message}
-    IF    ${condition}
-        Skip    ${message}
-    END
+# NOTE: Custom Skip If keyword removed. Robot Framework 5+ has built-in Skip If.

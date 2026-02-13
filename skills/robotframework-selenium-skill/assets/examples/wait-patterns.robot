@@ -43,7 +43,7 @@ Wait For Element Count
     Click Element    css=button[onclick='addElement()']
     Click Element    css=button[onclick='addElement()']
     # Verify count
-    Wait Until Element Count Is    css=.added-manually    3
+    Wait Until Keyword Succeeds    10s    1s    Verify Element Count    css=.added-manually    3
 
 Wait For Element To Be Enabled
     [Documentation]    Wait for button to become clickable
@@ -123,6 +123,12 @@ Element Count Should Differ
     ${current_count}=    Get Element Count    ${locator}
     Should Not Be Equal As Integers    ${current_count}    ${initial_count}
 
+Verify Element Count
+    [Documentation]    Verify element count equals expected value
+    [Arguments]    ${locator}    ${expected_count}
+    ${actual_count}=    Get Element Count    ${locator}
+    Should Be Equal As Integers    ${actual_count}    ${expected_count}
+
 Wait For Page Load Complete
     [Documentation]    Wait for page to fully load using JavaScript
     [Arguments]    ${timeout}=30s
@@ -145,14 +151,18 @@ jQuery Should Be Idle
     ${active}=    Execute JavaScript    return (typeof jQuery !== 'undefined') ? jQuery.active : 0
     Should Be Equal As Integers    ${active}    0
 
-Wait For Angular
-    [Documentation]    Wait for Angular to stabilize
+Wait For AngularJS
+    [Documentation]    Wait for AngularJS (1.x) to stabilize.
+    ...    NOTE: AngularJS 1.x is EOL (end-of-life since Dec 2021). These patterns
+    ...    are for legacy applications only. Modern Angular (2+) uses Zone.js and
+    ...    does not require special wait patterns -- standard explicit waits suffice.
     [Arguments]    ${timeout}=30s
     Wait Until Keyword Succeeds    ${timeout}    500ms
-    ...    Angular Should Be Stable
+    ...    AngularJS Should Be Stable
 
-Angular Should Be Stable
-    [Documentation]    Check Angular has no pending tasks
+AngularJS Should Be Stable
+    [Documentation]    Check AngularJS (1.x) has no pending requests.
+    ...    Legacy pattern -- only for AngularJS 1.x applications.
     ${stable}=    Execute JavaScript
     ...    if (window.angular) {
     ...        var injector = angular.element(document.body).injector();

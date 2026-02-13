@@ -154,7 +154,7 @@ Session With Persistent Auth
     ${response3}=    GET On Session    authenticated_api    /comments
 
     # Clean up
-    Delete Session    authenticated_api
+    Delete All Sessions
 
 Multi-Factor Authentication Simulation
     [Documentation]    Simulate 2FA login flow

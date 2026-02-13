@@ -1,6 +1,6 @@
 ---
 name: robotframework-testcase-builder
-description: Generate Robot Framework test cases from structured requirements or scenarios. Use when asked to create test cases, apply tags/setup/teardown/templates, or produce keyword-driven or BDD-style tests.
+description: Generate Robot Framework test cases from structured requirements or scenarios. Use when asked to create test cases, apply tags/setup/teardown/templates, or produce keyword-driven tests.
 ---
 
 # Robot Framework Test Case Builder
@@ -53,6 +53,26 @@ Template-driven test:
 
 ```bash
 python scripts/testcase_builder.py --input tests.json
+```
+
+## Flags
+
+- `--allow-control` -- Suppress warnings when control structures (`FOR`, `IF`,
+  `WHILE`, `TRY`, etc.) appear in test steps. Without this flag the builder
+  emits a warning for each control keyword found, encouraging you to move
+  control logic into user keywords.
+- `--input FILE` -- Path to the JSON input file (alternative to stdin).
+
+## Timeout support
+
+Add `"timeout"` to a test object to render a `[Timeout]` setting:
+
+```json
+{
+  "name": "Slow Operation",
+  "timeout": "30s",
+  "steps": [{"keyword": "Long Running Task"}]
+}
 ```
 
 ## Output (JSON)

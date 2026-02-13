@@ -575,7 +575,7 @@ Close Browser    ${browser_id}
 
 ```robotframework
 @{pages}=       Get Page Ids
-${current}=     Get Page Id    CURRENT
+${current}=     Get Page Ids    CURRENT
 @{contexts}=    Get Context Ids
 @{browsers}=    Get Browser Ids
 ```

@@ -4,7 +4,7 @@ Documentation     Basic Browser Library web testing example demonstrating
 ...               locators, auto-waiting, and assertions.
 Library           Browser    auto_closing_level=TEST
 Test Setup        Open Test Browser
-Test Teardown     Close Browser
+Test Teardown     Close Page
 
 *** Variables ***
 ${BASE_URL}       https://example.com
@@ -67,11 +67,13 @@ Get Element Attributes
 Multiple Pages In Same Test
     [Documentation]    Work with multiple pages/tabs
     Go To    ${BASE_URL}
-    ${first_page}=    Get Page Id    CURRENT
+    ${page_ids}=    Get Page Ids
+    ${first_page}=    Set Variable    ${page_ids}[0]
 
     # Open new page
     New Page    https://www.iana.org
-    ${second_page}=    Get Page Id    CURRENT
+    ${page_ids}=    Get Page Ids
+    ${second_page}=    Set Variable    ${page_ids}[-1]
     Get Title    contains    IANA
 
     # Switch back to first page

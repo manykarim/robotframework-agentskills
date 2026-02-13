@@ -203,11 +203,12 @@ GET    /users/1
 Object    response body    {"type": "object", "required": ["id", "name"]}
 ```
 
-### Schema From File
+### Schema From File (Using Expect Response Body)
 
 ```robotframework
+# Set expectation BEFORE the request
+Expect Response Body    ${CURDIR}/schemas/user.json
 GET    /users/1
-Output Schema    response body    ${CURDIR}/schemas/user.json
 ```
 
 ### Example Schema File (user.json)
@@ -286,14 +287,82 @@ GET    /users
 String    response headers Content-Type    application/json*
 ```
 
+## Expectation Keywords (Schema Validation)
+
+The correct way to validate responses against JSON Schema files is using expectation keywords BEFORE the HTTP request:
+
+### Expect Response Body
+
+```robotframework
+# Validate response body against a JSON Schema file
+Expect Response Body    ${CURDIR}/schemas/user.json
+GET    /users/1
+```
+
+### Expect Response
+
+```robotframework
+# Validate the full response (status, headers, body) against a schema
+Expect Response    ${CURDIR}/schemas/response.json
+GET    /users/1
+```
+
+### Expect Request
+
+```robotframework
+# Validate request body before sending
+Expect Request    ${CURDIR}/schemas/create-user-request.json
+POST    /users    {"name": "John", "email": "john@test.com"}
+```
+
+### Clear Expectations
+
+```robotframework
+# Remove all previously set expectations
+Clear Expectations
+GET    /users/1    # No schema validation on this request
+```
+
+## Client Configuration Keywords
+
+### SSL and Certificate Configuration
+
+```robotframework
+# Disable SSL verification
+Set SSL Verify    ${False}
+GET    /users
+
+# Set client certificate for mTLS
+Set Client Cert    ${CURDIR}/certs/client.pem
+GET    /protected
+
+# Set client authentication
+Set Client Authentication    ${USERNAME}    ${PASSWORD}
+GET    /protected
+```
+
+## Query Parameters
+
+```robotframework
+# Pass query parameters as a dict using the query parameter
+&{params}=    Create Dictionary    page=1    limit=10
+GET    /users    query=${params}
+# Results in: GET /users?page=1&limit=10
+```
+
+## Disabling Automatic Validation
+
+```robotframework
+# Disable automatic schema validation for a single request
+GET    /users/1    validate=False
+```
+
 ## When to Load Additional References
 
 Load these reference files for specific use cases:
 
-- Instance state management -> `references/instance-management.md`
-- All request keywords -> `references/request-keywords.md`
-- Deep response validation -> `references/response-validation.md`
-- JSON Schema patterns -> `references/json-schema-validation.md`
+- JSON Schema validation patterns -> `references/schema-validation.md`
+- JSON handling and manipulation -> `references/json-handling.md`
 - OAuth, JWT, API keys -> `references/authentication.md`
-- OpenAPI/Swagger testing -> `references/spec-driven-testing.md`
+- Full keyword listing -> `references/keywords-reference.md`
 - Error debugging -> `references/troubleshooting.md`

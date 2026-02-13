@@ -76,7 +76,7 @@ class CollectVisitor(ResultVisitor):
         test_name = self._test_stack[-1] if self._test_stack else ""
         if self.include_keywords:
             self.keywords.append((suite_name, test_name, keyword))
-        if (keyword.status or "").upper() == "FAIL":
+        if keyword.status.upper() == "FAIL":
             self.keyword_errors.append(
                 {
                     "keyword": keyword.name,
@@ -89,14 +89,6 @@ class CollectVisitor(ResultVisitor):
 
 
 def _critical_group(test: Any) -> str:
-    if hasattr(test, "critical"):
-        try:
-            if test.critical is True:
-                return "critical"
-            if test.critical is False:
-                return "noncritical"
-        except Exception:
-            pass
     tags = [str(t).lower() for t in list(getattr(test, "tags", []) or [])]
     if "critical" in tags:
         return "critical"
@@ -140,7 +132,11 @@ def _extract_execution_errors(result: Any) -> List[Dict[str, Any]]:
 
 def _load_result(paths: List[str], merge: bool, name: str) -> Tuple[ExecutionResult, bool]:
     if len(paths) == 1:
-        return ExecutionResult(paths[0]), False
+        try:
+            return ExecutionResult(paths[0]), False
+        except Exception as e:
+            json.dump({"error": f"Failed to parse output file: {e}"}, sys.stdout, indent=2)
+            sys.exit(1)
     tmp = tempfile.NamedTemporaryFile(delete=False, suffix=".xml")
     tmp.close()
     try:
@@ -261,7 +257,7 @@ def build_output(result: ExecutionResult, visitor: CollectVisitor, sections: Lis
             critical_stats.setdefault(group, _new_stats())
             _update_stats(critical_stats[group], test.status)
 
-            if (test.status or "").upper() == "FAIL":
+            if test.status.upper() == "FAIL":
                 key = f"{suite_name}.{test.name}"
                 keyword_path = None
                 if key in keyword_errors_by_test:
@@ -292,7 +288,7 @@ def build_output(result: ExecutionResult, visitor: CollectVisitor, sections: Lis
     if "errors" in sections:
         failed_test_messages = []
         for suite_name, test in visitor.tests:
-            if (test.status or "").upper() != "FAIL":
+            if test.status.upper() != "FAIL":
                 continue
             key = f"{suite_name}.{test.name}"
             keyword_path = None

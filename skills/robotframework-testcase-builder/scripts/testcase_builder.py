@@ -48,13 +48,25 @@ def _render_test(test: Dict[str, Any], allow_control: bool, warnings: List[str])
 
     setup = test.get("setup")
     if setup:
-        setup_args = setup.get("args", [])
-        lines.append("    [Setup]    " + "    ".join([setup.get("keyword")] + [str(a) for a in setup_args]))
+        kw = setup.get("keyword")
+        if not kw:
+            warnings.append(f"Setup provided without keyword name in test '{test['name']}' - skipping.")
+        else:
+            setup_args = setup.get("args", [])
+            lines.append("    [Setup]    " + "    ".join([kw] + [str(a) for a in setup_args]))
 
     teardown = test.get("teardown")
     if teardown:
-        teardown_args = teardown.get("args", [])
-        lines.append("    [Teardown]    " + "    ".join([teardown.get("keyword")] + [str(a) for a in teardown_args]))
+        kw = teardown.get("keyword")
+        if not kw:
+            warnings.append(f"Teardown provided without keyword name in test '{test['name']}' - skipping.")
+        else:
+            teardown_args = teardown.get("args", [])
+            lines.append("    [Teardown]    " + "    ".join([kw] + [str(a) for a in teardown_args]))
+
+    timeout = test.get("timeout")
+    if timeout:
+        lines.append(f"    [Timeout]    {timeout}")
 
     template = test.get("template")
     if template:

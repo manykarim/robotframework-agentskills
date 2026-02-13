@@ -102,7 +102,7 @@ Click    role=button[name="Submit"]
 ### Input
 
 ```robotframework
-Fill             input#username    myuser
+Fill Text        input#username    myuser
 Type Text        input#password    secret123    delay=50ms
 Check Checkbox   #remember-me
 Uncheck Checkbox    #newsletter
@@ -147,7 +147,7 @@ Take Screenshot    filename=test.png         # Named file
 Wait For Elements State    .results    visible    timeout=10s
 Wait For Elements State    .spinner    hidden
 Wait For Response          **/api/data    timeout=30s
-Wait For Navigation        url=**/success
+Wait For Navigation        url=*/success
 Wait For Load State        networkidle
 ```
 
@@ -168,8 +168,8 @@ Wait For Load State        networkidle
 Login As User
     [Arguments]    ${username}    ${password}
     New Page       ${LOGIN_URL}
-    Fill           input[name="username"]    ${username}
-    Fill           input[name="password"]    ${password}
+    Fill Text      input[name="username"]    ${username}
+    Fill Text      input[name="password"]    ${password}
     Click          button[type="submit"]
     Get Url        contains    /dashboard
 ```
@@ -193,12 +193,12 @@ Get Text    .result    contains    Success
 ### Form Validation
 
 ```robotframework
-Fill     input#email    invalid-email
-Click    button[type="submit"]
-Get Text    .error-message    contains    valid email
+Fill Text    input#email    invalid-email
+Click        button[type="submit"]
+Get Text     .error-message    contains    valid email
 
 Clear Text    input#email
-Fill          input#email    valid@example.com
+Fill Text     input#email    valid@example.com
 Click         button[type="submit"]
 Get Url       contains    /success
 ```
@@ -209,6 +209,76 @@ Get Url       contains    /success
 *** Settings ***
 Library    Browser    auto_closing_level=TEST
 Test Teardown    Run Keyword If Test Failed    Take Screenshot
+```
+
+## Additional Important Keywords
+
+### Text Input
+
+```robotframework
+# Fill Text - set input value directly (fast, fires change event)
+Fill Text        input#username    myuser
+
+# Fill Secret - same as Fill Text but value is NOT logged (for passwords)
+Fill Secret      input#password    $password
+
+# Type Text - simulate real keystrokes with optional delay
+Type Text        input#search    query    delay=50ms
+
+# Type Secret - simulate keystrokes without logging the value
+Type Secret      input#password    $password    delay=50ms
+```
+
+### Keyboard Interaction
+
+```robotframework
+# Keyboard Key - press, hold, or release a key (no selector needed, browser-level)
+Keyboard Key    press    Enter
+Keyboard Key    press    Control+c
+Keyboard Key    down     Shift
+Keyboard Key    up       Shift
+
+# Keyboard Input - type text at browser level (no selector needed)
+Keyboard Input    type    Hello World
+Keyboard Input    insertText    pasted content
+```
+
+### Advanced Waiting
+
+```robotframework
+# Wait For Condition - custom JavaScript wait condition
+Wait For Condition    Element States    h1    contains    visible
+
+# Wait Until Network Is Idle - wait for all network requests to complete
+Wait Until Network Is Idle    timeout=10s
+```
+
+### Element Collections
+
+```robotframework
+# Get Elements - returns a list of matching element handles
+@{buttons}=    Get Elements    button.action
+Length Should Be    ${buttons}    3
+```
+
+### File Upload With Promise
+
+```robotframework
+# Promise To Upload File - handle file dialogs triggered by non-input clicks
+${promise}=    Promise To Upload File    ${CURDIR}/myfile.txt
+Click    button#custom-upload
+${upload}=    Wait For    ${promise}
+```
+
+### Click With Options
+
+```robotframework
+# Click With Options - click with modifiers, position, force, etc.
+Click With Options    button#action    delay=100ms
+Click With Options    canvas#game    position_x=100    position_y=200
+Click With Options    button#submit    force=true
+Click With Options    a#link    button=right
+Click With Options    div#item    clickCount=2
 ```
 
 ## When to Load Additional References

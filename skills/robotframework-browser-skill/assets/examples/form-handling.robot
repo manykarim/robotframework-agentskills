@@ -5,7 +5,7 @@ Documentation     Form handling examples with Browser Library demonstrating
 Library           Browser    auto_closing_level=TEST
 Library           String
 Test Setup        Open Test Browser
-Test Teardown     Close Browser
+Test Teardown     Close Page
 
 *** Variables ***
 ${BASE_URL}       https://the-internet.herokuapp.com
@@ -18,8 +18,8 @@ Fill Basic Input Fields
     Go To    ${BASE_URL}/login
 
     # Fill username and password
-    Fill    input#username    tomsmith
-    Fill    input#password    SuperSecretPassword!
+    Fill Text    input#username    tomsmith
+    Fill Text    input#password    SuperSecretPassword!
 
     # Verify values were entered
     Get Property    input#username    value    ==    tomsmith
@@ -28,8 +28,8 @@ Handle Login Form
     [Documentation]    Complete login flow with form submission
     Go To    ${BASE_URL}/login
 
-    Fill    input#username    tomsmith
-    Fill    input#password    SuperSecretPassword!
+    Fill Text    input#username    tomsmith
+    Fill Text    input#password    SuperSecretPassword!
     Click    button[type="submit"]
 
     # Verify successful login
@@ -40,8 +40,8 @@ Handle Invalid Login
     [Documentation]    Verify error handling for invalid credentials
     Go To    ${BASE_URL}/login
 
-    Fill    input#username    invalid_user
-    Fill    input#password    wrong_password
+    Fill Text    input#username    invalid_user
+    Fill Text    input#password    wrong_password
     Click    button[type="submit"]
 
     # Verify error message
@@ -82,12 +82,12 @@ Clear And Retype Text
     Go To    ${BASE_URL}/login
 
     # Enter initial value
-    Fill    input#username    initial_value
+    Fill Text    input#username    initial_value
     Get Property    input#username    value    ==    initial_value
 
     # Clear and enter new value
     Clear Text    input#username
-    Fill    input#username    new_value
+    Fill Text    input#username    new_value
     Get Property    input#username    value    ==    new_value
 
 Type Text Character By Character
@@ -104,12 +104,12 @@ Press Special Keys
     Go To    ${BASE_URL}/key_presses
 
     # Press single key
-    Press Keys    input#target    Enter
-    Get Text    #result    contains    ENTER
+    Press Keys    input\#target    Enter
+    Get Text    \#result    contains    ENTER
 
     # Press key combination
-    Press Keys    input#target    Shift+a
-    Get Text    #result    contains    A
+    Press Keys    input\#target    Shift+a
+    Get Text    \#result    contains    A
 
 Form With Multiple Field Types
     [Documentation]    Handle form with various input types
@@ -117,10 +117,10 @@ Form With Multiple Field Types
     Go To    ${BASE_URL}/login
 
     # Text fields
-    Fill    input#username    test_user
+    Fill Text    input#username    test_user
 
     # Password field
-    Fill    input#password    Test123!
+    Fill Text    input#password    Test123!
 
     # Submit form
     Click    button[type="submit"]
@@ -134,8 +134,8 @@ Handle Dynamic Form Elements
     Go To    ${BASE_URL}/dynamic_loading/1
 
     Click    button    # Start loading
-    Wait For Elements State    #finish    visible    timeout=10s
-    Get Text    #finish    ==    Hello World!
+    Wait For Elements State    \#finish    visible    timeout=10s
+    Get Text    \#finish    ==    Hello World!
 
 Form Validation Error Handling
     [Documentation]    Handle and verify form validation errors
@@ -158,6 +158,6 @@ Open Test Browser
 Fill Login Form
     [Documentation]    Reusable keyword to fill login form
     [Arguments]    ${username}    ${password}
-    Fill    input#username    ${username}
-    Fill    input#password    ${password}
+    Fill Text    input#username    ${username}
+    Fill Text    input#password    ${password}
     Click    button[type="submit"]

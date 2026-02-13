@@ -162,16 +162,18 @@ def _apply_pythonpath(paths: List[str]) -> None:
 
 
 def _load_docs(libraries: List[str], resources: List[str], suites: List[str], specs: List[str],
-               name: str, version: str, doc_format: str) -> List[Any]:
+               name: str, version: str, doc_format: str,
+               errors: List[Dict[str, str]] | None = None) -> List[Any]:
     docs = []
-    for lib in libraries:
-        docs.append(libdoc.LibraryDocumentation(lib, name=name or None, version=version or None, doc_format=doc_format))
-    for resource in resources:
-        docs.append(libdoc.LibraryDocumentation(resource, name=name or None, version=version or None, doc_format=doc_format))
-    for suite in suites:
-        docs.append(libdoc.LibraryDocumentation(suite, name=name or None, version=version or None, doc_format=doc_format))
-    for spec in specs:
-        docs.append(libdoc.LibraryDocumentation(spec, name=name or None, version=version or None, doc_format=doc_format))
+    all_sources = (
+        list(libraries) + list(resources) + list(suites) + list(specs)
+    )
+    for src in all_sources:
+        try:
+            docs.append(libdoc.LibraryDocumentation(src, name=name or None, version=version or None, doc_format=doc_format))
+        except Exception as e:
+            if errors is not None:
+                errors.append({"source": src, "error": str(e)})
     return docs
 
 
@@ -259,12 +261,15 @@ def main() -> None:
     if args.pythonpath:
         _apply_pythonpath(args.pythonpath)
 
-    libs = _load_docs(args.library, args.resource, args.suite, args.spec, args.name, args.version, args.doc_format)
+    load_errors: List[Dict[str, str]] = []
+    libs = _load_docs(args.library, args.resource, args.suite, args.spec, args.name, args.version, args.doc_format, errors=load_errors)
     weights = _parse_weights(args.weights)
 
     data: Dict[str, Any] = {
         "libraries": [_library_meta(lib) for lib in libs],
     }
+    if load_errors:
+        data["errors"] = load_errors
 
     if args.keyword:
         matches = _find_keyword(libs, args.keyword, args.include_private, args.exclude_deprecated, args.tag)

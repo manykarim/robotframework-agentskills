@@ -46,9 +46,10 @@ Validate User With File Schema
     # First create schema file if needed
     Create User Schema File
 
+    # Set expectation BEFORE the request
+    Expect Response Body    ${SCHEMA_DIR}/user.json
     GET    /users/1
     Integer    response status    200
-    Output Schema    response body    ${SCHEMA_DIR}/user.json
 
 Validate Users List With File Schema
     [Documentation]    Validate users list against schema file
@@ -57,9 +58,10 @@ Validate Users List With File Schema
     # First create schema file if needed
     Create Users List Schema File
 
+    # Set expectation BEFORE the request
+    Expect Response Body    ${SCHEMA_DIR}/users-list.json
     GET    /users
     Integer    response status    200
-    Output Schema    response body    ${SCHEMA_DIR}/users-list.json
 
 Validate Post Creation Response
     [Documentation]    Validate created resource against schema
@@ -67,9 +69,10 @@ Validate Post Creation Response
 
     Create Post Schema File
 
+    # Set expectation BEFORE the request
+    Expect Response Body    ${SCHEMA_DIR}/post.json
     POST    /posts    {"title": "Test Post", "body": "Test content", "userId": 1}
     Integer    response status    201
-    Output Schema    response body    ${SCHEMA_DIR}/post.json
 
 Validate Nested Object Schema
     [Documentation]    Validate nested objects in response
@@ -225,6 +228,7 @@ Create Post Schema File
     Create File    ${SCHEMA_DIR}/post.json    ${schema}
 
 Validate Against Schema
-    [Documentation]    Reusable keyword for schema validation
-    [Arguments]    ${response_path}    ${schema_file}
-    Output Schema    ${response_path}    ${schema_file}
+    [Documentation]    Reusable keyword for schema validation.
+    ...    Sets the expectation. Must be called BEFORE the HTTP request.
+    [Arguments]    ${schema_file}
+    Expect Response Body    ${schema_file}

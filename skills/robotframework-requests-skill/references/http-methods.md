@@ -130,9 +130,6 @@ ${response}=    OPTIONS On Session myapi    /users
 ### Session Management
 
 ```robotframework
-# Delete specific session
-Delete Session    myapi
-
 # Delete all sessions
 Delete All Sessions
 ```

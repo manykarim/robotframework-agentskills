@@ -110,7 +110,7 @@ Test WebView JavaScript Execution
     Log    Number of links: ${count}
 
     # Execute JavaScript to modify DOM
-    Execute Script    document.body.style.backgroundColor = 'lightblue'
+    Execute Script    document.body.style.backgroundColor \= 'lightblue'
     Capture Page Screenshot    webview_modified.png
 
     # Return to native
@@ -230,5 +230,5 @@ Get WebView Page Source
 Fill Web Form Field
     [Documentation]    Clear and fill a web form field
     [Arguments]    ${locator}    ${value}
-    Clear Element Text    ${locator}
+    Clear Text    ${locator}
     Input Text    ${locator}    ${value}

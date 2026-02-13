@@ -5,7 +5,7 @@ Documentation     Authentication flow examples demonstrating login,
 Library           Browser    auto_closing_level=SUITE
 Library           OperatingSystem
 Suite Setup       Initialize Browser
-Suite Teardown    Close All Browsers
+Suite Teardown    Close Browser    ALL
 
 *** Variables ***
 ${BASE_URL}           https://the-internet.herokuapp.com
@@ -25,8 +25,8 @@ Login And Save Session State
     New Page    ${LOGIN_URL}
 
     # Perform login
-    Fill    input#username    ${VALID_USER}
-    Fill    input#password    ${VALID_PASS}
+    Fill Text    input#username    ${VALID_USER}
+    Fill Text    input#password    ${VALID_PASS}
     Click    button[type="submit"]
 
     # Verify successful login
@@ -34,7 +34,7 @@ Login And Save Session State
     Get Text    .flash    contains    You logged into a secure area
 
     # Save authentication state
-    Save Storage State    ${STATE_FILE}
+    Save Storage State
     File Should Exist    ${STATE_FILE}
 
     Close Context
@@ -42,8 +42,7 @@ Login And Save Session State
 Reuse Saved Authentication State
     [Documentation]    Load saved state to skip login
     [Tags]    auth    state-management
-    [Setup]    Run Keyword If    not os.path.exists($STATE_FILE)
-    ...    Fail    State file not found. Run 'Login And Save Session State' first.
+    [Setup]    Verify State File Exists
 
     # Create context with saved state
     New Context    storageState=${STATE_FILE}
@@ -64,7 +63,8 @@ Test Session Isolation Between Contexts
     New Page    ${LOGIN_URL}
     Login As    ${VALID_USER}    ${VALID_PASS}
     Get Text    .flash    contains    You logged into a secure area
-    ${ctx1}=    Get Context Id    CURRENT
+    ${context_ids}=    Get Context Ids
+    ${ctx1}=    Set Variable    ${context_ids}[0]
 
     # Context 2: Not logged in (isolated)
     New Context
@@ -125,13 +125,15 @@ Multiple Users In Separate Contexts
     New Context
     New Page    ${LOGIN_URL}
     Login As    ${VALID_USER}    ${VALID_PASS}
-    ${user1_ctx}=    Get Context Id    CURRENT
+    ${ctx_ids1}=    Get Context Ids
+    ${user1_ctx}=    Set Variable    ${ctx_ids1}[-1]
 
     # User 2 session (if we had another user, using same for demo)
     New Context
     New Page    ${LOGIN_URL}
     Login As    ${VALID_USER}    ${VALID_PASS}
-    ${user2_ctx}=    Get Context Id    CURRENT
+    ${ctx_ids2}=    Get Context Ids
+    ${user2_ctx}=    Set Variable    ${ctx_ids2}[-1]
 
     # Switch between users
     Switch Context    ${user1_ctx}
@@ -202,14 +204,18 @@ Initialize Browser
 Login As
     [Documentation]    Reusable login keyword
     [Arguments]    ${username}    ${password}
-    Fill    input#username    ${username}
-    Fill    input#password    ${password}
+    Fill Text    input#username    ${username}
+    Fill Text    input#password    ${password}
     Click    button[type="submit"]
-    Wait For Navigation
+    Wait For Navigation    url=.*
+
+Verify State File Exists
+    [Documentation]    Check that state file exists before reuse test
+    File Should Exist    ${STATE_FILE}    State file not found. Run 'Login And Save Session State' first.
 
 Perform Fresh Login And Save State
     [Documentation]    Login from scratch and save state
     New Context
     New Page    ${LOGIN_URL}
     Login As    ${VALID_USER}    ${VALID_PASS}
-    Save Storage State    ${STATE_FILE}
+    Save Storage State

@@ -74,7 +74,7 @@ Switch Page    title=*Product*    # Pattern matching
 ### Switch by Page ID
 
 ```robotframework
-${page_id}=    Get Page Id    CURRENT
+${page_id}=    Get Page Ids    CURRENT
 # ... do other things ...
 Switch Page    ${page_id}
 ```
@@ -93,7 +93,7 @@ Log    Number of open tabs: ${count}
 ### Get Current Page ID
 
 ```robotframework
-${current}=    Get Page Id    CURRENT
+${current}=    Get Page Ids    CURRENT
 Log    Current page: ${current}
 ```
 
@@ -159,19 +159,19 @@ Handle Popup And Confirm
 Compare Products In Multiple Tabs
     # Open main product page
     New Page    ${PRODUCTS_URL}
-    ${main}=    Get Page Id    CURRENT
+    ${main}=    Get Page Ids    CURRENT
 
     # Open first product in new tab
     Click    a.product-link >> nth=0
     Switch Page    NEW
-    ${product1}=    Get Page Id    CURRENT
+    ${product1}=    Get Page Ids    CURRENT
     ${price1}=    Get Text    .price
 
     # Go back and open second product
     Switch Page    ${main}
     Click    a.product-link >> nth=1
     Switch Page    NEW
-    ${product2}=    Get Page Id    CURRENT
+    ${product2}=    Get Page Ids    CURRENT
     ${price2}=    Get Text    .price
 
     # Compare prices (both tabs still open)
@@ -293,11 +293,11 @@ Test User Collaboration
 
     # Admin view
     New Page    ${ADMIN_URL}
-    ${admin_page}=    Get Page Id    CURRENT
+    ${admin_page}=    Get Page Ids    CURRENT
 
     # User view
     New Page    ${USER_URL}
-    ${user_page}=    Get Page Id    CURRENT
+    ${user_page}=    Get Page Ids    CURRENT
 
     # Admin creates content
     Switch Page    ${admin_page}

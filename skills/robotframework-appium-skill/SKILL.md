@@ -101,8 +101,8 @@ Click Element    name=Login
 # 3. ios predicate string
 Click Element    ios=type == 'XCUIElementTypeButton' AND name == 'Login'
 
-# 4. ios class chain (fast)
-Click Element    ios=**/XCUIElementTypeButton[`name == 'Login'`]
+# 4. ios class chain (fast) - NOTE: use chain= prefix for class chains
+Click Element    chain=**/XCUIElementTypeButton[`name == 'Login'`]
 
 # 5. xpath
 Click Element    xpath=//XCUIElementTypeButton[@name='Login']
@@ -120,7 +120,7 @@ Click Element           locator
 Click Text              visible_text
 Input Text              locator    text_to_enter
 Clear Text              locator
-Long Press              locator    duration=1000
+Tap                     locator    duration=0:00:01    # Long press (replaces removed Long Press)
 ```
 
 ### Getting Element Content
@@ -168,18 +168,18 @@ Log    ${source}
 ## Basic Gestures
 
 ```robotframework
-# Scroll
-Scroll Down
-Scroll Up
+# Scroll (locator is the element to scroll to/within)
+Scroll Down    locator
+Scroll Up      locator
 
-# Swipe (start_x, start_y, end_x, end_y, duration_ms)
-Swipe    500    1500    500    500    1000    # Swipe up
+# Swipe (start_x, start_y, end_x, end_y, duration as timedelta)
+Swipe    start_x=500    start_y=1500    end_x=500    end_y=500    duration=0:00:01    # Swipe up
 
-# Long press
-Long Press    locator    duration=2000
+# Long press (use Tap with duration; Long Press was removed in v3.2.0)
+Tap    locator    duration=0:00:02
 
-# Tap coordinates
-Click A Point    500    800
+# Tap at coordinates
+Tap With Positions    500    800
 ```
 
 ## Android Scroll to Element (UIAutomator2)
@@ -238,23 +238,86 @@ Go To Url    https://example.com
 ## Session Management
 
 ```robotframework
-# Close app but keep session
+# Close app and end session
 Close Application
 
-# Close app and end session
-Quit Application
-
-# Reset app (clear data)
-Reset Application
-
 # Background/foreground
-Background App    5    # Background for 5 seconds
+Background Application    5    # Background for 5 seconds
+
+# NOTE: Quit Application was removed in v3.0.0 - use Close Application instead
+# NOTE: Reset Application was removed in v3.2.0 - use Close Application + Open Application instead
+```
+
+## W3C Capabilities Format (Appium 2.x)
+
+Appium 2.x uses W3C capabilities with the `appium:` vendor prefix for non-standard capabilities:
+
+```robotframework
+Open Application    http://127.0.0.1:4723
+...    platformName=Android
+...    appium:automationName=UiAutomator2
+...    appium:app=/path/to/app.apk
+...    appium:deviceName=emulator-5554
+...    appium:autoGrantPermissions=true
+```
+
+Only `platformName` is standard W3C. All other Appium-specific capabilities need the `appium:` prefix.
+AppiumLibrary will typically add the prefix automatically, but explicitly using it is recommended for clarity.
+
+## Cloud Testing (BrowserStack / Sauce Labs)
+
+### BrowserStack
+
+```robotframework
+Open Application    http://hub-cloud.browserstack.com/wd/hub
+...    platformName=Android
+...    appium:deviceName=Google Pixel 7
+...    appium:platformVersion=13.0
+...    appium:app=bs://your_app_hash
+...    bstack:options={"userName": "${BS_USERNAME}", "accessKey": "${BS_ACCESS_KEY}"}
+```
+
+### Sauce Labs
+
+```robotframework
+Open Application    https://ondemand.us-west-1.saucelabs.com:443/wd/hub
+...    platformName=iOS
+...    appium:deviceName=iPhone 14
+...    appium:platformVersion=16
+...    appium:app=storage:filename=MyApp.ipa
+...    sauce:options={"username": "${SAUCE_USERNAME}", "accessKey": "${SAUCE_ACCESS_KEY}"}
+```
+
+## Removed Keywords and Alternatives
+
+Several keywords were removed in AppiumLibrary v3.x:
+
+| Removed Keyword | Version Removed | Alternative |
+|-----------------|-----------------|-------------|
+| `Long Press` | v3.2.0 | `Tap    locator    duration=0:00:01` |
+| `Click A Point` | v3.0.0 | `Tap With Positions    x    y` |
+| `Zoom` | v3.2.0 | Use W3C Actions via Execute Script |
+| `Pinch` | v3.0.0 | Use W3C Actions via Execute Script |
+| `Reset Application` | v3.2.0 | `Close Application` then `Open Application` |
+| `Quit Application` | v3.0.0 | `Close Application` |
+| `Background App` | v3.0.0 | `Background Application` |
+| `Get Window Size` | N/A | `Get Window Width` / `Get Window Height` |
+
+### W3C Actions for Zoom/Pinch
+
+Zoom and Pinch gestures require W3C Actions in AppiumLibrary v3.x. These can be performed
+using multi-touch sequences via the Appium driver directly if needed:
+
+```robotframework
+# Example: Use Execute Script to perform pinch/zoom via driver
+Execute Script    mobile: pinchOpen    {"elementId": "${element_id}", "percent": 0.75}
 ```
 
 ## When to Load Additional References
 
-Load additional references based on your needs:
+Reference files for deeper guidance (planned):
 
+<!-- Note: Reference files listed below are planned for future addition -->
 | Need | Reference File |
 |------|----------------|
 | Android locator strategies | `references/locators-android.md` |

@@ -216,7 +216,7 @@ Wait For Navigation
 ```robotframework
 ${url}=      Get Url
 ${title}=    Get Title
-${page_id}=  Get Page Id    CURRENT
+${page_id}=  Get Page Ids    CURRENT
 @{pages}=    Get Page Ids
 ```
 
@@ -346,7 +346,7 @@ Library    Browser    auto_closing_level=MANUAL
 *** Settings ***
 Library    Browser    auto_closing_level=KEEP
 Suite Setup    Open Test Browser
-Suite Teardown    Close All Browsers
+Suite Teardown    Close Browser    ALL
 
 *** Keywords ***
 Open Test Browser

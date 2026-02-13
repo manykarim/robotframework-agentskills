@@ -73,11 +73,15 @@ Open Browser On Grid
     Maximize Browser Window
 
 Open Browser With Capabilities
-    [Documentation]    Open browser with specific capabilities
+    [Documentation]    Open browser with specific capabilities using Selenium 4 options
     [Arguments]    ${url}    ${capabilities}
+    ${options}=    Evaluate    selenium.webdriver.ChromeOptions() if '${capabilities}[browserName]' == 'chrome' else (selenium.webdriver.FirefoxOptions() if '${capabilities}[browserName]' == 'firefox' else selenium.webdriver.EdgeOptions())    modules=selenium.webdriver
+    FOR    ${key}    IN    @{capabilities}
+        Call Method    ${options}    set_capability    ${key}    ${capabilities}[${key}]
+    END
     Open Browser    ${url}    ${capabilities}[browserName]
     ...    remote_url=${GRID_URL}
-    ...    desired_capabilities=${capabilities}
+    ...    options=${options}
 
 Create Remote Session
     [Documentation]    Create browser session and return alias

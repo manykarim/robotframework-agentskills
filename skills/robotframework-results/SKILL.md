@@ -48,6 +48,6 @@ python scripts/rf_results.py --output output.xml --sections timing --include-key
 
 ## Notes
 
-- Criticality grouping: prefer `test.critical` when available; otherwise infer from tags `critical`, `noncritical`, or `non-critical`. If neither is set, group as `unspecified`.
+- Criticality grouping: inferred from tags `critical`, `noncritical`, or `non-critical`. If none of these tags are present, the test is grouped as `unspecified`.
 - For multiple outputs, use `--merge` to mirror `rebot --merge` behavior. Without `--merge`, rebot combines outputs under a new top-level suite (name via `--name`).
 - JSON output is written to stdout. Use `--pretty` for indented JSON.

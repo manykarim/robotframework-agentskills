@@ -17,7 +17,9 @@ SeleniumLibrary provides browser automation using Selenium WebDriver. Unlike Bro
 pip install robotframework-seleniumlibrary
 ```
 
-WebDriver binaries (chromedriver, geckodriver, etc.) must be in PATH or use webdriver-manager:
+WebDriver binaries (chromedriver, geckodriver, etc.) must be in PATH. Selenium 4.6+ includes
+Selenium Manager which handles driver downloads automatically, so `executable_path` and
+`webdriver-manager` are often unnecessary with modern Selenium. For older versions:
 
 ```bash
 pip install webdriver-manager
@@ -35,7 +37,7 @@ Library    SeleniumLibrary    timeout=10s    implicit_wait=0s
 | Option | Default | Description |
 |--------|---------|-------------|
 | timeout | 5s | Default timeout for wait keywords |
-| implicit_wait | 0s | Implicit wait (not recommended) |
+| implicit_wait | 0s | Implicit wait (0s is recommended; use explicit waits instead) |
 | run_on_failure | Capture Page Screenshot | Keyword to run on failure |
 | screenshot_root_directory | None | Directory for screenshots |
 | plugins | None | Plugin modules to load |
@@ -162,6 +164,64 @@ ${value}=    Get Value             id=email
 ${attr}=     Get Element Attribute    css=a.link    href
 ${count}=    Get Element Count     css=.item
 @{elements}= Get WebElements       css=.item
+```
+
+### Windows and Tabs
+
+```robotframework
+@{handles}=          Get Window Handles
+Switch Window        MAIN                   # switch to first/main window
+Switch Window        NEW                    # switch to most recently opened window
+Switch Window        title=Page Title       # switch by title
+Switch Window        url=https://example    # switch by URL substring
+Switch Window        ${handle}              # switch by handle value
+Close Window                                # close current window (not last one)
+```
+
+### Frames (iframes)
+
+```robotframework
+Select Frame         id=my-iframe           # enter iframe by locator
+Select Frame         name=content           # enter iframe by name
+Unselect Frame                              # return to main document from any frame depth
+```
+
+### Alerts and Prompts
+
+```robotframework
+Handle Alert         action=ACCEPT          # accept alert (OK)
+Handle Alert         action=DISMISS         # dismiss alert (Cancel)
+${text}=    Handle Alert                    # get alert text and accept
+Input Text Into Alert    my input text      # type into prompt and accept
+Input Text Into Alert    text    action=DISMISS
+```
+
+### File Upload
+
+```robotframework
+Choose File    id=file-input    /path/to/file.pdf
+```
+
+### Cookies
+
+```robotframework
+${cookie}=    Get Cookie        session_id
+Add Cookie    name=theme    value=dark
+Delete Cookie    session_id
+Delete All Cookies
+```
+
+### Title Verification
+
+```robotframework
+Title Should Be          Exact Page Title
+Title Should Contain     Partial Title
+```
+
+### Location (URL) Waits
+
+```robotframework
+Wait Until Location Contains    /dashboard    timeout=10s
 ```
 
 ## Waiting Keywords (Critical)

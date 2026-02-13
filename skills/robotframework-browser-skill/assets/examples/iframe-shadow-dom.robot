@@ -4,7 +4,7 @@ Documentation     Examples for working with iframes and Shadow DOM
 ...               chained selectors, and complex nested scenarios.
 Library           Browser    auto_closing_level=TEST
 Test Setup        Open Test Browser
-Test Teardown     Close Browser
+Test Teardown     Close Page
 
 *** Variables ***
 ${BASE_URL}       https://the-internet.herokuapp.com
@@ -91,7 +91,7 @@ Interact With Shadow DOM Elements
     # For this demo, we'll just verify the syntax pattern works
     Go To    ${BASE_URL}
     Log    Shadow DOM piercing uses same >> syntax as iframes
-    Log    Example: Click    my-component >> button.internal
+    Log    Example: Click my-component >> button.internal
 
 Handle Iframe By Different Attributes
     [Documentation]    Select iframes using various attribute selectors
@@ -175,4 +175,4 @@ Get Text From Iframe
 Fill In Iframe
     [Documentation]    Helper to fill input inside iframe
     [Arguments]    ${iframe_selector}    ${input_selector}    ${value}
-    Fill    ${iframe_selector} >> ${input_selector}    ${value}
+    Fill Text    ${iframe_selector} >> ${input_selector}    ${value}

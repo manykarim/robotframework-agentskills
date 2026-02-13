@@ -4,6 +4,7 @@ Documentation     File upload and download examples with Browser Library.
 ...               and verification of file operations.
 Library           Browser    auto_closing_level=TEST
 Library           OperatingSystem
+Library           Collections
 Test Setup        Open Test Browser With Downloads
 Test Teardown     Cleanup And Close Browser
 
@@ -31,7 +32,7 @@ Upload Single File
 
     # Verify upload success
     Get Text    h3    ==    File Uploaded!
-    Get Text    #uploaded-files    contains    test-upload.txt
+    Get Text    \#uploaded-files    contains    test-upload.txt
 
 Upload Multiple Files
     [Documentation]    Upload multiple files at once
@@ -60,8 +61,10 @@ Download File
     ${link}=    Get Element    a >> nth=0
     ${filename}=    Get Text    ${link}
 
-    # Download the file
-    ${download}=    Download    ${link}
+    # Download the file using Promise pattern
+    ${promise}=    Promise To Wait For Download
+    Click    ${link}
+    ${download}=    Wait For    ${promise}
 
     # Verify download info
     Log    Downloaded: ${download}[suggestedFilename]
@@ -78,8 +81,10 @@ Download File To Specific Location
     ${link}=    Get Element    a >> nth=0
     ${target_path}=    Set Variable    ${DOWNLOAD_DIR}/my-download.txt
 
-    # Download with specific save location
-    ${download}=    Download    ${link}    saveAs=${target_path}
+    # Download with specific save location using Promise pattern
+    ${promise}=    Promise To Wait For Download    saveAs=${target_path}
+    Click    ${link}
+    ${download}=    Wait For    ${promise}
 
     # Verify file at expected location
     File Should Exist    ${target_path}
@@ -91,7 +96,9 @@ Download And Verify Content
 
     # Download first file
     ${link}=    Get Element    a >> nth=0
-    ${download}=    Download    ${link}
+    ${promise}=    Promise To Wait For Download
+    Click    ${link}
+    ${download}=    Wait For    ${promise}
 
     # Read and verify content (assuming text file)
     ${content}=    Get File    ${download}[saveAs]
@@ -112,7 +119,9 @@ Download Multiple Files
 
     FOR    ${i}    IN RANGE    ${max}
         ${link}=    Get Element    a >> nth=${i}
-        ${download}=    Download    ${link}
+        ${promise}=    Promise To Wait For Download
+        Click    ${link}
+        ${download}=    Wait For    ${promise}
         Append To List    ${downloaded_files}    ${download}[saveAs]
         Log    Downloaded: ${download}[suggestedFilename]
     END
@@ -177,7 +186,7 @@ Download With Timeout For Large Files
     Go To    ${BASE_URL}/download
 
     # For large files, use extended timeout
-    ${promise}=    Promise To Wait For Download    timeout=120s
+    ${promise}=    Promise To Wait For Download    download_timeout=120s
     Click    a >> nth=0
     ${download}=    Wait For    ${promise}
 
@@ -195,7 +204,7 @@ Verify File Type After Upload
     Click    input#file-submit
 
     # Verify the specific filename appears
-    Get Text    #uploaded-files    contains    document.txt
+    Get Text    \#uploaded-files    contains    document.txt
 
 *** Keywords ***
 Open Test Browser With Downloads
@@ -220,9 +229,11 @@ Create Test File
     Create File    ${UPLOAD_DIR}/${filename}    ${content}
 
 Download And Return Path
-    [Documentation]    Download file and return its path
+    [Documentation]    Download file by clicking element and return its path
     [Arguments]    ${selector}
-    ${download}=    Download    ${selector}
+    ${promise}=    Promise To Wait For Download
+    Click    ${selector}
+    ${download}=    Wait For    ${promise}
     RETURN    ${download}[saveAs]
 
 Upload And Verify

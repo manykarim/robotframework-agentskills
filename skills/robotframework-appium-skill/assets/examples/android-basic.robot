@@ -69,15 +69,16 @@ Test Dropdown Selection
 
 *** Keywords ***
 Open Android Application
-    [Documentation]    Opens the Android application with required capabilities
+    [Documentation]    Opens the Android application with required capabilities.
+    ...    Uses appium: vendor prefix for W3C capabilities format (Appium 2.x).
     Open Application    ${APPIUM_URL}
     ...    platformName=Android
-    ...    platformVersion=${ANDROID_VERSION}
-    ...    deviceName=${ANDROID_DEVICE}
-    ...    automationName=UiAutomator2
-    ...    app=${APP_PATH}
-    ...    autoGrantPermissions=true
-    ...    noReset=false
+    ...    appium:platformVersion=${ANDROID_VERSION}
+    ...    appium:deviceName=${ANDROID_DEVICE}
+    ...    appium:automationName=UiAutomator2
+    ...    appium:app=${APP_PATH}
+    ...    appium:autoGrantPermissions=true
+    ...    appium:noReset=false
     Handle Initial Permissions
 
 Handle Initial Permissions

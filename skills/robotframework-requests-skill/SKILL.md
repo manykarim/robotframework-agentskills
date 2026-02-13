@@ -201,16 +201,49 @@ ${response}=    GET    ${API}/users    params=${params}
 | `cookies` | Response cookies | `${response.cookies}` |
 | `elapsed` | Request duration | `${response.elapsed.total_seconds()}` |
 
+### Request Should Be Successful
+
+```robotframework
+# Verifies the response status code is in the 2xx range
+${response}=    GET    ${URL}/users
+Request Should Be Successful    ${response}
+```
+
+## Session Keywords
+
+### Specialized Session Types
+
+```robotframework
+# Client certificate authentication session
+Create Client Cert Session    alias    ${URL}    client_certs=${CURDIR}/client.pem
+
+# Digest authentication session
+Create Digest Session    alias    ${URL}    auth=${auth}
+
+# NTLM authentication session
+Create Ntlm Session    alias    ${URL}    auth=${auth}
+```
+
+## Security Warning
+
+**`Create Session` has `verify=${False}` by default -- SSL verification is OFF.**
+For production environments, always explicitly enable SSL verification:
+
+```robotframework
+# INSECURE (default) -- do NOT use in production
+Create Session    api    ${URL}
+
+# SECURE -- explicitly enable SSL verification
+Create Session    api    ${URL}    verify=${True}
+```
+
 ## When to Load Additional References
 
 Load these reference files for specific use cases:
 
-- Session management with cookies/state -> `references/sessions.md`
-- All HTTP methods and options -> `references/request-methods.md`
-- Complex JSON payloads/parsing -> `references/json-handling.md`
-- XML/SOAP APIs -> `references/xml-text-handling.md`
+- All HTTP methods and options -> `references/http-methods.md`
+- Request parameters, headers, SSL, proxies -> `references/request-options.md`
 - Response assertions -> `references/response-validation.md`
 - OAuth, JWT, API keys -> `references/authentication.md`
-- File upload/download -> `references/files-upload-download.md`
-- SSL certificates, mTLS -> `references/ssl-certificates.md`
+- Full keyword listing -> `references/keywords-reference.md`
 - Error debugging -> `references/troubleshooting.md`

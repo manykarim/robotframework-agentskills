@@ -15,30 +15,35 @@ Handle New Window
     [Documentation]    Click link that opens new window and interact with it
     [Tags]    window    popup
     Go To    ${BASE_URL}/windows
-    ${main_handle}=    Get Window Handle
+    ${handles}=    Get Window Handles
+    ${main_handle}=    Get From List    ${handles}    0
     Click Link    link=Click Here
     Switch Window    NEW
     Title Should Be    New Window
     Page Should Contain    New Window
     Close Window
     Switch Window    ${main_handle}
-    Title Should Contain    The Internet
+    ${title}=    Get Title
+    Should Contain    ${title}    The Internet
 
 Handle Multiple Windows
     [Documentation]    Work with multiple windows simultaneously
     [Tags]    window    multiple
     Go To    ${BASE_URL}/windows
-    ${main_handle}=    Get Window Handle
+    ${handles}=    Get Window Handles
+    ${main_handle}=    Get From List    ${handles}    0
 
     # Open multiple windows
     Click Link    link=Click Here
     Switch Window    NEW
-    ${window1}=    Get Window Handle
+    ${handles}=    Get Window Handles
+    ${window1}=    Get From List    ${handles}    -1
 
     Switch Window    ${main_handle}
     Click Link    link=Click Here
     Switch Window    NEW
-    ${window2}=    Get Window Handle
+    ${handles}=    Get Window Handles
+    ${window2}=    Get From List    ${handles}    -1
 
     # Verify window count
     @{all_handles}=    Get Window Handles
@@ -104,10 +109,12 @@ Work With Nested Frames
 Open New Window And Return Handle
     [Documentation]    Open new window and return its handle
     [Arguments]    ${url}
-    ${current}=    Get Window Handle
+    ${handles_before}=    Get Window Handles
+    ${current}=    Get From List    ${handles_before}    0
     Execute JavaScript    window.open('${url}', '_blank')
     Switch Window    NEW
-    ${new_handle}=    Get Window Handle
+    ${handles_after}=    Get Window Handles
+    ${new_handle}=    Get From List    ${handles_after}    -1
     RETURN    ${new_handle}
 
 Close Window And Return To Main
@@ -136,7 +143,8 @@ Window Count Should Be
 Handle Popup Window
     [Documentation]    Handle popup, interact, and return to main
     [Arguments]    ${trigger_locator}    ${popup_action_keyword}    @{action_args}
-    ${main}=    Get Window Handle
+    ${handles}=    Get Window Handles
+    ${main}=    Get From List    ${handles}    0
     Click Element    ${trigger_locator}
     Switch Window    NEW
     Wait Until Element Is Visible    tag=body
@@ -184,10 +192,11 @@ Exit All Frames
 
 Close All Popups
     [Documentation]    Close all windows except main
-    ${main}=    Switch Window    MAIN
     @{all_handles}=    Get Window Handles
+    ${main}=    Set Variable    ${all_handles}[0]
+    Switch Window    MAIN
     FOR    ${handle}    IN    @{all_handles}
-        Continue For Loop If    '${handle}' == '${main}'
+        IF    '${handle}' == '${main}'    CONTINUE
         Switch Window    ${handle}
         Close Window
     END
@@ -225,8 +234,8 @@ Handle JavaScript Alert
 
 Debug Window State
     [Documentation]    Log current window state for debugging
-    ${current}=    Get Window Handle
     @{all_handles}=    Get Window Handles
+    ${current}=    Get From List    ${all_handles}    -1
     ${count}=    Get Length    ${all_handles}
     ${title}=    Get Title
     ${url}=    Get Location

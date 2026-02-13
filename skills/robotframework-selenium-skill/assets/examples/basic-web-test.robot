@@ -34,7 +34,8 @@ Click Link And Navigate
     [Documentation]    Click a link and verify navigation
     Click Link    link=More information...
     Wait Until Location Contains    iana.org    timeout=15s
-    Title Should Contain    IANA
+    ${title}=    Get Title
+    Should Contain    ${title}    IANA
 
 Verify Element Count
     [Documentation]    Count elements matching a locator

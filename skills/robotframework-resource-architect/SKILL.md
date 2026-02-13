@@ -34,6 +34,12 @@ Write files (optional):
 python scripts/resource_architect.py --input plan.json --write
 ```
 
+Overwrite existing files (by default existing files are skipped):
+
+```bash
+python scripts/resource_architect.py --input plan.json --write --overwrite
+```
+
 ## Output (JSON)
 - `directories`: planned directory list
 - `files`: list of file paths + contents
