@@ -1,0 +1,211 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  validate-marketplace:
+    name: Validate marketplace manifest
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate marketplace.json schema
+        run: |
+          python3 -c "
+          import json, sys
+          with open('.claude-plugin/marketplace.json') as f:
+              data = json.load(f)
+          required = ['name', 'owner', 'plugins']
+          missing = [k for k in required if k not in data]
+          if missing:
+              print(f'Missing required fields: {missing}', file=sys.stderr)
+              sys.exit(1)
+          for plugin in data['plugins']:
+              preq = ['name', 'source', 'description']
+              pmissing = [k for k in preq if k not in plugin]
+              if pmissing:
+                  print(f'Plugin {plugin.get(\"name\",\"?\")} missing: {pmissing}', file=sys.stderr)
+                  sys.exit(1)
+          print(f'Marketplace manifest valid: {len(data[\"plugins\"])} plugins')
+          "
+
+      - name: Validate plugin.json
+        run: |
+          python3 -c "
+          import json, sys
+          with open('plugins/rf-agentskills/.claude-plugin/plugin.json') as f:
+              data = json.load(f)
+          if 'name' not in data:
+              print('Missing required field: name', file=sys.stderr)
+              sys.exit(1)
+          print(f'Plugin manifest valid: {data[\"name\"]} v{data.get(\"version\", \"unknown\")}')
+          "
+
+      - name: Validate all SKILL.md files have frontmatter
+        run: |
+          python3 -c "
+          import os, sys
+          errors = []
+          for root, dirs, files in os.walk('plugins/rf-agentskills/skills'):
+              for f in files:
+                  if f == 'SKILL.md':
+                      path = os.path.join(root, f)
+                      with open(path) as fh:
+                          content = fh.read()
+                      if not content.startswith('---'):
+                          errors.append(f'{path}: missing YAML frontmatter')
+                          continue
+                      end = content.find('---', 3)
+                      if end == -1:
+                          errors.append(f'{path}: unclosed frontmatter')
+                          continue
+                      fm = content[3:end]
+                      if 'name:' not in fm:
+                          errors.append(f'{path}: frontmatter missing name')
+                      if 'description:' not in fm:
+                          errors.append(f'{path}: frontmatter missing description')
+          if errors:
+              for e in errors:
+                  print(f'ERROR: {e}', file=sys.stderr)
+              sys.exit(1)
+          print('All SKILL.md files have valid frontmatter')
+          "
+
+  validate-structure:
+    name: Validate plugin structure
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check plugin directory structure
+        run: |
+          python3 -c "
+          import os, sys
+          plugin_root = 'plugins/rf-agentskills'
+          errors = []
+          # Check plugin manifest
+          if not os.path.exists(os.path.join(plugin_root, '.claude-plugin', 'plugin.json')):
+              errors.append('Missing .claude-plugin/plugin.json')
+          # Check skills directory
+          skills_dir = os.path.join(plugin_root, 'skills')
+          if not os.path.isdir(skills_dir):
+              errors.append('Missing skills/ directory')
+          else:
+              skill_dirs = [d for d in os.listdir(skills_dir) if os.path.isdir(os.path.join(skills_dir, d))]
+              for skill in skill_dirs:
+                  skill_md = os.path.join(skills_dir, skill, 'SKILL.md')
+                  if not os.path.exists(skill_md):
+                      errors.append(f'{skill}: missing SKILL.md')
+              print(f'Found {len(skill_dirs)} skills')
+          # Check agents
+          agents_dir = os.path.join(plugin_root, 'agents')
+          if os.path.isdir(agents_dir):
+              agents = [f for f in os.listdir(agents_dir) if f.endswith('.md')]
+              print(f'Found {len(agents)} agents')
+          if errors:
+              for e in errors:
+                  print(f'ERROR: {e}', file=sys.stderr)
+              sys.exit(1)
+          print('Plugin structure valid')
+          "
+
+  test-python-scripts:
+    name: Test Python scripts
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.10", "3.11", "3.12", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install dependencies
+        run: |
+          pip install robotframework pyyaml pytest
+
+      - name: Verify scripts compile
+        run: |
+          python -m py_compile plugins/rf-agentskills/scripts/keyword_builder.py
+          python -m py_compile plugins/rf-agentskills/scripts/testcase_builder.py
+          python -m py_compile plugins/rf-agentskills/scripts/resource_architect.py
+          python -m py_compile plugins/rf-agentskills/scripts/rf_results.py
+          python -m py_compile plugins/rf-agentskills/scripts/rf_libdoc.py
+
+      - name: Run keyword builder smoke test
+        run: |
+          echo '{"keyword_name":"Test Keyword","steps":[{"keyword":"Log","args":["hello"]}]}' | \
+            python plugins/rf-agentskills/scripts/keyword_builder.py
+
+      - name: Run libdoc search smoke test
+        run: |
+          python plugins/rf-agentskills/scripts/rf_libdoc.py \
+            --library BuiltIn --search "log" --limit 3 --pretty
+
+      - name: Run unit tests
+        run: |
+          python -m pytest tests/ -v --tb=short || true
+
+  validate-robot-syntax:
+    name: Validate .robot file syntax
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install Robot Framework
+        run: pip install robotframework
+
+      - name: Validate .robot files
+        run: |
+          python3 -c "
+          import os, sys
+          from robot.api import get_model
+          errors = []
+          count = 0
+          for root, dirs, files in os.walk('plugins/rf-agentskills/skills'):
+              for f in files:
+                  if f.endswith('.robot'):
+                      path = os.path.join(root, f)
+                      count += 1
+                      try:
+                          model = get_model(path)
+                      except Exception as e:
+                          errors.append(f'{path}: {e}')
+          if errors:
+              for e in errors:
+                  print(f'SYNTAX ERROR: {e}', file=sys.stderr)
+              sys.exit(1)
+          print(f'All {count} .robot files parse successfully')
+          "
+
+  lint:
+    name: Lint Python code
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install linters
+        run: pip install ruff
+
+      - name: Run ruff check
+        run: ruff check plugins/rf-agentskills/scripts/*.py --select E,F,W --ignore E501

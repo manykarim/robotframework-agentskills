@@ -1,0 +1,113 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  validate:
+    name: Pre-release validation
+    uses: ./.github/workflows/ci.yml
+
+  release:
+    name: Create GitHub Release
+    needs: validate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Extract version from tag
+        id: version
+        run: echo "version=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+
+      - name: Verify marketplace.json version matches tag
+        run: |
+          python3 -c "
+          import json, sys
+          with open('marketplace.json') as f:
+              data = json.load(f)
+          expected = '${{ steps.version.outputs.version }}'
+          actual = data.get('version', '')
+          if actual != expected:
+              print(f'Version mismatch: marketplace.json has \"{actual}\", tag is \"{expected}\"', file=sys.stderr)
+              sys.exit(1)
+          print(f'Version verified: {actual}')
+          "
+
+      - name: Generate changelog from commits
+        id: changelog
+        run: |
+          PREV_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || git rev-list --max-parents=0 HEAD)
+          echo "## Changes since ${PREV_TAG}" > CHANGELOG_BODY.md
+          echo "" >> CHANGELOG_BODY.md
+          git log ${PREV_TAG}..HEAD --pretty=format:"- %s (%h)" --no-merges >> CHANGELOG_BODY.md
+          echo "" >> CHANGELOG_BODY.md
+          echo "" >> CHANGELOG_BODY.md
+
+          # List skills included
+          echo "## Skills Included" >> CHANGELOG_BODY.md
+          echo "" >> CHANGELOG_BODY.md
+          for skill_dir in skills/*/; do
+            skill_name=$(basename "$skill_dir")
+            if [ -f "${skill_dir}SKILL.md" ]; then
+              desc=$(head -5 "${skill_dir}SKILL.md" | grep "^description:" | sed 's/^description: //')
+              echo "- **${skill_name}**: ${desc}" >> CHANGELOG_BODY.md
+            fi
+          done
+          echo "" >> CHANGELOG_BODY.md
+
+          echo "## Installation" >> CHANGELOG_BODY.md
+          echo "" >> CHANGELOG_BODY.md
+          echo '```' >> CHANGELOG_BODY.md
+          echo '/plugin marketplace add manykarim/robotframework-agentskills' >> CHANGELOG_BODY.md
+          echo '/plugin install <skill-name>@robotframework-agentskills' >> CHANGELOG_BODY.md
+          echo '```' >> CHANGELOG_BODY.md
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          body_path: CHANGELOG_BODY.md
+          draft: false
+          prerelease: ${{ contains(github.ref_name, '-rc') || contains(github.ref_name, '-beta') || contains(github.ref_name, '-alpha') }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  update-branches:
+    name: Update release channel branches
+    needs: release
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Update stable branch
+        run: |
+          git checkout -B stable "$GITHUB_REF_NAME"
+          git push origin stable --force
+
+      - name: Update latest branch
+        run: |
+          git checkout -B latest "$GITHUB_REF_NAME"
+          git push origin latest --force
+
+      - name: Create release branch if minor/major
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          MAJOR=$(echo "$VERSION" | cut -d. -f1)
+          MINOR=$(echo "$VERSION" | cut -d. -f2)
+          BRANCH="release/${MAJOR}.${MINOR}"
+
+          if ! git ls-remote --heads origin "$BRANCH" | grep -q "$BRANCH"; then
+            git checkout -b "$BRANCH" "$GITHUB_REF_NAME"
+            git push origin "$BRANCH"
+            echo "Created branch $BRANCH"
+          else
+            echo "Branch $BRANCH already exists -- skipping"
+          fi

@@ -1,0 +1,17 @@
+{
+  "name": "rf-agentskills",
+  "version": "1.0.0",
+  "description": "Robot Framework agent skills for Claude Code - library references, test/keyword/resource generators, libdoc search, and results analysis",
+  "author": {
+    "name": "manykarim",
+    "email": "manykarim@users.noreply.github.com"
+  },
+  "homepage": "https://github.com/manykarim/robotframework-agentskills",
+  "repository": "https://github.com/manykarim/robotframework-agentskills",
+  "license": "Apache-2.0",
+  "keywords": [
+    "robotframework", "testing", "automation", "web-testing",
+    "api-testing", "mobile-testing", "playwright", "selenium",
+    "appium", "requests", "restinstance"
+  ]
+}

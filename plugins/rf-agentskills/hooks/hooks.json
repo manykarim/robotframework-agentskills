@@ -1,0 +1,48 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/scripts/validate_robot.sh"
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "prompt",
+            "prompt": "Before responding, check if this request involves Robot Framework test automation. If it does, consider which of the available RF skills and agents are relevant:\n\n**Agents** (for complex multi-step work):\n- `rf-test-architect`: Planning test suites, selecting libraries, designing project structure\n- `rf-debug-expert`: Analyzing test failures from output.xml, diagnosing flaky tests\n- `rf-keyword-consultant`: Finding, explaining, and comparing RF keywords across libraries\n- `rf-migration-guide`: Upgrading RF versions, migrating between test libraries\n\n**Skills** (for specific generation tasks):\n- `robotframework-browser-skill`: Creating Browser Library (Playwright) web tests\n- `robotframework-selenium-skill`: Creating SeleniumLibrary web tests\n- `robotframework-appium-skill`: Creating AppiumLibrary mobile tests\n- `robotframework-requests-skill`: Creating RequestsLibrary API tests\n- `robotframework-restinstance-skill`: Creating RESTinstance API tests\n- `robotframework-keyword-builder`: Generating user keyword definitions (script)\n- `robotframework-testcase-builder`: Generating test case structures (script)\n- `robotframework-resource-architect`: Designing resource/variable layouts (script)\n- `robotframework-libdoc-search`: Searching library keywords by use case (script)\n- `robotframework-libdoc-explain`: Explaining keyword arguments and docs (script)\n- `robotframework-results`: Parsing output.xml for test results (script)\n\nIf the request is RF-related, load the appropriate skill SKILL.md first, then use reference files only when deeper detail is needed. For script-based skills, run the Python scripts via bash with JSON input/output."
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/scripts/check_rf_environment.sh"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "prompt",
+            "prompt": "If you generated or modified any .robot or .resource files during this session, remind the user to:\n1. Run the test suite to verify: `robot --outputdir results tests/`\n2. Check results with: `python scripts/rf_results.py --output results/output.xml --sections summary,errors --pretty`\n3. Review the generated HTML report at `results/report.html`"
+          }
+        ]
+      }
+    ]
+  }
+}

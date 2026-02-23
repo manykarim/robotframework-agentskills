@@ -1,75 +1,165 @@
-# Agent Skills for Robot Framework
+# Robot Framework Agent Skills for Claude Code
 
-This repo packages Agent Skills that help create and analyze Robot Framework assets (keywords, tests, resources, and results). It also contains example scripts that can be used by agents or humans.
+A Claude Code plugin marketplace providing AI agent skills for Robot Framework test automation. Includes skills for web testing (Browser/Selenium), API testing (Requests/RESTinstance), mobile testing (Appium), asset generation, and RF analysis tools.
+
+## Quick Install
+
+```bash
+# Add the marketplace
+/plugin marketplace add manykarim/robotframework-agentskills
+
+# Install the plugin
+/plugin install rf-agentskills@robotframework-agentskills
+```
+
+## What You Get
+
+### 11 Skills
+
+| Skill | Command | Description |
+|-------|---------|-------------|
+| Browser Library | `/rf-agentskills:browser` | Web testing with Playwright (auto-waiting, assertions, Shadow DOM) |
+| SeleniumLibrary | `/rf-agentskills:selenium` | Web testing with Selenium WebDriver |
+| AppiumLibrary | `/rf-agentskills:appium` | Mobile testing for iOS and Android |
+| RequestsLibrary | `/rf-agentskills:requests` | REST API testing with HTTP methods |
+| RESTinstance | `/rf-agentskills:restinstance` | REST API testing with JSON Schema validation |
+| Keyword Builder | `/rf-agentskills:keyword-builder` | Generate RF user keywords from structured input |
+| Test Case Builder | `/rf-agentskills:testcase-builder` | Generate RF test cases from structured input |
+| Resource Architect | `/rf-agentskills:resource-architect` | Design resource/variable file layouts |
+| Libdoc Search | `/rf-agentskills:libdoc-search` | Search library keywords by use case |
+| Libdoc Explain | `/rf-agentskills:libdoc-explain` | Explain keyword arguments and documentation |
+| Results | `/rf-agentskills:results` | Parse output.xml into JSON summaries |
+
+### 4 Specialized Agents
+
+| Agent | Purpose |
+|-------|---------|
+| RF Test Architect | Plan test suites, select libraries, design project structure |
+| RF Debug Expert | Diagnose test failures, analyze output.xml, fix flaky tests |
+| RF Keyword Consultant | Find, explain, and compare keywords across libraries |
+| RF Migration Guide | Upgrade RF versions, migrate between libraries |
+
+### Automated Hooks
+
+- **Post-save validation**: Automatically validates `.robot` files after every write/edit
+- **Skill routing**: Routes RF-related prompts to the appropriate skill or agent
+- **Environment check**: Checks for installed RF packages at session start
+- **Test reminder**: Reminds you to run tests when the session ends
+
+## Prerequisites
+
+- **Claude Code** 1.0.33 or later
+- **Python 3.8+** (for builder and tool scripts)
+- **robotframework** Python package (required for libdoc-search, libdoc-explain, and results skills)
+
+```bash
+pip install robotframework
+```
+
+Optional libraries (for their respective skills):
+```bash
+pip install robotframework-browser    # Browser skill
+pip install robotframework-seleniumlibrary  # Selenium skill
+pip install robotframework-appiumlibrary    # Appium skill
+pip install robotframework-requests   # Requests skill
+pip install RESTinstance              # RESTinstance skill
+```
+
+## Team Distribution
+
+Add to your project's `.claude/settings.json` to auto-configure for your team:
+
+```json
+{
+  "extraKnownMarketplaces": {
+    "robotframework-agentskills": {
+      "source": {
+        "source": "github",
+        "repo": "manykarim/robotframework-agentskills",
+        "ref": "stable"
+      }
+    }
+  },
+  "enabledPlugins": {
+    "rf-agentskills@robotframework-agentskills": true
+  }
+}
+```
+
+## Standalone Usage (Without Marketplace)
+
+You can also use the skills directly without the marketplace by loading the plugin directory:
+
+```bash
+claude --plugin-dir ./plugins/rf-agentskills
+```
+
+Or copy the `skills/` directory to your project's `.claude/skills/` for standalone skill usage without the plugin system.
 
 ## What is an Agent Skill?
 
-Agent Skills are modular, self-contained packages that include a `SKILL.md` file (instructions) plus optional scripts/resources/assets. Agents load a skill when its name/description matches the user request. Skills are designed for progressive disclosure: only metadata is always available; the full skill body and resources are loaded only when needed.
+Agent Skills are modular, self-contained packages that include a `SKILL.md` file (instructions) plus optional scripts, references, and assets. AI agents load a skill when its name or description matches the user request. Skills use progressive disclosure: only metadata is loaded initially; the full skill body and references are loaded on demand.
 
-## Where skills live
-
-This repo keeps skills under the `skills/` directory. Each skill has its own folder with a `SKILL.md` and optional `scripts/`, `references/`, and `assets/` subfolders. 
-
-Common layout:
+## Project Structure
 
 ```
-skills/
-  <skill-name>/
-    SKILL.md
-    scripts/
-    references/
-    assets/
+robotframework-agentskills/
+  .claude-plugin/
+    marketplace.json          # Marketplace catalog
+  plugins/
+    rf-agentskills/           # The plugin
+      .claude-plugin/
+        plugin.json           # Plugin manifest
+      skills/                 # 11 RF skills
+        browser/              # Browser Library skill
+        selenium/             # SeleniumLibrary skill
+        appium/               # AppiumLibrary skill
+        requests/             # RequestsLibrary skill
+        restinstance/         # RESTinstance skill
+        keyword-builder/      # Keyword generation
+        testcase-builder/     # Test case generation
+        resource-architect/   # Resource/variable design
+        libdoc-search/        # Library keyword search
+        libdoc-explain/       # Keyword documentation
+        results/              # output.xml analysis
+      agents/                 # 4 specialized agents
+      hooks/                  # Automated event hooks
+      scripts/                # Python scripts + hook helpers
+      servers/                # Optional MCP server
+  skills/                     # Original skills (standalone usage)
 ```
 
-## Available skills
+## Development
 
-- `robotframework-results` – read Robot Framework `output.xml` and produce JSON summaries, details, errors, and timing.
-- `robotframework-libdoc-search` – search library/resource keywords by use case via libdoc.
-- `robotframework-libdoc-explain` – explain a keyword and its arguments via libdoc.
-- `robotframework-keyword-builder` – generate user keywords from structured input.
-- `robotframework-testcase-builder` – generate test cases from structured input.
-- `robotframework-resource-architect` – propose resource/variable structure and optionally write files.
-
-## Usage pattern
-
-Most skills here are operated via their bundled scripts. Each script takes JSON input and returns JSON output, so it can be called by an agent or from the CLI.
-
-Examples:
+### Validate the marketplace locally
 
 ```bash
-# Keyword builder
-python skills/robotframework-keyword-builder/scripts/keyword_builder.py --input keyword.json
-
-# Test case builder
-python skills/robotframework-testcase-builder/scripts/testcase_builder.py --input tests.json
-
-# Resource architect
-python skills/robotframework-resource-architect/scripts/resource_architect.py --input plan.json --write
-
-# Results reader
-python skills/robotframework-results/scripts/rf_results.py --output output.xml --sections summary,details
-
-# Libdoc search
-python skills/robotframework-libdoc-search/scripts/rf_libdoc.py --library BuiltIn --search "create file" --pretty
+python scripts/validate-marketplace.py
 ```
 
-## Notes on compatibility
+### Run tests
 
-- These skills target Robot Framework 7+.
-- For YAML variable files, install `pyyaml` in the active virtual environment.
-- When merging multiple `output.xml` files, rebot `--merge` only works if root suite names match; otherwise the results are combined under a new top-level suite. 
+```bash
+pip install pytest robotframework
+pytest tests/ -v
+```
 
-## Cross-agent compatibility
+### Test the plugin locally
 
-Agent Skills are an open standard supported by multiple agent systems. GitHub Copilot recognizes skills from project folders (for example `.github/skills` or `.claude/skills`) and from user-level folders. You can relocate or copy `skills/` to a supported location if needed. 
+```bash
+claude --plugin-dir ./plugins/rf-agentskills
+```
 
-## Adding new skills
+## Compatibility
 
-1) Create a new folder under `skills/` with a `SKILL.md` file.
-2) Add scripts/resources/assets as needed.
-3) Keep `SKILL.md` concise and link to references for large details.
+- Robot Framework 7+ (uses modern syntax: RETURN, IF/ELSE, TRY/EXCEPT)
+- Python 3.8+
+- Claude Code 1.0.33+
 
-## References
+## Cross-Agent Compatibility
 
-- Anthropic Agent Skills overview
-- GitHub Copilot Agent Skills overview
+Agent Skills are an open standard supported by multiple agent systems. The `skills/` directory at the repository root provides standalone skill access for systems that don't use the Claude Code plugin format (e.g., GitHub Copilot).
+
+## License
+
+Apache-2.0

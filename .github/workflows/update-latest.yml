@@ -1,0 +1,26 @@
+name: Update Latest Branch
+
+on:
+  workflow_run:
+    workflows: ["CI"]
+    types: [completed]
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  update-latest:
+    name: Fast-forward latest to main
+    runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Update latest branch
+        run: |
+          git checkout -B latest origin/main
+          git push origin latest --force
+          echo "Updated latest branch to $(git rev-parse --short HEAD)"
