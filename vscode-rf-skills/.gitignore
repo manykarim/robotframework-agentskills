@@ -1,0 +1,7 @@
+node_modules/
+dist/
+.vscode-test/
+*.vsix
+media/icon.png
+__pycache__/
+.pytest_cache/

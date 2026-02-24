@@ -1,0 +1,92 @@
+{
+    "Selenium Open Browser Setup": {
+        "prefix": "rf-selenium-setup",
+        "scope": "robotframework",
+        "body": [
+            "*** Settings ***",
+            "Library           SeleniumLibrary    timeout=${1:10s}",
+            "Suite Setup       Open Browser    \\${URL}    ${2|chrome,firefox,edge,headless_chrome,headless_firefox,headless_edge|}",
+            "Suite Teardown    Close All Browsers",
+            "Test Setup        Go To    \\${URL}",
+            "",
+            "*** Variables ***",
+            "\\${URL}    ${3:https://example.com}",
+            "",
+            "*** Test Cases ***",
+            "${4:Test Name}",
+            "    $0"
+        ],
+        "description": "Full SeleniumLibrary test setup with Open Browser, Suite/Test Setup, and Close All Browsers teardown"
+    },
+    "Selenium Click Element": {
+        "prefix": "rf-selenium-click",
+        "scope": "robotframework",
+        "body": [
+            "Click Element    ${1|id=,css=,xpath=,name=,link=|}${2:locator}$0"
+        ],
+        "description": "Click Element with locator strategy prefix (id=, css=, xpath=, name=, link=)"
+    },
+    "Selenium Input Text": {
+        "prefix": "rf-selenium-input",
+        "scope": "robotframework",
+        "body": [
+            "Input Text    ${1:id=field}    ${2:value}$0"
+        ],
+        "description": "Input Text into a field. Use Input Password for password fields to mask log output."
+    },
+    "Selenium Wait Until Element Is Visible": {
+        "prefix": "rf-selenium-wait-visible",
+        "scope": "robotframework",
+        "body": [
+            "Wait Until Element Is Visible    ${1:locator}    timeout=${2:10s}$0"
+        ],
+        "description": "Wait Until Element Is Visible with timeout. SeleniumLibrary requires explicit waits."
+    },
+    "Selenium Wait Until Page Contains": {
+        "prefix": "rf-selenium-wait-text",
+        "scope": "robotframework",
+        "body": [
+            "Wait Until Page Contains    ${1:expected text}    timeout=${2:10s}$0"
+        ],
+        "description": "Wait Until Page Contains text. Also see Wait Until Element Contains for element-specific text."
+    },
+    "Selenium Login Keyword": {
+        "prefix": "rf-selenium-login",
+        "scope": "robotframework",
+        "body": [
+            "${1:Login}",
+            "    [Arguments]    \\${username}    \\${password}",
+            "    Open Browser    \\${${2:LOGIN_URL}}    ${3|chrome,firefox,edge|}",
+            "    Wait Until Element Is Visible    ${4:id=username}",
+            "    Input Text      ${4:id=username}    \\${username}",
+            "    Input Password  ${5:id=password}    \\${password}",
+            "    Click Button    ${6:id=submit}",
+            "    Wait Until Page Contains    ${7:Welcome}$0"
+        ],
+        "description": "Login keyword with explicit waits, Input Text, Input Password, and page text verification"
+    },
+    "Selenium Select From List By Value": {
+        "prefix": "rf-selenium-select",
+        "scope": "robotframework",
+        "body": [
+            "Select From List By ${1|Value,Label,Index|}    ${2:id=dropdown}    ${3:option}$0"
+        ],
+        "description": "Select From List By Value, Label, or Index for dropdown/select elements"
+    },
+    "Selenium Execute JavaScript": {
+        "prefix": "rf-selenium-js",
+        "scope": "robotframework",
+        "body": [
+            "\\${result}=    Execute JavaScript    ${1:return document.title}$0"
+        ],
+        "description": "Execute JavaScript in browser and capture the return value"
+    },
+    "Selenium Capture Page Screenshot": {
+        "prefix": "rf-selenium-screenshot",
+        "scope": "robotframework",
+        "body": [
+            "Capture Page Screenshot    ${1:\\${OUTPUT_DIR\\}/screenshot.png}$0"
+        ],
+        "description": "Capture Page Screenshot with optional filename. Also see Capture Element Screenshot for specific elements."
+    }
+}

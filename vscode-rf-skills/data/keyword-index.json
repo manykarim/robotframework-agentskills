@@ -1,0 +1,1383 @@
+{
+  "libraries": [
+    {
+      "name": "Browser",
+      "version": "18.x",
+      "categories": [
+        {
+          "name": "Navigation",
+          "keywords": [
+            {
+              "name": "New Browser",
+              "args": [
+                { "name": "browser", "type": "str", "default": "chromium", "required": false },
+                { "name": "headless", "type": "bool", "default": "true", "required": false }
+              ],
+              "shortDoc": "Opens a new browser instance (chromium, firefox, or webkit).",
+              "doc": "Opens a new browser instance. Supported browsers are chromium, firefox, and webkit. The browser process is shared across contexts. Use headless=false for headed mode during development.",
+              "tags": ["navigation", "browser"],
+              "deprecated": false
+            },
+            {
+              "name": "New Context",
+              "args": [
+                { "name": "viewport", "type": "dict", "default": "", "required": false }
+              ],
+              "shortDoc": "Creates a new isolated browser context with its own cookies, localStorage, and cache.",
+              "doc": "Creates a new isolated browser context. Each context has its own cookies, localStorage, and cache. Useful for multi-user scenarios or clean test isolation. Example viewport: {'width': 1920, 'height': 1080}.",
+              "tags": ["navigation", "context"],
+              "deprecated": false
+            },
+            {
+              "name": "New Page",
+              "args": [
+                { "name": "url", "type": "str", "default": "", "required": false }
+              ],
+              "shortDoc": "Opens a new page (tab) in the current context and optionally navigates to a URL.",
+              "doc": "Opens a new page (tab) in the current browser context. If a URL is provided, navigates to it immediately. The new page becomes the active page for subsequent keywords.",
+              "tags": ["navigation", "page"],
+              "deprecated": false
+            },
+            {
+              "name": "Go To",
+              "args": [
+                { "name": "url", "type": "str", "default": "", "required": true }
+              ],
+              "shortDoc": "Navigates the current page to the given URL.",
+              "doc": "Navigates the current page to the specified URL. Waits for the page to reach the load state before returning.",
+              "tags": ["navigation"],
+              "deprecated": false
+            },
+            {
+              "name": "Go Back",
+              "args": [],
+              "shortDoc": "Navigates the current page back in browser history.",
+              "doc": "Navigates the current page back in browser history, equivalent to clicking the browser back button.",
+              "tags": ["navigation"],
+              "deprecated": false
+            },
+            {
+              "name": "Reload",
+              "args": [],
+              "shortDoc": "Reloads the current page.",
+              "doc": "Reloads the current page. Waits for the page to reach the load state before returning.",
+              "tags": ["navigation"],
+              "deprecated": false
+            }
+          ]
+        },
+        {
+          "name": "Interaction",
+          "keywords": [
+            {
+              "name": "Click",
+              "args": [
+                { "name": "selector", "type": "str", "default": "", "required": true }
+              ],
+              "shortDoc": "Clicks the element matching the selector. Auto-waits for the element to be actionable.",
+              "doc": "Clicks the element matching the given selector. Browser Library automatically waits for the element to be visible, stable, enabled, and able to receive events before clicking.",
+              "tags": ["interaction", "click"],
+              "deprecated": false
+            },
+            {
+              "name": "Fill Text",
+              "args": [
+                { "name": "selector", "type": "str", "default": "", "required": true },
+                { "name": "text", "type": "str", "default": "", "required": true }
+              ],
+              "shortDoc": "Sets the value of an input field directly. Fast, fires the change event.",
+              "doc": "Fills a text input with the given text by setting the value directly. This is fast and fires the change event. Use Type Text for keystroke simulation.",
+              "tags": ["interaction", "input"],
+              "deprecated": false
+            },
+            {
+              "name": "Type Text",
+              "args": [
+                { "name": "selector", "type": "str", "default": "", "required": true },
+                { "name": "text", "type": "str", "default": "", "required": true },
+                { "name": "delay", "type": "str", "default": "0ms", "required": false }
+              ],
+              "shortDoc": "Simulates real keystrokes into the input field with optional delay between keys.",
+              "doc": "Types the given text into the element by simulating real keystrokes. Useful when the application relies on keydown/keypress/keyup events. The delay parameter controls time between keystrokes.",
+              "tags": ["interaction", "input"],
+              "deprecated": false
+            },
+            {
+              "name": "Fill Secret",
+              "args": [
+                { "name": "selector", "type": "str", "default": "", "required": true },
+                { "name": "secret", "type": "str", "default": "", "required": true }
+              ],
+              "shortDoc": "Same as Fill Text but the value is NOT logged (for passwords).",
+              "doc": "Fills a text input with the given secret value. Same as Fill Text but the value is masked in logs. Use for passwords and sensitive data.",
+              "tags": ["interaction", "input", "security"],
+              "deprecated": false
+            },
+            {
+              "name": "Check Checkbox",
+              "args": [
+                { "name": "selector", "type": "str", "default": "", "required": true }
+              ],
+              "shortDoc": "Checks the checkbox matching the selector.",
+              "doc": "Checks the checkbox matching the given selector. If the checkbox is already checked, this keyword does nothing.",
+              "tags": ["interaction", "checkbox"],
+              "deprecated": false
+            },
+            {
+              "name": "Select Options By",
+              "args": [
+                { "name": "selector", "type": "str", "default": "", "required": true },
+                { "name": "attribute", "type": "str", "default": "", "required": true },
+                { "name": "value", "type": "str", "default": "", "required": true }
+              ],
+              "shortDoc": "Selects options from a select element by value, label, text, or index.",
+              "doc": "Selects options in a <select> element. The attribute parameter specifies how to match: 'value', 'label', 'text', or 'index'.",
+              "tags": ["interaction", "dropdown"],
+              "deprecated": false
+            }
+          ]
+        },
+        {
+          "name": "Getters",
+          "keywords": [
+            {
+              "name": "Get Text",
+              "args": [
+                { "name": "selector", "type": "str", "default": "", "required": true },
+                { "name": "assertion_operator", "type": "str", "default": "", "required": false },
+                { "name": "assertion_expected", "type": "str", "default": "", "required": false }
+              ],
+              "shortDoc": "Returns the text content of the element. Supports inline assertions.",
+              "doc": "Returns the text content of the element matching the selector. When assertion_operator and assertion_expected are provided, validates the text inline (e.g., Get Text h1 == Welcome).",
+              "tags": ["getter", "text", "assertion"],
+              "deprecated": false
+            },
+            {
+              "name": "Get Property",
+              "args": [
+                { "name": "selector", "type": "str", "default": "", "required": true },
+                { "name": "property", "type": "str", "default": "", "required": true }
+              ],
+              "shortDoc": "Returns the value of a DOM property (e.g., value, checked, href).",
+              "doc": "Returns the value of a JavaScript DOM property of the element. Common properties include 'value', 'checked', 'href', 'textContent'.",
+              "tags": ["getter", "property"],
+              "deprecated": false
+            },
+            {
+              "name": "Get Attribute",
+              "args": [
+                { "name": "selector", "type": "str", "default": "", "required": true },
+                { "name": "attribute", "type": "str", "default": "", "required": true }
+              ],
+              "shortDoc": "Returns the value of an HTML attribute of the element.",
+              "doc": "Returns the value of the specified HTML attribute of the element matching the selector.",
+              "tags": ["getter", "attribute"],
+              "deprecated": false
+            },
+            {
+              "name": "Get Element Count",
+              "args": [
+                { "name": "selector", "type": "str", "default": "", "required": true }
+              ],
+              "shortDoc": "Returns the number of elements matching the selector.",
+              "doc": "Returns the count of elements matching the given selector. Supports assertion operators for inline validation.",
+              "tags": ["getter", "count"],
+              "deprecated": false
+            },
+            {
+              "name": "Get Url",
+              "args": [
+                { "name": "assertion_operator", "type": "str", "default": "", "required": false },
+                { "name": "assertion_expected", "type": "str", "default": "", "required": false }
+              ],
+              "shortDoc": "Returns the URL of the current page. Supports inline assertions.",
+              "doc": "Returns the current page URL. Supports inline assertion operators (e.g., Get Url contains /dashboard).",
+              "tags": ["getter", "url", "assertion"],
+              "deprecated": false
+            }
+          ]
+        },
+        {
+          "name": "Waiting",
+          "keywords": [
+            {
+              "name": "Wait For Elements State",
+              "args": [
+                { "name": "selector", "type": "str", "default": "", "required": true },
+                { "name": "state", "type": "str", "default": "visible", "required": false },
+                { "name": "timeout", "type": "str", "default": "", "required": false }
+              ],
+              "shortDoc": "Waits until the element reaches the specified state (visible, hidden, attached, etc.).",
+              "doc": "Waits until an element reaches the desired state. States include: visible, hidden, attached, detached, enabled, disabled, stable, editable, readonly, selected, deselected, focused, defocused, checked, unchecked.",
+              "tags": ["waiting", "state"],
+              "deprecated": false
+            },
+            {
+              "name": "Wait For Response",
+              "args": [
+                { "name": "url_pattern", "type": "str", "default": "", "required": true },
+                { "name": "timeout", "type": "str", "default": "", "required": false }
+              ],
+              "shortDoc": "Waits for a network response matching the URL pattern.",
+              "doc": "Waits for a network response whose URL matches the given pattern. Useful for waiting on API calls after user interactions. Pattern supports glob matching (e.g., **/api/data).",
+              "tags": ["waiting", "network"],
+              "deprecated": false
+            },
+            {
+              "name": "Wait Until Network Is Idle",
+              "args": [
+                { "name": "timeout", "type": "str", "default": "10s", "required": false }
+              ],
+              "shortDoc": "Waits until all network requests have completed.",
+              "doc": "Waits until no network requests have been made for a period, indicating the page has finished loading data.",
+              "tags": ["waiting", "network"],
+              "deprecated": false
+            }
+          ]
+        },
+        {
+          "name": "Screenshots",
+          "keywords": [
+            {
+              "name": "Take Screenshot",
+              "args": [
+                { "name": "filename", "type": "str", "default": "", "required": false },
+                { "name": "selector", "type": "str", "default": "", "required": false },
+                { "name": "fullPage", "type": "bool", "default": "false", "required": false }
+              ],
+              "shortDoc": "Takes a screenshot of the current viewport, a specific element, or the full page.",
+              "doc": "Captures a screenshot. Without arguments, captures the current viewport. Use fullPage=true for a full-page screenshot, or provide a selector to capture a specific element.",
+              "tags": ["screenshot"],
+              "deprecated": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "SeleniumLibrary",
+      "version": "6.x",
+      "categories": [
+        {
+          "name": "Browser Control",
+          "keywords": [
+            {
+              "name": "Open Browser",
+              "args": [
+                { "name": "url", "type": "str", "default": "", "required": true },
+                { "name": "browser", "type": "str", "default": "chrome", "required": false },
+                { "name": "options", "type": "str", "default": "", "required": false },
+                { "name": "executable_path", "type": "str", "default": "", "required": false }
+              ],
+              "shortDoc": "Opens a browser to the given URL using the specified browser type.",
+              "doc": "Opens a new browser instance and navigates to the given URL. Supported browsers: chrome, firefox, edge, headless_chrome, headless_firefox, headless_edge. Options can pass browser-specific arguments.",
+              "tags": ["browser", "navigation"],
+              "deprecated": false
+            },
+            {
+              "name": "Close Browser",
+              "args": [],
+              "shortDoc": "Closes the current browser.",
+              "doc": "Closes the currently active browser instance and its WebDriver session.",
+              "tags": ["browser"],
+              "deprecated": false
+            },
+            {
+              "name": "Close All Browsers",
+              "args": [],
+              "shortDoc": "Closes all open browsers and their WebDriver sessions.",
+              "doc": "Closes all browser instances that were opened during the test. Typically used in suite teardown.",
+              "tags": ["browser"],
+              "deprecated": false
+            },
+            {
+              "name": "Maximize Browser Window",
+              "args": [],
+              "shortDoc": "Maximizes the current browser window.",
+              "doc": "Maximizes the current browser window to fill the screen.",
+              "tags": ["browser", "window"],
+              "deprecated": false
+            },
+            {
+              "name": "Set Window Size",
+              "args": [
+                { "name": "width", "type": "int", "default": "", "required": true },
+                { "name": "height", "type": "int", "default": "", "required": true }
+              ],
+              "shortDoc": "Sets the browser window to the specified width and height in pixels.",
+              "doc": "Sets the inner size of the current browser window to the specified width and height in pixels.",
+              "tags": ["browser", "window"],
+              "deprecated": false
+            }
+          ]
+        },
+        {
+          "name": "Navigation",
+          "keywords": [
+            {
+              "name": "Go To",
+              "args": [
+                { "name": "url", "type": "str", "default": "", "required": true }
+              ],
+              "shortDoc": "Navigates the current browser to the given URL.",
+              "doc": "Navigates the active browser to the specified URL.",
+              "tags": ["navigation"],
+              "deprecated": false
+            },
+            {
+              "name": "Go Back",
+              "args": [],
+              "shortDoc": "Navigates back in the browser history.",
+              "doc": "Simulates clicking the browser's back button.",
+              "tags": ["navigation"],
+              "deprecated": false
+            },
+            {
+              "name": "Reload Page",
+              "args": [],
+              "shortDoc": "Reloads the current page.",
+              "doc": "Reloads (refreshes) the current page.",
+              "tags": ["navigation"],
+              "deprecated": false
+            },
+            {
+              "name": "Get Location",
+              "args": [],
+              "shortDoc": "Returns the current browser URL.",
+              "doc": "Returns the URL of the currently active page.",
+              "tags": ["navigation", "getter"],
+              "deprecated": false
+            },
+            {
+              "name": "Get Title",
+              "args": [],
+              "shortDoc": "Returns the title of the current page.",
+              "doc": "Returns the title element text of the currently active page.",
+              "tags": ["navigation", "getter"],
+              "deprecated": false
+            }
+          ]
+        },
+        {
+          "name": "Element Interaction",
+          "keywords": [
+            {
+              "name": "Click Element",
+              "args": [
+                { "name": "locator", "type": "str", "default": "", "required": true }
+              ],
+              "shortDoc": "Clicks the element identified by the locator.",
+              "doc": "Clicks the element identified by locator. Supports id, name, xpath, css, class, tag, link, and data locator strategies.",
+              "tags": ["interaction", "click"],
+              "deprecated": false
+            },
+            {
+              "name": "Click Button",
+              "args": [
+                { "name": "locator", "type": "str", "default": "", "required": true }
+              ],
+              "shortDoc": "Clicks a button element identified by the locator.",
+              "doc": "Clicks a button element. The locator can match id, name, or value attributes of button and input[type=submit/reset/button] elements.",
+              "tags": ["interaction", "click", "button"],
+              "deprecated": false
+            },
+            {
+              "name": "Input Text",
+              "args": [
+                { "name": "locator", "type": "str", "default": "", "required": true },
+                { "name": "text", "type": "str", "default": "", "required": true }
+              ],
+              "shortDoc": "Types the given text into the text field identified by the locator.",
+              "doc": "Types the given text into the element identified by locator. Does NOT clear the element first; use Clear Element Text first if needed.",
+              "tags": ["interaction", "input"],
+              "deprecated": false
+            },
+            {
+              "name": "Input Password",
+              "args": [
+                { "name": "locator", "type": "str", "default": "", "required": true },
+                { "name": "password", "type": "str", "default": "", "required": true }
+              ],
+              "shortDoc": "Types a password into the field. The value is not logged.",
+              "doc": "Types the given password into the element identified by locator. The password value is masked in the log output for security.",
+              "tags": ["interaction", "input", "security"],
+              "deprecated": false
+            },
+            {
+              "name": "Press Keys",
+              "args": [
+                { "name": "locator", "type": "str", "default": "", "required": false },
+                { "name": "keys", "type": "str", "default": "", "required": true }
+              ],
+              "shortDoc": "Simulates pressing the given keys. Use None as locator for page-level keys.",
+              "doc": "Presses the given key or key combination. Set locator to None for page-level key presses. Supports special keys like RETURN, TAB, CTRL+a, etc.",
+              "tags": ["interaction", "keyboard"],
+              "deprecated": false
+            }
+          ]
+        },
+        {
+          "name": "Waiting",
+          "keywords": [
+            {
+              "name": "Wait Until Element Is Visible",
+              "args": [
+                { "name": "locator", "type": "str", "default": "", "required": true },
+                { "name": "timeout", "type": "str", "default": "", "required": false }
+              ],
+              "shortDoc": "Waits until the element identified by locator is visible.",
+              "doc": "Waits until the element specified by locator becomes visible on the page. Fails if the timeout expires before the element is visible.",
+              "tags": ["waiting", "visibility"],
+              "deprecated": false
+            },
+            {
+              "name": "Wait Until Element Is Not Visible",
+              "args": [
+                { "name": "locator", "type": "str", "default": "", "required": true },
+                { "name": "timeout", "type": "str", "default": "", "required": false }
+              ],
+              "shortDoc": "Waits until the element identified by locator is no longer visible.",
+              "doc": "Waits until the element specified by locator is no longer visible. Useful for waiting for spinners or loading indicators to disappear.",
+              "tags": ["waiting", "visibility"],
+              "deprecated": false
+            },
+            {
+              "name": "Wait Until Page Contains",
+              "args": [
+                { "name": "text", "type": "str", "default": "", "required": true },
+                { "name": "timeout", "type": "str", "default": "", "required": false }
+              ],
+              "shortDoc": "Waits until the page contains the specified text.",
+              "doc": "Waits until the current page contains the given text somewhere in the DOM.",
+              "tags": ["waiting", "text"],
+              "deprecated": false
+            },
+            {
+              "name": "Wait Until Page Contains Element",
+              "args": [
+                { "name": "locator", "type": "str", "default": "", "required": true },
+                { "name": "timeout", "type": "str", "default": "", "required": false }
+              ],
+              "shortDoc": "Waits until the page contains the element matching the locator.",
+              "doc": "Waits until an element matching the given locator appears in the page DOM.",
+              "tags": ["waiting", "element"],
+              "deprecated": false
+            }
+          ]
+        },
+        {
+          "name": "Verification",
+          "keywords": [
+            {
+              "name": "Element Should Be Visible",
+              "args": [
+                { "name": "locator", "type": "str", "default": "", "required": true }
+              ],
+              "shortDoc": "Verifies that the element identified by locator is visible.",
+              "doc": "Verifies that the element matching the locator is visible on the page. Fails immediately if not visible.",
+              "tags": ["verification", "visibility"],
+              "deprecated": false
+            },
+            {
+              "name": "Page Should Contain",
+              "args": [
+                { "name": "text", "type": "str", "default": "", "required": true }
+              ],
+              "shortDoc": "Verifies that the current page contains the specified text.",
+              "doc": "Verifies that the current page contains the given text somewhere in the page body.",
+              "tags": ["verification", "text"],
+              "deprecated": false
+            },
+            {
+              "name": "Element Should Contain",
+              "args": [
+                { "name": "locator", "type": "str", "default": "", "required": true },
+                { "name": "expected", "type": "str", "default": "", "required": true }
+              ],
+              "shortDoc": "Verifies that the element contains the expected text.",
+              "doc": "Verifies that the element identified by locator contains the expected text as a substring.",
+              "tags": ["verification", "text"],
+              "deprecated": false
+            }
+          ]
+        },
+        {
+          "name": "Screenshots",
+          "keywords": [
+            {
+              "name": "Capture Page Screenshot",
+              "args": [
+                { "name": "filename", "type": "str", "default": "", "required": false }
+              ],
+              "shortDoc": "Takes a screenshot of the current page and saves it to a file.",
+              "doc": "Takes a screenshot of the current browser page. If filename is not given, a unique name is generated. The screenshot is also embedded in the log file.",
+              "tags": ["screenshot"],
+              "deprecated": false
+            },
+            {
+              "name": "Capture Element Screenshot",
+              "args": [
+                { "name": "locator", "type": "str", "default": "", "required": true },
+                { "name": "filename", "type": "str", "default": "", "required": false }
+              ],
+              "shortDoc": "Takes a screenshot of the element identified by the locator.",
+              "doc": "Captures a screenshot of a specific element on the page, cropped to the element's bounding box.",
+              "tags": ["screenshot"],
+              "deprecated": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "AppiumLibrary",
+      "version": "2.x",
+      "categories": [
+        {
+          "name": "Session",
+          "keywords": [
+            {
+              "name": "Open Application",
+              "args": [
+                { "name": "remote_url", "type": "str", "default": "http://127.0.0.1:4723", "required": true },
+                { "name": "platformName", "type": "str", "default": "", "required": true },
+                { "name": "deviceName", "type": "str", "default": "", "required": true },
+                { "name": "automationName", "type": "str", "default": "", "required": false },
+                { "name": "app", "type": "str", "default": "", "required": false }
+              ],
+              "shortDoc": "Opens a mobile application on a device or emulator via Appium server.",
+              "doc": "Opens a new application session. Requires the Appium server URL and desired capabilities. Key capabilities: platformName (Android/iOS), deviceName, automationName (UiAutomator2/XCUITest), app (path to APK/IPA).",
+              "tags": ["session", "mobile"],
+              "deprecated": false
+            },
+            {
+              "name": "Close Application",
+              "args": [],
+              "shortDoc": "Closes the current application and ends the Appium session.",
+              "doc": "Closes the current application and ends the Appium session. The WebDriver session is terminated.",
+              "tags": ["session", "mobile"],
+              "deprecated": false
+            },
+            {
+              "name": "Background Application",
+              "args": [
+                { "name": "seconds", "type": "int", "default": "5", "required": false }
+              ],
+              "shortDoc": "Puts the application in the background for the specified duration.",
+              "doc": "Puts the current application into the background for the given number of seconds, then brings it back to the foreground.",
+              "tags": ["session", "mobile"],
+              "deprecated": false
+            }
+          ]
+        },
+        {
+          "name": "Element Interaction",
+          "keywords": [
+            {
+              "name": "Click Element",
+              "args": [
+                { "name": "locator", "type": "str", "default": "", "required": true }
+              ],
+              "shortDoc": "Clicks the mobile element identified by the locator.",
+              "doc": "Clicks the element identified by the locator. Supports accessibility_id, id, xpath, class, android=, ios=, chain= strategies.",
+              "tags": ["interaction", "click"],
+              "deprecated": false
+            },
+            {
+              "name": "Click Text",
+              "args": [
+                { "name": "text", "type": "str", "default": "", "required": true }
+              ],
+              "shortDoc": "Clicks the element with the given visible text.",
+              "doc": "Clicks an element whose visible text matches the given text string.",
+              "tags": ["interaction", "click", "text"],
+              "deprecated": false
+            },
+            {
+              "name": "Input Text",
+              "args": [
+                { "name": "locator", "type": "str", "default": "", "required": true },
+                { "name": "text", "type": "str", "default": "", "required": true }
+              ],
+              "shortDoc": "Types text into the mobile input field identified by the locator.",
+              "doc": "Types the given text into the mobile input element identified by locator.",
+              "tags": ["interaction", "input"],
+              "deprecated": false
+            },
+            {
+              "name": "Clear Text",
+              "args": [
+                { "name": "locator", "type": "str", "default": "", "required": true }
+              ],
+              "shortDoc": "Clears the text from the input field identified by the locator.",
+              "doc": "Clears the text content of the input element identified by the locator.",
+              "tags": ["interaction", "input"],
+              "deprecated": false
+            },
+            {
+              "name": "Tap",
+              "args": [
+                { "name": "locator", "type": "str", "default": "", "required": true },
+                { "name": "duration", "type": "str", "default": "", "required": false }
+              ],
+              "shortDoc": "Taps the element. Use duration for long press (replaces removed Long Press keyword).",
+              "doc": "Taps on the element identified by locator. When duration is provided (e.g., 0:00:01), performs a long press. This replaces the removed Long Press keyword in AppiumLibrary v3.2.0+.",
+              "tags": ["interaction", "tap", "gesture"],
+              "deprecated": false
+            }
+          ]
+        },
+        {
+          "name": "Getters",
+          "keywords": [
+            {
+              "name": "Get Text",
+              "args": [
+                { "name": "locator", "type": "str", "default": "", "required": true }
+              ],
+              "shortDoc": "Returns the text content of the element.",
+              "doc": "Returns the visible text of the element identified by the locator.",
+              "tags": ["getter", "text"],
+              "deprecated": false
+            },
+            {
+              "name": "Get Element Attribute",
+              "args": [
+                { "name": "locator", "type": "str", "default": "", "required": true },
+                { "name": "attribute", "type": "str", "default": "", "required": true }
+              ],
+              "shortDoc": "Returns the value of the specified attribute of the element.",
+              "doc": "Returns the value of the given attribute for the element matching the locator.",
+              "tags": ["getter", "attribute"],
+              "deprecated": false
+            },
+            {
+              "name": "Get Source",
+              "args": [],
+              "shortDoc": "Returns the XML source of the current page (view hierarchy).",
+              "doc": "Returns the page source as XML, representing the current view hierarchy. Useful for debugging and finding locators.",
+              "tags": ["getter", "debug"],
+              "deprecated": false
+            }
+          ]
+        },
+        {
+          "name": "Waiting",
+          "keywords": [
+            {
+              "name": "Wait Until Element Is Visible",
+              "args": [
+                { "name": "locator", "type": "str", "default": "", "required": true },
+                { "name": "timeout", "type": "str", "default": "10s", "required": false }
+              ],
+              "shortDoc": "Waits until the mobile element identified by locator is visible.",
+              "doc": "Waits until the element specified by locator becomes visible on the screen.",
+              "tags": ["waiting", "visibility"],
+              "deprecated": false
+            },
+            {
+              "name": "Wait Until Page Contains",
+              "args": [
+                { "name": "text", "type": "str", "default": "", "required": true },
+                { "name": "timeout", "type": "str", "default": "10s", "required": false }
+              ],
+              "shortDoc": "Waits until the page contains the specified text.",
+              "doc": "Waits until the current page contains the given text string.",
+              "tags": ["waiting", "text"],
+              "deprecated": false
+            },
+            {
+              "name": "Wait Until Page Contains Element",
+              "args": [
+                { "name": "locator", "type": "str", "default": "", "required": true },
+                { "name": "timeout", "type": "str", "default": "10s", "required": false }
+              ],
+              "shortDoc": "Waits until the page contains the element matching the locator.",
+              "doc": "Waits until the element matching the given locator is present in the page source.",
+              "tags": ["waiting", "element"],
+              "deprecated": false
+            }
+          ]
+        },
+        {
+          "name": "Gestures",
+          "keywords": [
+            {
+              "name": "Swipe",
+              "args": [
+                { "name": "start_x", "type": "int", "default": "", "required": true },
+                { "name": "start_y", "type": "int", "default": "", "required": true },
+                { "name": "end_x", "type": "int", "default": "", "required": true },
+                { "name": "end_y", "type": "int", "default": "", "required": true },
+                { "name": "duration", "type": "str", "default": "0:00:01", "required": false }
+              ],
+              "shortDoc": "Swipes from one point to another on the screen.",
+              "doc": "Performs a swipe gesture from (start_x, start_y) to (end_x, end_y). Duration controls the swipe speed as a timedelta string (e.g., 0:00:01 for 1 second).",
+              "tags": ["gesture", "swipe"],
+              "deprecated": false
+            },
+            {
+              "name": "Scroll Down",
+              "args": [
+                { "name": "locator", "type": "str", "default": "", "required": true }
+              ],
+              "shortDoc": "Scrolls down within or to the element matching the locator.",
+              "doc": "Scrolls the screen downward. The locator identifies the element to scroll within or to.",
+              "tags": ["gesture", "scroll"],
+              "deprecated": false
+            },
+            {
+              "name": "Scroll Up",
+              "args": [
+                { "name": "locator", "type": "str", "default": "", "required": true }
+              ],
+              "shortDoc": "Scrolls up within or to the element matching the locator.",
+              "doc": "Scrolls the screen upward. The locator identifies the element to scroll within or to.",
+              "tags": ["gesture", "scroll"],
+              "deprecated": false
+            },
+            {
+              "name": "Tap With Positions",
+              "args": [
+                { "name": "x", "type": "int", "default": "", "required": true },
+                { "name": "y", "type": "int", "default": "", "required": true }
+              ],
+              "shortDoc": "Taps at the specified screen coordinates.",
+              "doc": "Performs a tap at the given (x, y) screen coordinates.",
+              "tags": ["gesture", "tap"],
+              "deprecated": false
+            }
+          ]
+        },
+        {
+          "name": "Context",
+          "keywords": [
+            {
+              "name": "Switch To Context",
+              "args": [
+                { "name": "context_name", "type": "str", "default": "", "required": true }
+              ],
+              "shortDoc": "Switches to the specified context (NATIVE_APP or WEBVIEW_*).",
+              "doc": "Switches the automation context. Use 'NATIVE_APP' for native views or 'WEBVIEW_<package>' for hybrid app webviews.",
+              "tags": ["context", "hybrid"],
+              "deprecated": false
+            },
+            {
+              "name": "Get Current Context",
+              "args": [],
+              "shortDoc": "Returns the name of the current context.",
+              "doc": "Returns the current context name (e.g., 'NATIVE_APP' or 'WEBVIEW_com.example.app').",
+              "tags": ["context", "hybrid", "getter"],
+              "deprecated": false
+            },
+            {
+              "name": "Get Contexts",
+              "args": [],
+              "shortDoc": "Returns a list of all available contexts.",
+              "doc": "Returns a list of all available contexts for the current session, including NATIVE_APP and any WEBVIEW contexts.",
+              "tags": ["context", "hybrid", "getter"],
+              "deprecated": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "RequestsLibrary",
+      "version": "0.9.x",
+      "categories": [
+        {
+          "name": "HTTP Methods",
+          "keywords": [
+            {
+              "name": "GET",
+              "args": [
+                { "name": "url", "type": "str", "default": "", "required": true },
+                { "name": "params", "type": "dict", "default": "", "required": false },
+                { "name": "headers", "type": "dict", "default": "", "required": false },
+                { "name": "expected_status", "type": "str", "default": "", "required": false },
+                { "name": "timeout", "type": "int", "default": "", "required": false }
+              ],
+              "shortDoc": "Sends a GET request to the URL and returns the response.",
+              "doc": "Performs an HTTP GET request. Sessionless style: pass the full URL directly. Returns a response object with status_code, text, json(), headers, and cookies properties.",
+              "tags": ["http", "get"],
+              "deprecated": false
+            },
+            {
+              "name": "POST",
+              "args": [
+                { "name": "url", "type": "str", "default": "", "required": true },
+                { "name": "json", "type": "dict", "default": "", "required": false },
+                { "name": "data", "type": "str", "default": "", "required": false },
+                { "name": "headers", "type": "dict", "default": "", "required": false },
+                { "name": "expected_status", "type": "str", "default": "", "required": false }
+              ],
+              "shortDoc": "Sends a POST request with optional JSON body or form data.",
+              "doc": "Performs an HTTP POST request. Use 'json' parameter for JSON payloads or 'data' for form-encoded data. Returns a response object.",
+              "tags": ["http", "post"],
+              "deprecated": false
+            },
+            {
+              "name": "PUT",
+              "args": [
+                { "name": "url", "type": "str", "default": "", "required": true },
+                { "name": "json", "type": "dict", "default": "", "required": false },
+                { "name": "data", "type": "str", "default": "", "required": false },
+                { "name": "headers", "type": "dict", "default": "", "required": false },
+                { "name": "expected_status", "type": "str", "default": "", "required": false }
+              ],
+              "shortDoc": "Sends a PUT request to replace a resource.",
+              "doc": "Performs an HTTP PUT request to fully replace a resource at the given URL.",
+              "tags": ["http", "put"],
+              "deprecated": false
+            },
+            {
+              "name": "PATCH",
+              "args": [
+                { "name": "url", "type": "str", "default": "", "required": true },
+                { "name": "json", "type": "dict", "default": "", "required": false },
+                { "name": "headers", "type": "dict", "default": "", "required": false },
+                { "name": "expected_status", "type": "str", "default": "", "required": false }
+              ],
+              "shortDoc": "Sends a PATCH request for partial resource update.",
+              "doc": "Performs an HTTP PATCH request for partial update of a resource.",
+              "tags": ["http", "patch"],
+              "deprecated": false
+            },
+            {
+              "name": "DELETE",
+              "args": [
+                { "name": "url", "type": "str", "default": "", "required": true },
+                { "name": "headers", "type": "dict", "default": "", "required": false },
+                { "name": "expected_status", "type": "str", "default": "", "required": false }
+              ],
+              "shortDoc": "Sends a DELETE request to remove a resource.",
+              "doc": "Performs an HTTP DELETE request to remove the resource at the given URL.",
+              "tags": ["http", "delete"],
+              "deprecated": false
+            },
+            {
+              "name": "HEAD",
+              "args": [
+                { "name": "url", "type": "str", "default": "", "required": true },
+                { "name": "headers", "type": "dict", "default": "", "required": false }
+              ],
+              "shortDoc": "Sends a HEAD request to retrieve headers only.",
+              "doc": "Performs an HTTP HEAD request. Returns only the response headers, no body content.",
+              "tags": ["http", "head"],
+              "deprecated": false
+            },
+            {
+              "name": "OPTIONS",
+              "args": [
+                { "name": "url", "type": "str", "default": "", "required": true }
+              ],
+              "shortDoc": "Sends an OPTIONS request to get the allowed HTTP methods.",
+              "doc": "Performs an HTTP OPTIONS request. Returns the allowed methods and other CORS-related headers.",
+              "tags": ["http", "options"],
+              "deprecated": false
+            }
+          ]
+        },
+        {
+          "name": "Session Management",
+          "keywords": [
+            {
+              "name": "Create Session",
+              "args": [
+                { "name": "alias", "type": "str", "default": "", "required": true },
+                { "name": "url", "type": "str", "default": "", "required": true },
+                { "name": "headers", "type": "dict", "default": "", "required": false },
+                { "name": "verify", "type": "bool", "default": "false", "required": false }
+              ],
+              "shortDoc": "Creates a named session for making multiple requests to the same base URL.",
+              "doc": "Creates a reusable HTTP session with the given alias and base URL. WARNING: verify defaults to False (SSL verification off). Always set verify=${True} for production.",
+              "tags": ["session"],
+              "deprecated": false
+            },
+            {
+              "name": "GET On Session",
+              "args": [
+                { "name": "alias", "type": "str", "default": "", "required": true },
+                { "name": "url", "type": "str", "default": "", "required": true },
+                { "name": "params", "type": "dict", "default": "", "required": false },
+                { "name": "expected_status", "type": "str", "default": "", "required": false }
+              ],
+              "shortDoc": "Sends a GET request using an existing session.",
+              "doc": "Performs a GET request using a previously created session. The URL is relative to the session base URL.",
+              "tags": ["session", "http", "get"],
+              "deprecated": false
+            },
+            {
+              "name": "POST On Session",
+              "args": [
+                { "name": "alias", "type": "str", "default": "", "required": true },
+                { "name": "url", "type": "str", "default": "", "required": true },
+                { "name": "json", "type": "dict", "default": "", "required": false },
+                { "name": "expected_status", "type": "str", "default": "", "required": false }
+              ],
+              "shortDoc": "Sends a POST request using an existing session.",
+              "doc": "Performs a POST request using a previously created session. The URL is relative to the session base URL.",
+              "tags": ["session", "http", "post"],
+              "deprecated": false
+            },
+            {
+              "name": "DELETE On Session",
+              "args": [
+                { "name": "alias", "type": "str", "default": "", "required": true },
+                { "name": "url", "type": "str", "default": "", "required": true },
+                { "name": "expected_status", "type": "str", "default": "", "required": false }
+              ],
+              "shortDoc": "Sends a DELETE request using an existing session.",
+              "doc": "Performs a DELETE request using a previously created session.",
+              "tags": ["session", "http", "delete"],
+              "deprecated": false
+            }
+          ]
+        },
+        {
+          "name": "Validation",
+          "keywords": [
+            {
+              "name": "Status Should Be",
+              "args": [
+                { "name": "expected_status", "type": "str", "default": "", "required": true },
+                { "name": "response", "type": "object", "default": "", "required": true }
+              ],
+              "shortDoc": "Verifies that the response status code matches the expected value.",
+              "doc": "Asserts that the response object's status code equals the expected status code.",
+              "tags": ["validation", "status"],
+              "deprecated": false
+            },
+            {
+              "name": "Request Should Be Successful",
+              "args": [
+                { "name": "response", "type": "object", "default": "", "required": true }
+              ],
+              "shortDoc": "Verifies that the response status code is in the 2xx range.",
+              "doc": "Asserts that the response status code is between 200 and 299 (inclusive), indicating a successful request.",
+              "tags": ["validation", "status"],
+              "deprecated": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "RESTinstance",
+      "version": "1.x",
+      "categories": [
+        {
+          "name": "HTTP Methods",
+          "keywords": [
+            {
+              "name": "GET",
+              "args": [
+                { "name": "endpoint", "type": "str", "default": "", "required": true },
+                { "name": "headers", "type": "dict", "default": "", "required": false },
+                { "name": "query", "type": "dict", "default": "", "required": false }
+              ],
+              "shortDoc": "Sends a GET request to the endpoint (relative to base URL).",
+              "doc": "Performs an HTTP GET request to the given endpoint. The endpoint is relative to the base URL set in the Library import.",
+              "tags": ["http", "get"],
+              "deprecated": false
+            },
+            {
+              "name": "POST",
+              "args": [
+                { "name": "endpoint", "type": "str", "default": "", "required": true },
+                { "name": "body", "type": "str", "default": "", "required": false }
+              ],
+              "shortDoc": "Sends a POST request with a JSON body string.",
+              "doc": "Performs an HTTP POST request. The body is a JSON string that is sent as the request payload.",
+              "tags": ["http", "post"],
+              "deprecated": false
+            },
+            {
+              "name": "PUT",
+              "args": [
+                { "name": "endpoint", "type": "str", "default": "", "required": true },
+                { "name": "body", "type": "str", "default": "", "required": false }
+              ],
+              "shortDoc": "Sends a PUT request to replace a resource.",
+              "doc": "Performs an HTTP PUT request with the given JSON body.",
+              "tags": ["http", "put"],
+              "deprecated": false
+            },
+            {
+              "name": "PATCH",
+              "args": [
+                { "name": "endpoint", "type": "str", "default": "", "required": true },
+                { "name": "body", "type": "str", "default": "", "required": false }
+              ],
+              "shortDoc": "Sends a PATCH request for partial update.",
+              "doc": "Performs an HTTP PATCH request with the given JSON body for partial resource update.",
+              "tags": ["http", "patch"],
+              "deprecated": false
+            },
+            {
+              "name": "DELETE",
+              "args": [
+                { "name": "endpoint", "type": "str", "default": "", "required": true }
+              ],
+              "shortDoc": "Sends a DELETE request to remove a resource.",
+              "doc": "Performs an HTTP DELETE request to the given endpoint.",
+              "tags": ["http", "delete"],
+              "deprecated": false
+            }
+          ]
+        },
+        {
+          "name": "Response Validation",
+          "keywords": [
+            {
+              "name": "Integer",
+              "args": [
+                { "name": "field", "type": "str", "default": "", "required": true },
+                { "name": "value", "type": "int", "default": "", "required": false }
+              ],
+              "shortDoc": "Validates that the field is an integer, optionally matching a specific value.",
+              "doc": "Validates that the given JSON path field is an integer. If value is provided, also asserts equality. Example: Integer response status 200.",
+              "tags": ["validation", "type"],
+              "deprecated": false
+            },
+            {
+              "name": "String",
+              "args": [
+                { "name": "field", "type": "str", "default": "", "required": true },
+                { "name": "value", "type": "str", "default": "", "required": false }
+              ],
+              "shortDoc": "Validates that the field is a string, optionally matching a specific value.",
+              "doc": "Validates that the given JSON path field is a string. Supports exact match, wildcard (*), and regex (/pattern/) matching.",
+              "tags": ["validation", "type"],
+              "deprecated": false
+            },
+            {
+              "name": "Boolean",
+              "args": [
+                { "name": "field", "type": "str", "default": "", "required": true },
+                { "name": "value", "type": "bool", "default": "", "required": false }
+              ],
+              "shortDoc": "Validates that the field is a boolean, optionally matching a specific value.",
+              "doc": "Validates that the given JSON path field is a boolean.",
+              "tags": ["validation", "type"],
+              "deprecated": false
+            },
+            {
+              "name": "Number",
+              "args": [
+                { "name": "field", "type": "str", "default": "", "required": true },
+                { "name": "value", "type": "float", "default": "", "required": false }
+              ],
+              "shortDoc": "Validates that the field is a number (float), optionally matching a value.",
+              "doc": "Validates that the given JSON path field is a number (float/decimal).",
+              "tags": ["validation", "type"],
+              "deprecated": false
+            },
+            {
+              "name": "Array",
+              "args": [
+                { "name": "field", "type": "str", "default": "", "required": true }
+              ],
+              "shortDoc": "Validates that the field is an array (JSON list).",
+              "doc": "Validates that the given JSON path field is an array.",
+              "tags": ["validation", "type"],
+              "deprecated": false
+            },
+            {
+              "name": "Object",
+              "args": [
+                { "name": "field", "type": "str", "default": "", "required": true },
+                { "name": "schema", "type": "str", "default": "", "required": false }
+              ],
+              "shortDoc": "Validates that the field is a JSON object. Optionally validates against a JSON Schema.",
+              "doc": "Validates that the given JSON path field is a JSON object. When a schema is provided, validates the object against the JSON Schema.",
+              "tags": ["validation", "type", "schema"],
+              "deprecated": false
+            },
+            {
+              "name": "Null",
+              "args": [
+                { "name": "field", "type": "str", "default": "", "required": true }
+              ],
+              "shortDoc": "Validates that the field is null.",
+              "doc": "Validates that the given JSON path field is null.",
+              "tags": ["validation", "type"],
+              "deprecated": false
+            },
+            {
+              "name": "Missing",
+              "args": [
+                { "name": "field", "type": "str", "default": "", "required": true }
+              ],
+              "shortDoc": "Validates that the field does not exist in the response.",
+              "doc": "Validates that the given JSON path field is absent from the response.",
+              "tags": ["validation", "existence"],
+              "deprecated": false
+            },
+            {
+              "name": "Output",
+              "args": [
+                { "name": "field", "type": "str", "default": "", "required": true }
+              ],
+              "shortDoc": "Logs the value of the field. Asserts the field exists.",
+              "doc": "Logs the value at the given JSON path. The field must exist or the keyword fails.",
+              "tags": ["validation", "debug"],
+              "deprecated": false
+            }
+          ]
+        },
+        {
+          "name": "Configuration",
+          "keywords": [
+            {
+              "name": "Set Headers",
+              "args": [
+                { "name": "headers", "type": "str", "default": "", "required": true }
+              ],
+              "shortDoc": "Sets default headers for subsequent requests (JSON string).",
+              "doc": "Sets headers as a JSON string that will be applied to all subsequent requests. Example: Set Headers {\"Authorization\": \"Bearer token\"}.",
+              "tags": ["configuration", "headers"],
+              "deprecated": false
+            },
+            {
+              "name": "Expect Response Body",
+              "args": [
+                { "name": "schema_path", "type": "str", "default": "", "required": true }
+              ],
+              "shortDoc": "Sets a JSON Schema file to validate the next response body against.",
+              "doc": "Sets an expectation that the next response body must validate against the given JSON Schema file. Set BEFORE the HTTP request.",
+              "tags": ["configuration", "schema", "validation"],
+              "deprecated": false
+            },
+            {
+              "name": "Clear Expectations",
+              "args": [],
+              "shortDoc": "Removes all previously set schema expectations.",
+              "doc": "Clears any previously set Expect Response Body or Expect Response expectations.",
+              "tags": ["configuration", "schema"],
+              "deprecated": false
+            },
+            {
+              "name": "Set SSL Verify",
+              "args": [
+                { "name": "verify", "type": "bool", "default": "", "required": true }
+              ],
+              "shortDoc": "Enables or disables SSL certificate verification.",
+              "doc": "Controls whether SSL certificates are verified for subsequent requests. Set to ${False} to disable verification (not recommended for production).",
+              "tags": ["configuration", "ssl"],
+              "deprecated": false
+            },
+            {
+              "name": "Set Client Authentication",
+              "args": [
+                { "name": "username", "type": "str", "default": "", "required": true },
+                { "name": "password", "type": "str", "default": "", "required": true }
+              ],
+              "shortDoc": "Sets HTTP Basic Authentication credentials for subsequent requests.",
+              "doc": "Sets the username and password for HTTP Basic Authentication on all subsequent requests.",
+              "tags": ["configuration", "authentication"],
+              "deprecated": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "BuiltIn",
+      "version": "7.x",
+      "categories": [
+        {
+          "name": "Variables",
+          "keywords": [
+            {
+              "name": "Set Variable",
+              "args": [
+                { "name": "value", "type": "any", "default": "", "required": true }
+              ],
+              "shortDoc": "Sets and returns the given value. Used to assign variables inline.",
+              "doc": "Returns the given value. Typically used as: ${var}= Set Variable value.",
+              "tags": ["variable"],
+              "deprecated": false
+            },
+            {
+              "name": "Create Dictionary",
+              "args": [
+                { "name": "key=value", "type": "str", "default": "", "required": false }
+              ],
+              "shortDoc": "Creates and returns a dictionary from the given key=value pairs.",
+              "doc": "Creates a Python dictionary from the given keyword arguments. Example: &{dict}= Create Dictionary key1=value1 key2=value2.",
+              "tags": ["variable", "dictionary"],
+              "deprecated": false
+            },
+            {
+              "name": "Create List",
+              "args": [
+                { "name": "items", "type": "any", "default": "", "required": false }
+              ],
+              "shortDoc": "Creates and returns a list from the given items.",
+              "doc": "Creates a Python list containing the given items. Example: @{list}= Create List item1 item2 item3.",
+              "tags": ["variable", "list"],
+              "deprecated": false
+            },
+            {
+              "name": "Set Suite Variable",
+              "args": [
+                { "name": "name", "type": "str", "default": "", "required": true },
+                { "name": "value", "type": "any", "default": "", "required": true }
+              ],
+              "shortDoc": "Sets a variable available in the current suite and all its children.",
+              "doc": "Makes the variable available in the current test suite scope, including all tests and keywords within it.",
+              "tags": ["variable", "scope"],
+              "deprecated": false
+            },
+            {
+              "name": "Set Test Variable",
+              "args": [
+                { "name": "name", "type": "str", "default": "", "required": true },
+                { "name": "value", "type": "any", "default": "", "required": true }
+              ],
+              "shortDoc": "Sets a variable available for the remainder of the current test.",
+              "doc": "Makes the variable available for the remainder of the current test case.",
+              "tags": ["variable", "scope"],
+              "deprecated": false
+            }
+          ]
+        },
+        {
+          "name": "Verification",
+          "keywords": [
+            {
+              "name": "Should Be Equal",
+              "args": [
+                { "name": "first", "type": "any", "default": "", "required": true },
+                { "name": "second", "type": "any", "default": "", "required": true }
+              ],
+              "shortDoc": "Verifies that two values are equal.",
+              "doc": "Fails if the given objects are not equal. Both arguments are converted to strings for comparison by default.",
+              "tags": ["verification", "equality"],
+              "deprecated": false
+            },
+            {
+              "name": "Should Be Equal As Integers",
+              "args": [
+                { "name": "first", "type": "any", "default": "", "required": true },
+                { "name": "second", "type": "any", "default": "", "required": true }
+              ],
+              "shortDoc": "Verifies that two values are equal when converted to integers.",
+              "doc": "Converts both arguments to integers and fails if they are not equal.",
+              "tags": ["verification", "equality"],
+              "deprecated": false
+            },
+            {
+              "name": "Should Contain",
+              "args": [
+                { "name": "container", "type": "any", "default": "", "required": true },
+                { "name": "item", "type": "any", "default": "", "required": true }
+              ],
+              "shortDoc": "Verifies that the container contains the item (string, list, or dict).",
+              "doc": "Fails if the container does not contain the given item. Works with strings (substring), lists (member), and dictionaries (key).",
+              "tags": ["verification", "containment"],
+              "deprecated": false
+            },
+            {
+              "name": "Should Not Be Empty",
+              "args": [
+                { "name": "item", "type": "any", "default": "", "required": true }
+              ],
+              "shortDoc": "Verifies that the given item is not empty.",
+              "doc": "Fails if the given item (string, list, or dict) is empty.",
+              "tags": ["verification"],
+              "deprecated": false
+            },
+            {
+              "name": "Length Should Be",
+              "args": [
+                { "name": "item", "type": "any", "default": "", "required": true },
+                { "name": "length", "type": "int", "default": "", "required": true }
+              ],
+              "shortDoc": "Verifies that the length of the item matches the expected value.",
+              "doc": "Fails if the length of the given item does not equal the expected length.",
+              "tags": ["verification", "length"],
+              "deprecated": false
+            }
+          ]
+        },
+        {
+          "name": "Control Flow",
+          "keywords": [
+            {
+              "name": "Run Keyword If",
+              "args": [
+                { "name": "condition", "type": "str", "default": "", "required": true },
+                { "name": "keyword", "type": "str", "default": "", "required": true }
+              ],
+              "shortDoc": "Runs the given keyword if the condition is true.",
+              "doc": "Evaluates the given condition and runs the specified keyword if it is true. Consider using IF/ELSE syntax in RF 5+ instead.",
+              "tags": ["control", "conditional"],
+              "deprecated": false
+            },
+            {
+              "name": "Run Keyword If Test Failed",
+              "args": [
+                { "name": "keyword", "type": "str", "default": "", "required": true }
+              ],
+              "shortDoc": "Runs the keyword only if the test has failed. Use in teardown.",
+              "doc": "Runs the given keyword if the current test case has failed. Typically used in test teardown (e.g., to take screenshots on failure).",
+              "tags": ["control", "teardown"],
+              "deprecated": false
+            },
+            {
+              "name": "Sleep",
+              "args": [
+                { "name": "time", "type": "str", "default": "", "required": true },
+                { "name": "reason", "type": "str", "default": "", "required": false }
+              ],
+              "shortDoc": "Pauses execution for the given time.",
+              "doc": "Pauses the test execution for the given time. Time can be given as a number (seconds) or a time string (e.g., 1m 30s, 500ms). Avoid using Sleep in favor of proper waiting keywords.",
+              "tags": ["control", "wait"],
+              "deprecated": false
+            },
+            {
+              "name": "Log",
+              "args": [
+                { "name": "message", "type": "str", "default": "", "required": true },
+                { "name": "level", "type": "str", "default": "INFO", "required": false }
+              ],
+              "shortDoc": "Logs the given message at the specified log level.",
+              "doc": "Logs the given message with the specified level (TRACE, DEBUG, INFO, WARN, ERROR). Default is INFO.",
+              "tags": ["logging"],
+              "deprecated": false
+            },
+            {
+              "name": "RETURN",
+              "args": [
+                { "name": "values", "type": "any", "default": "", "required": false }
+              ],
+              "shortDoc": "Returns the given values from a user keyword.",
+              "doc": "Returns the given values from the current user keyword. Replaces the old [Return] setting in RF 5+.",
+              "tags": ["control", "return"],
+              "deprecated": false
+            }
+          ]
+        },
+        {
+          "name": "Collections",
+          "keywords": [
+            {
+              "name": "Dictionary Should Contain Key",
+              "args": [
+                { "name": "dictionary", "type": "dict", "default": "", "required": true },
+                { "name": "key", "type": "str", "default": "", "required": true }
+              ],
+              "shortDoc": "Verifies that the dictionary contains the given key.",
+              "doc": "Fails if the dictionary does not contain the specified key. Note: This is from the Collections library, commonly used alongside BuiltIn.",
+              "tags": ["verification", "dictionary"],
+              "deprecated": false
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
