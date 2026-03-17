@@ -2,7 +2,7 @@
   "name": "robotframework-agentskills",
   "displayName": "Robot Framework Agent Skills",
   "description": "Agent Skills for Robot Framework test automation — web, API, mobile testing, keyword/test/resource generation, and library documentation tools",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "publisher": "manykarim",
   "license": "Apache-2.0",
   "engines": {

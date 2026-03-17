@@ -6,14 +6,14 @@
   },
   "metadata": {
     "description": "Robot Framework agent skills for Claude Code - web, API, mobile testing, asset generation, and RF analysis tools",
-    "version": "1.0.0"
+    "version": "1.1.0"
   },
   "plugins": [
     {
       "name": "rf-agentskills",
       "source": "./plugins/rf-agentskills",
       "description": "Complete Robot Framework skills suite: 11 skills for web/API/mobile testing, keyword/test/resource generation, and libdoc/results tools. Includes 4 specialized agents and automated .robot validation.",
-      "version": "1.0.0",
+      "version": "1.1.0",
       "author": { "name": "manykarim" },
       "homepage": "https://github.com/manykarim/robotframework-agentskills",
       "repository": "https://github.com/manykarim/robotframework-agentskills",

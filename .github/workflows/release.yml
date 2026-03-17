@@ -9,105 +9,181 @@ permissions:
   contents: write
 
 jobs:
-  validate:
-    name: Pre-release validation
+  ci:
+    name: Run CI
     uses: ./.github/workflows/ci.yml
 
   release:
-    name: Create GitHub Release
-    needs: validate
+    name: Create release with artifacts
+    needs: ci
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Extract version from tag
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: |
+          pip install robotframework pytest
+          cd vscode-extension && npm ci
+
+      - name: Extract version
         id: version
         run: echo "version=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
 
-      - name: Verify marketplace.json version matches tag
-        run: |
-          python3 -c "
-          import json, sys
-          with open('marketplace.json') as f:
-              data = json.load(f)
-          expected = '${{ steps.version.outputs.version }}'
-          actual = data.get('version', '')
-          if actual != expected:
-              print(f'Version mismatch: marketplace.json has \"{actual}\", tag is \"{expected}\"', file=sys.stderr)
-              sys.exit(1)
-          print(f'Version verified: {actual}')
-          "
+      - name: Run tests
+        run: python -m pytest tests/ -v --tb=short
 
-      - name: Generate changelog from commits
-        id: changelog
+      - name: Sync distribution channels
+        run: bash scripts/sync-skills.sh
+
+      - name: Check drift
+        run: bash scripts/check-drift.sh
+
+      # ── Build VS Code Extension ──
+      - name: Build VS Code extension
+        run: |
+          cd vscode-extension
+          npx tsc
+          npx @vscode/vsce package --no-dependencies \
+            -o ../robotframework-agentskills-${{ steps.version.outputs.version }}.vsix
+
+      # ── Build Claude Code Plugin ──
+      - name: Package Claude plugin
+        run: |
+          cd plugins
+          tar -czf ../rf-agentskills-claude-plugin-${{ steps.version.outputs.version }}.tar.gz rf-agentskills/
+
+      # ── Build standalone skills (any agent) ──
+      - name: Package standalone skills
+        run: |
+          tar -czf robotframework-skills-${{ steps.version.outputs.version }}.tar.gz \
+            --transform='s|^skills/||' \
+            skills/
+
+      # ── Build Codex skills package ──
+      - name: Package Codex skills
+        run: |
+          mkdir -p .codex/skills
+          for d in skills/robotframework-*/; do
+            name=$(basename "$d")
+            cp -r "$d" ".codex/skills/$name"
+          done
+          tar -czf robotframework-skills-codex-${{ steps.version.outputs.version }}.tar.gz .codex/skills/
+
+      # ── Build Copilot skills package ──
+      - name: Package Copilot skills
+        run: |
+          mkdir -p .github/copilot-skills
+          for d in skills/robotframework-*/; do
+            name=$(basename "$d")
+            cp -r "$d" ".github/copilot-skills/$name"
+          done
+          tar -czf robotframework-skills-copilot-${{ steps.version.outputs.version }}.tar.gz .github/copilot-skills/
+
+      # ── Generate changelog ──
+      - name: Generate changelog
         run: |
           PREV_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || git rev-list --max-parents=0 HEAD)
-          echo "## Changes since ${PREV_TAG}" > CHANGELOG_BODY.md
+          cat > CHANGELOG_BODY.md << 'HEADER'
+          ## Robot Framework Agent Skills v${{ steps.version.outputs.version }}
+
+          ### Installation
+
+          **Claude Code Plugin:**
+          ```bash
+          claude plugin add github:manykarim/robotframework-agentskills
+          ```
+
+          **VS Code Extension:** Download `robotframework-agentskills-${{ steps.version.outputs.version }}.vsix` below, then:
+          ```bash
+          code --install-extension robotframework-agentskills-${{ steps.version.outputs.version }}.vsix
+          ```
+
+          **Codex:** Extract `robotframework-skills-codex-*.tar.gz` into your project root.
+
+          **Copilot:** Extract `robotframework-skills-copilot-*.tar.gz` into your project root.
+
+          **Any agent:** Extract `robotframework-skills-*.tar.gz` into `.claude/skills/`, `.codex/skills/`, or `.github/skills/`.
+
+          ### Release Artifacts
+
+          | Artifact | Agent | Contents |
+          |----------|-------|----------|
+          | `.vsix` | VS Code + Copilot Chat | Extension with 11 chat skills |
+          | `claude-plugin-*.tar.gz` | Claude Code | Plugin with skills, agents, hooks, MCP server |
+          | `skills-*.tar.gz` | Any agent | 11 standalone skill folders |
+          | `skills-codex-*.tar.gz` | OpenAI Codex | Skills in `.codex/skills/` layout |
+          | `skills-copilot-*.tar.gz` | GitHub Copilot | Skills in `.github/skills/` layout |
+
+          HEADER
+
+          echo "### Changes" >> CHANGELOG_BODY.md
           echo "" >> CHANGELOG_BODY.md
           git log ${PREV_TAG}..HEAD --pretty=format:"- %s (%h)" --no-merges >> CHANGELOG_BODY.md
           echo "" >> CHANGELOG_BODY.md
-          echo "" >> CHANGELOG_BODY.md
 
-          # List skills included
-          echo "## Skills Included" >> CHANGELOG_BODY.md
+          echo "### Skills Included (11)" >> CHANGELOG_BODY.md
           echo "" >> CHANGELOG_BODY.md
+          echo "| Skill | Type | Description |" >> CHANGELOG_BODY.md
+          echo "|-------|------|-------------|" >> CHANGELOG_BODY.md
           for skill_dir in skills/*/; do
-            skill_name=$(basename "$skill_dir")
-            if [ -f "${skill_dir}SKILL.md" ]; then
-              desc=$(head -5 "${skill_dir}SKILL.md" | grep "^description:" | sed 's/^description: //')
-              echo "- **${skill_name}**: ${desc}" >> CHANGELOG_BODY.md
+            name=$(basename "$skill_dir")
+            desc=$(head -5 "${skill_dir}SKILL.md" | grep "^description:" | sed 's/^description: //' | cut -c1-80)
+            if [ -d "${skill_dir}scripts" ]; then
+              type="script"
+            else
+              type="reference"
             fi
+            echo "| ${name} | ${type} | ${desc} |" >> CHANGELOG_BODY.md
           done
           echo "" >> CHANGELOG_BODY.md
 
-          echo "## Installation" >> CHANGELOG_BODY.md
+          echo "### Agents (4)" >> CHANGELOG_BODY.md
           echo "" >> CHANGELOG_BODY.md
-          echo '```' >> CHANGELOG_BODY.md
-          echo '/plugin marketplace add manykarim/robotframework-agentskills' >> CHANGELOG_BODY.md
-          echo '/plugin install <skill-name>@robotframework-agentskills' >> CHANGELOG_BODY.md
-          echo '```' >> CHANGELOG_BODY.md
+          for agent in plugins/rf-agentskills/agents/*.md; do
+            name=$(basename "$agent" .md)
+            desc=$(head -5 "$agent" | grep "^description:" | sed 's/^description: //' | cut -c1-80)
+            echo "- **${name}**: ${desc}" >> CHANGELOG_BODY.md
+          done
 
+      # ── Create GitHub Release ──
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           body_path: CHANGELOG_BODY.md
           draft: false
-          prerelease: ${{ contains(github.ref_name, '-rc') || contains(github.ref_name, '-beta') || contains(github.ref_name, '-alpha') }}
+          prerelease: ${{ contains(github.ref_name, '-rc') || contains(github.ref_name, '-beta') }}
+          files: |
+            robotframework-agentskills-${{ steps.version.outputs.version }}.vsix
+            rf-agentskills-claude-plugin-${{ steps.version.outputs.version }}.tar.gz
+            robotframework-skills-${{ steps.version.outputs.version }}.tar.gz
+            robotframework-skills-codex-${{ steps.version.outputs.version }}.tar.gz
+            robotframework-skills-copilot-${{ steps.version.outputs.version }}.tar.gz
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   update-branches:
-    name: Update release channel branches
+    name: Update release branches
     needs: release
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-
       - name: Update stable branch
         run: |
           git checkout -B stable "$GITHUB_REF_NAME"
           git push origin stable --force
-
       - name: Update latest branch
         run: |
           git checkout -B latest "$GITHUB_REF_NAME"
           git push origin latest --force
-
-      - name: Create release branch if minor/major
-        run: |
-          VERSION="${GITHUB_REF_NAME#v}"
-          MAJOR=$(echo "$VERSION" | cut -d. -f1)
-          MINOR=$(echo "$VERSION" | cut -d. -f2)
-          BRANCH="release/${MAJOR}.${MINOR}"
-
-          if ! git ls-remote --heads origin "$BRANCH" | grep -q "$BRANCH"; then
-            git checkout -b "$BRANCH" "$GITHUB_REF_NAME"
-            git push origin "$BRANCH"
-            echo "Created branch $BRANCH"
-          else
-            echo "Branch $BRANCH already exists -- skipping"
-          fi
