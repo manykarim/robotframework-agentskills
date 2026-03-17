@@ -6,27 +6,43 @@
   },
   "metadata": {
     "description": "Robot Framework agent skills for Claude Code - web, API, mobile testing, asset generation, and RF analysis tools",
-    "version": "1.1.0"
+    "version": "1.2.0"
   },
   "plugins": [
     {
       "name": "rf-agentskills",
       "source": "./plugins/rf-agentskills",
       "description": "Complete Robot Framework skills suite: 11 skills for web/API/mobile testing, keyword/test/resource generation, and libdoc/results tools. Includes 4 specialized agents and automated .robot validation.",
-      "version": "1.1.0",
-      "author": { "name": "manykarim" },
+      "version": "1.2.0",
+      "author": {
+        "name": "manykarim"
+      },
       "homepage": "https://github.com/manykarim/robotframework-agentskills",
       "repository": "https://github.com/manykarim/robotframework-agentskills",
       "license": "Apache-2.0",
       "keywords": [
-        "robotframework", "testing", "automation", "playwright", "selenium",
-        "appium", "requests", "restinstance", "web-testing", "api-testing",
-        "mobile-testing", "test-generation", "libdoc"
+        "robotframework",
+        "testing",
+        "automation",
+        "playwright",
+        "selenium",
+        "appium",
+        "requests",
+        "restinstance",
+        "web-testing",
+        "api-testing",
+        "mobile-testing",
+        "test-generation",
+        "libdoc"
       ],
       "category": "testing",
       "tags": [
-        "robot-framework", "test-automation", "browser-testing",
-        "api-testing", "mobile-testing", "code-generation"
+        "robot-framework",
+        "test-automation",
+        "browser-testing",
+        "api-testing",
+        "mobile-testing",
+        "code-generation"
       ]
     }
   ]
