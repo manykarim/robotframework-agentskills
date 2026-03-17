@@ -1,5 +1,5 @@
 ---
-name: robotframework-requests-skill
+name: rf-requests
 description: Guide AI agents in creating REST API tests using RequestsLibrary. Use when building HTTP client tests, JSON/XML API testing, session management, authentication, file uploads, and response validation.
 ---
 
@@ -252,9 +252,9 @@ Load these reference files for specific use cases:
 
 | Need | Skill |
 |------|-------|
-| Generate user keywords | `robotframework-keyword-builder` |
-| Generate test cases | `robotframework-testcase-builder` |
-| Design resource file layout | `robotframework-resource-architect` |
-| Search for keywords across libraries | `robotframework-libdoc-search` |
-| Explain keyword arguments in detail | `robotframework-libdoc-explain` |
-| Parse test results from output.xml | `robotframework-results` |
+| Generate user keywords | `rf-keyword-builder` |
+| Generate test cases | `rf-testcase-builder` |
+| Design resource file layout | `rf-resource-architect` |
+| Search for keywords across libraries | `rf-libdoc-search` |
+| Explain keyword arguments in detail | `rf-libdoc-explain` |
+| Parse test results from output.xml | `rf-results` |

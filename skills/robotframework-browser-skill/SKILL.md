@@ -1,5 +1,5 @@
 ---
-name: robotframework-browser-skill
+name: rf-browser
 description: Guide AI agents in creating Browser Library tests using Playwright-powered automation with auto-waiting, assertion engine, and modern web features. Use when asked to create web tests with Browser Library, handle locators, assertions, iframes, Shadow DOM, or multi-tab scenarios.
 ---
 
@@ -301,9 +301,9 @@ Load these reference files when you need deeper knowledge:
 
 | Need | Skill |
 |------|-------|
-| Generate user keywords | `robotframework-keyword-builder` |
-| Generate test cases | `robotframework-testcase-builder` |
-| Design resource file layout | `robotframework-resource-architect` |
-| Search for keywords across libraries | `robotframework-libdoc-search` |
-| Explain keyword arguments in detail | `robotframework-libdoc-explain` |
-| Parse test results from output.xml | `robotframework-results` |
+| Generate user keywords | `rf-keyword-builder` |
+| Generate test cases | `rf-testcase-builder` |
+| Design resource file layout | `rf-resource-architect` |
+| Search for keywords across libraries | `rf-libdoc-search` |
+| Explain keyword arguments in detail | `rf-libdoc-explain` |
+| Parse test results from output.xml | `rf-results` |

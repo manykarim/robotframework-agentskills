@@ -36,18 +36,18 @@ declare -A SHORT_NAMES=(
 transform_skill_md_for_plugin() {
     local src="$1"
     local dest="$2"
-    local long_name="$3"
-    local short_name="$4"
+    local rf_name="$3"    # e.g., rf-browser (the name: in root SKILL.md)
+    local short_name="$4" # e.g., browser (the plugin dir name)
 
     sed \
-        -e "s|^name: ${long_name}$|name: ${short_name}|" \
+        -e "s|^name: ${rf_name}$|name: ${short_name}|" \
         -e 's|python scripts/\([a-z_]*\.py\)|python3 "${CLAUDE_PLUGIN_ROOT}/scripts/\1"|g' \
-        -e 's|`robotframework-keyword-builder`|`keyword-builder`|g' \
-        -e 's|`robotframework-testcase-builder`|`testcase-builder`|g' \
-        -e 's|`robotframework-resource-architect`|`resource-architect`|g' \
-        -e 's|`robotframework-libdoc-search`|`libdoc-search`|g' \
-        -e 's|`robotframework-libdoc-explain`|`libdoc-explain`|g' \
-        -e 's|`robotframework-results`|`results`|g' \
+        -e 's|`rf-keyword-builder`|`keyword-builder`|g' \
+        -e 's|`rf-testcase-builder`|`testcase-builder`|g' \
+        -e 's|`rf-resource-architect`|`resource-architect`|g' \
+        -e 's|`rf-libdoc-search`|`libdoc-search`|g' \
+        -e 's|`rf-libdoc-explain`|`libdoc-explain`|g' \
+        -e 's|`rf-results`|`results`|g' \
         "$src" > "$dest"
 }
 
@@ -78,8 +78,10 @@ for skill_dir in "$SKILLS_DIR"/*/; do
 
     # Transform SKILL.md
     if [ -f "$skill_dir/SKILL.md" ]; then
-        transform_skill_md_for_plugin "$skill_dir/SKILL.md" "$plugin_skill/SKILL.md" "$long_name" "$short_name"
-        echo "  $short_name/SKILL.md (transformed)"
+        # Read the actual name: field from frontmatter (e.g., rf-browser)
+        rf_name=$(head -5 "$skill_dir/SKILL.md" | grep "^name:" | sed 's/^name: //')
+        transform_skill_md_for_plugin "$skill_dir/SKILL.md" "$plugin_skill/SKILL.md" "$rf_name" "$short_name"
+        echo "  $short_name/SKILL.md (transformed: $rf_name -> $short_name)"
     fi
 
     # Sync references/

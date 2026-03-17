@@ -1,5 +1,5 @@
 ---
-name: robotframework-libdoc-explain
+name: rf-libdoc-explain
 description: Explain Robot Framework keywords and their arguments from library/resource/suite documentation. Use when asked how to use a keyword, what arguments it takes, or to retrieve detailed keyword docs from libdoc across one or more libraries/resources.
 ---
 

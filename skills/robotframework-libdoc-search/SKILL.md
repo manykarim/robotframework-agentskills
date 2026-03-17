@@ -1,5 +1,5 @@
 ---
-name: robotframework-libdoc-search
+name: rf-libdoc-search
 description: Search Robot Framework library/resource/suite documentation to find matching keywords for a use case. Use when asked to find keywords, search libdoc, match a use case to keywords, or scan multiple libraries/resources for relevant keywords.
 ---
 

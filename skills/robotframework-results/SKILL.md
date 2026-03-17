@@ -1,5 +1,5 @@
 ---
-name: robotframework-results
+name: rf-results
 description: Parse Robot Framework output.xml results into JSON summaries, detailed suite/test breakdowns, tag and criticality stats, execution errors, failed test messages, keyword-level errors, and timing. Use when asked to read/merge output.xml, compute pass/fail counts, tag stats, criticality, error messages, elapsed time, slowest tests/keywords, or combine/merge multiple outputs via rebot.
 ---
 

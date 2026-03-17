@@ -1,5 +1,5 @@
 ---
-name: robotframework-keyword-builder
+name: rf-keyword-builder
 description: Generate Robot Framework user keywords from structured intent. Use when asked to create keywords, add arguments, documentation, tags, setup/teardown, or to apply embedded-argument style based on existing project conventions.
 ---
 

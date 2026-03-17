@@ -1,5 +1,5 @@
 ---
-name: robotframework-resource-architect
+name: rf-resource-architect
 description: Design Robot Framework resource and variables layout for maintainable suites. Use when asked to create resource files, variable files, or propose project structure with shared keywords and environment-specific data.
 ---
 

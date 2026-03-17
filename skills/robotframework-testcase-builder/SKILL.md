@@ -1,5 +1,5 @@
 ---
-name: robotframework-testcase-builder
+name: rf-testcase-builder
 description: Generate Robot Framework test cases from structured requirements or scenarios. Use when asked to create test cases, apply tags/setup/teardown/templates, or produce keyword-driven tests.
 ---
 
