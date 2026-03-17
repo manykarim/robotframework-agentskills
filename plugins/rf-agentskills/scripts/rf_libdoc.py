@@ -9,7 +9,6 @@ from typing import Any, Dict, Iterable, List, Tuple
 try:
     from robot import libdoc
 except ImportError:
-    import sys
     print('{"error": "robotframework package required. Install with: pip install robotframework"}', file=sys.stderr)
     sys.exit(1)
 
@@ -230,7 +229,7 @@ def _find_keyword(libs: List[Any], keyword_name: str, include_private: bool,
                 matches.append({
                     "library": _library_meta(lib),
                     "keyword": _keyword_to_dict(kw),
-            "usage": _parse_keyword_args(_stringify_args(list(kw.args or []))),
+                    "usage": _parse_keyword_args(_stringify_args(list(kw.args or []))),
                 })
     return matches
 

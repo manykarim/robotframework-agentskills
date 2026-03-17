@@ -28,8 +28,6 @@ import json
 import os
 import sys
 import importlib.util
-import tempfile
-from io import StringIO
 from typing import Any, Dict, List, Optional
 
 
@@ -50,36 +48,31 @@ except ImportError:
 # ---------------------------------------------------------------------------
 _SERVER_DIR = os.path.dirname(os.path.abspath(__file__))
 _PLUGIN_ROOT = os.path.dirname(_SERVER_DIR)
-_SKILLS_DIR = os.path.join(_PLUGIN_ROOT, "skills")
+_SCRIPTS_DIR = os.path.join(_PLUGIN_ROOT, "scripts")
 
 _SCRIPT_PATHS = {
-    "rf_libdoc": os.path.join(_SKILLS_DIR, "robotframework-libdoc-search", "scripts", "rf_libdoc.py"),
-    "rf_results": os.path.join(_SKILLS_DIR, "robotframework-results", "scripts", "rf_results.py"),
-    "keyword_builder": os.path.join(_SKILLS_DIR, "robotframework-keyword-builder", "scripts", "keyword_builder.py"),
-    "testcase_builder": os.path.join(_SKILLS_DIR, "robotframework-testcase-builder", "scripts", "testcase_builder.py"),
-    "resource_architect": os.path.join(_SKILLS_DIR, "robotframework-resource-architect", "scripts", "resource_architect.py"),
+    "rf_libdoc": os.path.join(_SCRIPTS_DIR, "rf_libdoc.py"),
+    "rf_results": os.path.join(_SCRIPTS_DIR, "rf_results.py"),
+    "keyword_builder": os.path.join(_SCRIPTS_DIR, "keyword_builder.py"),
+    "testcase_builder": os.path.join(_SCRIPTS_DIR, "testcase_builder.py"),
+    "resource_architect": os.path.join(_SCRIPTS_DIR, "resource_architect.py"),
 }
 
 
+_MODULE_CACHE: Dict[str, Any] = {}
+
+
 def _load_module(name: str, path: str):
-    """Dynamically import a Python module from a file path."""
+    """Dynamically import a Python module from a file path, with caching."""
+    if name in _MODULE_CACHE:
+        return _MODULE_CACHE[name]
     spec = importlib.util.spec_from_file_location(name, path)
     if spec is None or spec.loader is None:
         raise ImportError(f"Cannot load module from {path}")
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
+    _MODULE_CACHE[name] = module
     return module
-
-
-def _capture_stdout(func, *args, **kwargs) -> str:
-    """Capture stdout from a function call and return it as a string."""
-    old_stdout = sys.stdout
-    sys.stdout = StringIO()
-    try:
-        func(*args, **kwargs)
-        return sys.stdout.getvalue()
-    finally:
-        sys.stdout = old_stdout
 
 
 # ---------------------------------------------------------------------------
@@ -232,6 +225,8 @@ def tool_keyword_builder(
     project_root: str = ".",
 ) -> Dict[str, Any]:
     """Generate a Robot Framework user keyword from structured input."""
+    mod = _load_module("keyword_builder", _SCRIPT_PATHS["keyword_builder"])
+
     data = {
         "keyword_name": keyword_name,
         "description": description,
@@ -247,26 +242,53 @@ def tool_keyword_builder(
     if return_value is not None:
         data["return_value"] = return_value
 
-    # Write to temp file and invoke the script's main logic
-    tmp = tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False)
-    json.dump(data, tmp)
-    tmp.close()
+    warnings: List[str] = []
+    suggestions: List[str] = []
+    meta: Dict[str, Any] = {}
 
-    try:
-        old_argv = sys.argv
-        sys.argv = ["keyword_builder.py", "--input", tmp.name]
-        if detect_embedded:
-            sys.argv.extend(["--detect-embedded", "--project-root", project_root])
-
-        output = _capture_stdout(
-            _load_module("keyword_builder", _SCRIPT_PATHS["keyword_builder"]).main
-        )
-        return json.loads(output)
-    except SystemExit:
+    kw_name = data.get("keyword_name", "").strip()
+    if not kw_name:
         return {"error": "keyword_name is required"}
-    finally:
-        sys.argv = old_argv
-        os.unlink(tmp.name)
+
+    if data.get("visibility") == "private" and not kw_name.startswith("_"):
+        kw_name = f"_{kw_name}"
+
+    embedded_detected = False
+    if detect_embedded:
+        embedded_detected = mod._detect_embedded_style(project_root)
+        meta["embedded_style_detected"] = embedded_detected
+
+    if "${" not in kw_name and not detect_embedded:
+        pass
+    elif detect_embedded and "${" not in kw_name:
+        suggestions.append("Project uses embedded-argument keywords; consider embedding arguments in keyword_name.")
+
+    if kw_name == mod._title_case(kw_name):
+        pass
+    else:
+        suggestions.append("Consider Title Case for keyword name.")
+
+    proc_steps = data.get("steps") or []
+    if style == "retry-aware":
+        if len(proc_steps) == 1 and "keyword" in proc_steps[0]:
+            step = proc_steps[0]
+            data["steps"] = [
+                {
+                    "keyword": "Wait Until Keyword Succeeds",
+                    "args": ["3x", "1s", step["keyword"]] + step.get("args", []),
+                }
+            ]
+        else:
+            warnings.append("retry-aware style requires a single step; keeping steps as-is.")
+
+    artifact = mod._render_keyword_block(kw_name, data, warnings)
+
+    return {
+        "artifact": artifact,
+        "warnings": warnings,
+        "suggestions": suggestions,
+        "meta": meta,
+    }
 
 
 def tool_testcase_builder(
@@ -275,30 +297,30 @@ def tool_testcase_builder(
     allow_control: bool = False,
 ) -> Dict[str, Any]:
     """Generate Robot Framework test cases from structured input."""
-    data = {
-        "style": style,
-        "tests": tests,
-    }
+    mod = _load_module("testcase_builder", _SCRIPT_PATHS["testcase_builder"])
 
-    tmp = tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False)
-    json.dump(data, tmp)
-    tmp.close()
-
-    try:
-        old_argv = sys.argv
-        sys.argv = ["testcase_builder.py", "--input", tmp.name]
-        if allow_control:
-            sys.argv.append("--allow-control")
-
-        output = _capture_stdout(
-            _load_module("testcase_builder", _SCRIPT_PATHS["testcase_builder"]).main
-        )
-        return json.loads(output)
-    except SystemExit:
+    if not tests:
         return {"error": "tests array is required"}
-    finally:
-        sys.argv = old_argv
-        os.unlink(tmp.name)
+
+    warnings: List[str] = []
+    suggestions: List[str] = []
+
+    artifacts = []
+    for test in tests:
+        name = test.get("name", "").strip()
+        if not name:
+            warnings.append("Test without a name skipped.")
+            continue
+        if "*" in name or "?" in name:
+            warnings.append(f"Test name '{name}' contains wildcard characters.")
+        test["name"] = name
+        artifacts.append(mod._render_test(test, allow_control, warnings))
+
+    return {
+        "artifact": "\n\n".join(artifacts),
+        "warnings": warnings,
+        "suggestions": suggestions,
+    }
 
 
 def tool_resource_architect(
@@ -312,36 +334,70 @@ def tool_resource_architect(
     overwrite: bool = False,
 ) -> Dict[str, Any]:
     """Design Robot Framework resource file layout for a project."""
-    data = {
-        "project_root": project_root,
-        "domains": domains,
-        "libraries": libraries or [],
-        "environments": environments or [],
-        "resource_naming": resource_naming,
-        "variables_format": variables_format,
+    mod = _load_module("resource_architect", _SCRIPT_PATHS["resource_architect"])
+
+    libraries = libraries or []
+    environments = environments or []
+    warnings: List[str] = []
+    suggestions: List[str] = []
+
+    resource_dir_name = mod._detect_resource_dir(project_root)
+    resource_dir = os.path.join(project_root, resource_dir_name)
+
+    if variables_format not in ("resource", "yaml", "python"):
+        warnings.append(f"Unknown variables_format '{variables_format}', defaulting to resource")
+        variables_format = "resource"
+
+    if variables_format == "yaml":
+        suggestions.append("Install pyyaml if you need to parse YAML variable files.")
+
+    directories = [resource_dir]
+    files: List[Dict[str, Any]] = []
+
+    common_resource = os.path.join(resource_dir, "common.resource")
+    files.append({
+        "path": common_resource,
+        "content": mod._resource_content(libraries, []),
+    })
+
+    if resource_naming == "by-domain":
+        for domain in domains:
+            filename = mod._resource_file(domain)
+            domain_path = os.path.join(resource_dir, filename)
+            files.append({
+                "path": domain_path,
+                "content": mod._resource_content([], ["common.resource"]),
+            })
+    else:
+        suggestions.append("resource_naming not 'by-domain' is not fully implemented; using common.resource only.")
+
+    if environments:
+        variables_dir = os.path.join(resource_dir, "variables")
+        directories.append(variables_dir)
+        ext = ".resource" if variables_format == "resource" else ".yaml" if variables_format == "yaml" else ".py"
+        for env in environments:
+            filename = f"{env}{ext}"
+            files.append({
+                "path": os.path.join(variables_dir, filename),
+                "content": mod._variables_content(variables_format),
+            })
+
+    if write:
+        for directory in directories:
+            os.makedirs(directory, exist_ok=True)
+        for item in files:
+            mod._write_file(item["path"], item["content"], overwrite, warnings)
+
+    return {
+        "directories": directories,
+        "files": files,
+        "warnings": warnings,
+        "suggestions": suggestions,
+        "meta": {
+            "resource_dir": resource_dir_name,
+            "resource_naming": resource_naming,
+        },
     }
-
-    tmp = tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False)
-    json.dump(data, tmp)
-    tmp.close()
-
-    try:
-        old_argv = sys.argv
-        sys.argv = ["resource_architect.py", "--input", tmp.name]
-        if write:
-            sys.argv.append("--write")
-        if overwrite:
-            sys.argv.append("--overwrite")
-
-        output = _capture_stdout(
-            _load_module("resource_architect", _SCRIPT_PATHS["resource_architect"]).main
-        )
-        return json.loads(output)
-    except SystemExit:
-        return {"error": "Input data is required"}
-    finally:
-        sys.argv = old_argv
-        os.unlink(tmp.name)
 
 
 # ---------------------------------------------------------------------------
@@ -608,7 +664,7 @@ def create_server() -> "Server":
                 type="text",
                 text=json.dumps(result, indent=2),
             )]
-        except Exception as e:
+        except (Exception, SystemExit) as e:
             return [TextContent(
                 type="text",
                 text=json.dumps({"error": str(e)}, indent=2),

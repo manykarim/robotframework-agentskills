@@ -1,0 +1,56 @@
+{
+  "name": "robotframework-agentskills",
+  "displayName": "Robot Framework Agent Skills",
+  "description": "Agent Skills for Robot Framework test automation — web, API, mobile testing, keyword/test/resource generation, and library documentation tools",
+  "version": "1.0.0",
+  "publisher": "manykarim",
+  "license": "Apache-2.0",
+  "engines": {
+    "vscode": "^1.108.0"
+  },
+  "categories": [
+    "AI",
+    "Testing"
+  ],
+  "keywords": [
+    "robot-framework",
+    "testing",
+    "agent-skills",
+    "copilot",
+    "test-automation",
+    "playwright",
+    "selenium"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/manykarim/robotframework-agentskills"
+  },
+  "icon": "icon.png",
+  "contributes": {
+    "chatSkills": [
+      { "path": "./skills/robotframework-results/SKILL.md" },
+      { "path": "./skills/robotframework-libdoc-search/SKILL.md" },
+      { "path": "./skills/robotframework-libdoc-explain/SKILL.md" },
+      { "path": "./skills/robotframework-keyword-builder/SKILL.md" },
+      { "path": "./skills/robotframework-testcase-builder/SKILL.md" },
+      { "path": "./skills/robotframework-resource-architect/SKILL.md" },
+      { "path": "./skills/robotframework-browser-skill/SKILL.md" },
+      { "path": "./skills/robotframework-selenium-skill/SKILL.md" },
+      { "path": "./skills/robotframework-requests-skill/SKILL.md" },
+      { "path": "./skills/robotframework-restinstance-skill/SKILL.md" },
+      { "path": "./skills/robotframework-appium-skill/SKILL.md" }
+    ]
+  },
+  "activationEvents": [],
+  "main": "./out/extension.js",
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "package": "vsce package"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.108.0",
+    "typescript": "^5.4.0",
+    "@vscode/vsce": "^3.0.0"
+  }
+}

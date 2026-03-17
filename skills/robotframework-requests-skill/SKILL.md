@@ -247,3 +247,14 @@ Load these reference files for specific use cases:
 - OAuth, JWT, API keys -> `references/authentication.md`
 - Full keyword listing -> `references/keywords-reference.md`
 - Error debugging -> `references/troubleshooting.md`
+
+## Companion Skills
+
+| Need | Skill |
+|------|-------|
+| Generate user keywords | `robotframework-keyword-builder` |
+| Generate test cases | `robotframework-testcase-builder` |
+| Design resource file layout | `robotframework-resource-architect` |
+| Search for keywords across libraries | `robotframework-libdoc-search` |
+| Explain keyword arguments in detail | `robotframework-libdoc-explain` |
+| Parse test results from output.xml | `robotframework-results` |

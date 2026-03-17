@@ -380,3 +380,14 @@ Open Login Page
     Go To    ${URL}/login
     Wait Until Element Is Visible    id=username
 ```
+
+## Companion Skills
+
+| Need | Skill |
+|------|-------|
+| Generate user keywords | `keyword-builder` |
+| Generate test cases | `testcase-builder` |
+| Design resource file layout | `resource-architect` |
+| Search for keywords across libraries | `libdoc-search` |
+| Explain keyword arguments in detail | `libdoc-explain` |
+| Parse test results from output.xml | `results` |

@@ -296,3 +296,14 @@ Load these reference files when you need deeper knowledge:
 | Session persistence, cookies | `references/authentication-storage.md` |
 | File download/upload | `references/downloads-uploads.md` |
 | Debugging test failures | `references/troubleshooting.md` |
+
+## Companion Skills
+
+| Need | Skill |
+|------|-------|
+| Generate user keywords | `keyword-builder` |
+| Generate test cases | `testcase-builder` |
+| Design resource file layout | `resource-architect` |
+| Search for keywords across libraries | `libdoc-search` |
+| Explain keyword arguments in detail | `libdoc-explain` |
+| Parse test results from output.xml | `results` |

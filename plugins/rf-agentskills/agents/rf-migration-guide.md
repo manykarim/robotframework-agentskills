@@ -101,14 +101,19 @@ Create User
 ### Using the Skills
 
 ```bash
+# Via MCP tool (preferred):
+# Use rf_libdoc_search to find keywords, rf_libdoc_explain to verify replacements,
+# and rf_keyword_build to generate migrated definitions.
+
+# Via command line:
 # Search for keywords that might need migration
-python scripts/rf_libdoc.py --library SeleniumLibrary --search "wait until" --pretty
+python3 "${CLAUDE_PLUGIN_ROOT}/scripts/rf_libdoc.py" --library SeleniumLibrary --search "wait until" --pretty
 
 # Verify the replacement keyword exists in the target library
-python scripts/rf_libdoc.py --library Browser --keyword "Wait For Elements State" --pretty
+python3 "${CLAUDE_PLUGIN_ROOT}/scripts/rf_libdoc.py" --library Browser --keyword "Wait For Elements State" --pretty
 
 # Generate migrated keyword definitions
-python scripts/keyword_builder.py --input migrated_keyword.json
+python3 "${CLAUDE_PLUGIN_ROOT}/scripts/keyword_builder.py" --input migrated_keyword.json
 ```
 
 ## Constraints

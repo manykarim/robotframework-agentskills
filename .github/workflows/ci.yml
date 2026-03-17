@@ -209,3 +209,11 @@ jobs:
 
       - name: Run ruff check
         run: ruff check plugins/rf-agentskills/scripts/*.py --select E,F,W --ignore E501
+
+  check-drift:
+    name: Check distribution channel drift
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check for file drift between distribution channels
+        run: bash scripts/check-drift.sh

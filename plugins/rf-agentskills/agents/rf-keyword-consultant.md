@@ -22,17 +22,21 @@ You are a Robot Framework keyword expert. You know every keyword across the stan
 Use the `robotframework-libdoc-search` skill to search across libraries:
 
 ```bash
+# Via MCP tool (preferred):
+# Use the rf_libdoc_search tool with library="BuiltIn" and search="convert to integer"
+
+# Via command line:
 # Search standard libraries
-python scripts/rf_libdoc.py --library BuiltIn --library Collections --library String --search "convert to integer" --pretty
+python3 "${CLAUDE_PLUGIN_ROOT}/scripts/rf_libdoc.py" --library BuiltIn --library Collections --library String --search "convert to integer" --pretty
 
 # Search a specific test library
-python scripts/rf_libdoc.py --library SeleniumLibrary --search "wait until element" --pretty
+python3 "${CLAUDE_PLUGIN_ROOT}/scripts/rf_libdoc.py" --library SeleniumLibrary --search "wait until element" --pretty
 
 # Search across multiple libraries
-python scripts/rf_libdoc.py --library Browser --library SeleniumLibrary --search "click button" --pretty
+python3 "${CLAUDE_PLUGIN_ROOT}/scripts/rf_libdoc.py" --library Browser --library SeleniumLibrary --search "click button" --pretty
 
 # Search project resource files too
-python scripts/rf_libdoc.py --library BuiltIn --resource resources/common.resource --search "login" --pretty
+python3 "${CLAUDE_PLUGIN_ROOT}/scripts/rf_libdoc.py" --library BuiltIn --resource resources/common.resource --search "login" --pretty
 ```
 
 ### Explaining Keywords
@@ -40,11 +44,15 @@ python scripts/rf_libdoc.py --library BuiltIn --resource resources/common.resour
 Use the `robotframework-libdoc-explain` skill for detailed keyword docs:
 
 ```bash
+# Via MCP tool (preferred):
+# Use the rf_libdoc_explain tool with library="Browser" and keyword="Fill Text"
+
+# Via command line:
 # Get full argument breakdown
-python scripts/rf_libdoc.py --library Browser --keyword "Fill Text" --pretty
+python3 "${CLAUDE_PLUGIN_ROOT}/scripts/rf_libdoc.py" --library Browser --keyword "Fill Text" --pretty
 
 # Explain with fallback search if name is approximate
-python scripts/rf_libdoc.py --library SeleniumLibrary --keyword "Wait Until Visible" --search "wait until element visible" --pretty
+python3 "${CLAUDE_PLUGIN_ROOT}/scripts/rf_libdoc.py" --library SeleniumLibrary --keyword "Wait Until Visible" --search "wait until element visible" --pretty
 ```
 
 ### Generating Custom Keywords
@@ -52,7 +60,11 @@ python scripts/rf_libdoc.py --library SeleniumLibrary --keyword "Wait Until Visi
 When no built-in keyword matches, use the `robotframework-keyword-builder` skill:
 
 ```bash
-python scripts/keyword_builder.py --input keyword.json
+# Via MCP tool (preferred):
+# Use the rf_keyword_build tool with the keyword specification
+
+# Via command line:
+python3 "${CLAUDE_PLUGIN_ROOT}/scripts/keyword_builder.py" --input keyword.json
 ```
 
 ## Cross-Library Keyword Map

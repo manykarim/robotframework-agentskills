@@ -10,7 +10,6 @@ try:
     from robot import rebot
     from robot.api import ExecutionResult, ResultVisitor
 except ImportError:
-    import sys
     print('{"error": "robotframework package required. Install with: pip install robotframework"}', file=sys.stderr)
     sys.exit(1)
 
@@ -140,8 +139,7 @@ def _load_result(paths: List[str], merge: bool, name: str) -> Tuple[ExecutionRes
         try:
             return ExecutionResult(paths[0]), False
         except Exception as e:
-            json.dump({"error": f"Failed to parse output file: {e}"}, sys.stdout, indent=2)
-            sys.exit(1)
+            raise RuntimeError(f"Failed to parse output file: {e}")
     tmp = tempfile.NamedTemporaryFile(delete=False, suffix=".xml")
     tmp.close()
     try:

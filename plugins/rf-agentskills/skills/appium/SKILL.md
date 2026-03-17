@@ -328,3 +328,14 @@ Reference files for deeper guidance (planned):
 | Android-specific features | `references/android-specific.md` |
 | Complete keyword list | `references/keywords-reference.md` |
 | Common issues and solutions | `references/troubleshooting.md` |
+
+## Companion Skills
+
+| Need | Skill |
+|------|-------|
+| Generate user keywords | `keyword-builder` |
+| Generate test cases | `testcase-builder` |
+| Design resource file layout | `resource-architect` |
+| Search for keywords across libraries | `libdoc-search` |
+| Explain keyword arguments in detail | `libdoc-explain` |
+| Parse test results from output.xml | `results` |

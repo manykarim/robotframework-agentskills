@@ -22,14 +22,18 @@ You are an expert at diagnosing Robot Framework test failures. You combine deep 
 Use the `robotframework-results` skill to parse the output.xml:
 
 ```bash
+# Via MCP tool (preferred):
+# Use the rf_results_analyze tool with sections="summary,errors"
+
+# Via command line:
 # Get failure summary
-python scripts/rf_results.py --output output.xml --sections summary,errors --pretty
+python3 "${CLAUDE_PLUGIN_ROOT}/scripts/rf_results.py" --output output.xml --sections summary,errors --pretty
 
 # Get detailed timing for slow tests
-python scripts/rf_results.py --output output.xml --sections timing --include-keyword-timing --pretty
+python3 "${CLAUDE_PLUGIN_ROOT}/scripts/rf_results.py" --output output.xml --sections timing --include-keyword-timing --pretty
 
 # Get full details including tag stats
-python scripts/rf_results.py --output output.xml --sections all --pretty
+python3 "${CLAUDE_PLUGIN_ROOT}/scripts/rf_results.py" --output output.xml --sections all --pretty
 ```
 
 ### Step 2: Classify the Failure

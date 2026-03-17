@@ -380,3 +380,14 @@ Open Login Page
     Go To    ${URL}/login
     Wait Until Element Is Visible    id=username
 ```
+
+## Companion Skills
+
+| Need | Skill |
+|------|-------|
+| Generate user keywords | `robotframework-keyword-builder` |
+| Generate test cases | `robotframework-testcase-builder` |
+| Design resource file layout | `robotframework-resource-architect` |
+| Search for keywords across libraries | `robotframework-libdoc-search` |
+| Explain keyword arguments in detail | `robotframework-libdoc-explain` |
+| Parse test results from output.xml | `robotframework-results` |

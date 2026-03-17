@@ -6,8 +6,12 @@ import sys
 import tempfile
 from typing import Any, Dict, List, Tuple
 
-from robot import rebot
-from robot.api import ExecutionResult, ResultVisitor
+try:
+    from robot import rebot
+    from robot.api import ExecutionResult, ResultVisitor
+except ImportError:
+    print('{"error": "robotframework package required. Install with: pip install robotframework"}', file=sys.stderr)
+    sys.exit(1)
 
 
 def _elapsed_ms(item: Any) -> int:
@@ -135,8 +139,7 @@ def _load_result(paths: List[str], merge: bool, name: str) -> Tuple[ExecutionRes
         try:
             return ExecutionResult(paths[0]), False
         except Exception as e:
-            json.dump({"error": f"Failed to parse output file: {e}"}, sys.stdout, indent=2)
-            sys.exit(1)
+            raise RuntimeError(f"Failed to parse output file: {e}")
     tmp = tempfile.NamedTemporaryFile(delete=False, suffix=".xml")
     tmp.close()
     try:

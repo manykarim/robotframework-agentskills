@@ -4,31 +4,51 @@ A Claude Code plugin marketplace providing AI agent skills for Robot Framework t
 
 ## Quick Install
 
-```bash
-# Add the marketplace
-/plugin marketplace add manykarim/robotframework-agentskills
+### Claude Code Plugin
 
-# Install the plugin
-/plugin install rf-agentskills@robotframework-agentskills
+```bash
+# Install as Claude Code Plugin
+claude plugin add github:manykarim/robotframework-agentskills
+
+# Or install skills directly to your project
+cp -r skills/robotframework-browser-skill .claude/skills/
 ```
+
+### VS Code Extension
+
+```bash
+# Install from VSIX
+code --install-extension vscode-extension/robotframework-agentskills-1.0.0.vsix
+```
+
+### Standalone (Without Plugin System)
+
+```bash
+# Load the plugin directory directly
+claude --plugin-dir ./plugins/rf-agentskills
+```
+
+Or copy individual skills from `skills/` to your project's `.claude/skills/` for standalone usage without the plugin system.
 
 ## What You Get
 
 ### 11 Skills
 
-| Skill | Command | Description |
-|-------|---------|-------------|
-| Browser Library | `/rf-agentskills:browser` | Web testing with Playwright (auto-waiting, assertions, Shadow DOM) |
-| SeleniumLibrary | `/rf-agentskills:selenium` | Web testing with Selenium WebDriver |
-| AppiumLibrary | `/rf-agentskills:appium` | Mobile testing for iOS and Android |
-| RequestsLibrary | `/rf-agentskills:requests` | REST API testing with HTTP methods |
-| RESTinstance | `/rf-agentskills:restinstance` | REST API testing with JSON Schema validation |
-| Keyword Builder | `/rf-agentskills:keyword-builder` | Generate RF user keywords from structured input |
-| Test Case Builder | `/rf-agentskills:testcase-builder` | Generate RF test cases from structured input |
-| Resource Architect | `/rf-agentskills:resource-architect` | Design resource/variable file layouts |
-| Libdoc Search | `/rf-agentskills:libdoc-search` | Search library keywords by use case |
-| Libdoc Explain | `/rf-agentskills:libdoc-explain` | Explain keyword arguments and documentation |
-| Results | `/rf-agentskills:results` | Parse output.xml into JSON summaries |
+| Skill | Type | Command | Description |
+|-------|------|---------|-------------|
+| Browser Library | library-reference | `/rf-agentskills:browser` | Web testing with Playwright (auto-waiting, assertions, Shadow DOM) |
+| SeleniumLibrary | library-reference | `/rf-agentskills:selenium` | Web testing with Selenium WebDriver |
+| AppiumLibrary | library-reference | `/rf-agentskills:appium` | Mobile testing for iOS and Android |
+| RequestsLibrary | library-reference | `/rf-agentskills:requests` | REST API testing with HTTP methods |
+| RESTinstance | library-reference | `/rf-agentskills:restinstance` | REST API testing with JSON Schema validation |
+| Keyword Builder | script-based | `/rf-agentskills:keyword-builder` | Generate RF user keywords from structured input |
+| Test Case Builder | script-based | `/rf-agentskills:testcase-builder` | Generate RF test cases from structured input |
+| Resource Architect | script-based | `/rf-agentskills:resource-architect` | Design resource/variable file layouts |
+| Libdoc Search | script-based | `/rf-agentskills:libdoc-search` | Search library keywords by use case |
+| Libdoc Explain | script-based | `/rf-agentskills:libdoc-explain` | Explain keyword arguments and documentation |
+| Results | script-based | `/rf-agentskills:results` | Parse output.xml into JSON summaries (requires robotframework) |
+
+The 5 library-reference skills provide documentation and usage guidance. The 6 script-based skills execute Python scripts to generate code or analyze artifacts. Library-reference skills cross-reference their companion script-based skills (e.g., the Browser skill suggests using Keyword Builder and Libdoc Search).
 
 ### 4 Specialized Agents
 
@@ -55,6 +75,8 @@ A Claude Code plugin marketplace providing AI agent skills for Robot Framework t
 ```bash
 pip install robotframework
 ```
+
+All scripts handle a missing `robotframework` package gracefully -- script-based skills that do not require it (keyword-builder, testcase-builder, resource-architect) work with the Python standard library alone.
 
 Optional libraries (for their respective skills):
 ```bash
@@ -86,16 +108,6 @@ Add to your project's `.claude/settings.json` to auto-configure for your team:
 }
 ```
 
-## Standalone Usage (Without Marketplace)
-
-You can also use the skills directly without the marketplace by loading the plugin directory:
-
-```bash
-claude --plugin-dir ./plugins/rf-agentskills
-```
-
-Or copy the `skills/` directory to your project's `.claude/skills/` for standalone skill usage without the plugin system.
-
 ## What is an Agent Skill?
 
 Agent Skills are modular, self-contained packages that include a `SKILL.md` file (instructions) plus optional scripts, references, and assets. AI agents load a skill when its name or description matches the user request. Skills use progressive disclosure: only metadata is loaded initially; the full skill body and references are loaded on demand.
@@ -103,48 +115,87 @@ Agent Skills are modular, self-contained packages that include a `SKILL.md` file
 ## Project Structure
 
 ```
-robotframework-agentskills/
-  .claude-plugin/
-    marketplace.json          # Marketplace catalog
-  plugins/
-    rf-agentskills/           # The plugin
-      .claude-plugin/
-        plugin.json           # Plugin manifest
-      skills/                 # 11 RF skills
-        browser/              # Browser Library skill
-        selenium/             # SeleniumLibrary skill
-        appium/               # AppiumLibrary skill
-        requests/             # RequestsLibrary skill
-        restinstance/         # RESTinstance skill
-        keyword-builder/      # Keyword generation
-        testcase-builder/     # Test case generation
-        resource-architect/   # Resource/variable design
-        libdoc-search/        # Library keyword search
-        libdoc-explain/       # Keyword documentation
-        results/              # output.xml analysis
-      agents/                 # 4 specialized agents
-      hooks/                  # Automated event hooks
-      scripts/                # Python scripts + hook helpers
-      servers/                # Optional MCP server
-  skills/                     # Original skills (standalone usage)
+skills/                        # Canonical source of truth (11 skills)
+├── robotframework-*/          # Each skill is a self-contained folder
+│   ├── SKILL.md               # Skill definition (loaded by agent)
+│   ├── scripts/               # Python scripts (executed, not loaded)
+│   └── references/            # Deep reference docs (loaded on demand)
+plugins/rf-agentskills/        # Claude Code Plugin distribution
+├── skills/                    # Short-named skill copies (synced from root)
+├── scripts/                   # Centralized script copies (synced from root)
+├── agents/                    # 4 agent definitions
+├── hooks/                     # Session/edit hooks
+└── servers/                   # MCP server
+vscode-extension/              # VS Code Extension distribution
+├── skills/                    # Skill copies for VS Code (synced from root)
+└── src/                       # Extension TypeScript source
+tests/                         # pytest test suite
+scripts/                       # Build and sync utilities
 ```
+
+The root `skills/` directory is the single source of truth. Plugin and VS Code copies are derived from it using `scripts/sync-skills.sh`. The `scripts/check-drift.sh` script (also run in CI) verifies that all distribution channels stay in sync.
 
 ## Development
 
-### Validate the marketplace locally
+### Syncing Distribution Channels
+
+After modifying any skill in `skills/`, sync to plugin and VS Code:
+
+```bash
+bash scripts/sync-skills.sh
+```
+
+### Checking for Drift
+
+Verify all distribution channels are in sync:
+
+```bash
+bash scripts/check-drift.sh
+```
+
+This also runs in CI to prevent drift from being committed.
+
+### Running Tests
+
+```bash
+# Run all tests
+python -m pytest tests/ -v
+
+# Run specific test files
+python -m pytest tests/test_keyword_builder.py -v
+python -m pytest tests/test_testcase_builder.py -v
+python -m pytest tests/test_resource_architect.py -v
+python -m pytest tests/test_rf_results.py -v          # requires robotframework
+python -m pytest tests/test_drift_detection.py -v
+python -m pytest tests/test_libdoc_search.py -v        # requires robotframework
+python -m pytest tests/test_marketplace_validation.py -v
+```
+
+### Validate the Marketplace
 
 ```bash
 python scripts/validate-marketplace.py
 ```
 
-### Run tests
+### MCP Server
 
+The plugin includes an MCP server that exposes all script-based tools:
+
+| MCP Tool | Description |
+|----------|-------------|
+| `rf_libdoc_search` | Search keywords across RF libraries |
+| `rf_libdoc_explain` | Explain keyword arguments in detail |
+| `rf_results_analyze` | Parse output.xml into structured JSON |
+| `rf_keyword_builder` | Generate RF user keywords from JSON |
+| `rf_testcase_builder` | Generate RF test cases from JSON |
+| `rf_resource_architect` | Design resource file layouts |
+
+Test the MCP server:
 ```bash
-pip install pytest robotframework
-pytest tests/ -v
+python3 plugins/rf-agentskills/servers/rf-tools-server.py
 ```
 
-### Test the plugin locally
+### Test the Plugin Locally
 
 ```bash
 claude --plugin-dir ./plugins/rf-agentskills
