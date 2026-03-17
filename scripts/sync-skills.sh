@@ -99,35 +99,39 @@ for skill_dir in "$SKILLS_DIR"/*/; do
     fi
 done
 
-# ── 3. VS Code extension: full skill directory generation ───────────────────
+# ── 3. VS Code extension: skill directory generation with short dir names ────
+# The Agent Skills spec requires directory name == SKILL.md name: field.
+# Root dirs use long names (robotframework-browser-skill/) but name: is rf-browser.
+# VS Code dirs must use the rf-* name so skills load correctly.
 echo ""
 echo "=== Generating vscode-extension/skills/ ==="
 rm -rf "$VSCODE_DIR"
 mkdir -p "$VSCODE_DIR"
 
 for skill_dir in "$SKILLS_DIR"/*/; do
-    skill_name=$(basename "$skill_dir")
-    vscode_skill="$VSCODE_DIR/$skill_name"
-    mkdir -p "$vscode_skill"
+    long_name=$(basename "$skill_dir")
 
-    # Copy SKILL.md (no transformation - VS Code uses long names)
-    if [ -f "$skill_dir/SKILL.md" ]; then
-        cp "$skill_dir/SKILL.md" "$vscode_skill/SKILL.md"
+    # Read the name: field from SKILL.md to use as directory name
+    rf_name=$(head -5 "$skill_dir/SKILL.md" | grep "^name:" | sed 's/^name: //')
+    if [ -z "$rf_name" ]; then
+        echo "  WARNING: No name: in $long_name/SKILL.md, skipping"
+        continue
     fi
 
-    # Copy scripts/
+    vscode_skill="$VSCODE_DIR/$rf_name"
+    mkdir -p "$vscode_skill"
+
+    # Copy SKILL.md (name: already matches the directory)
+    cp "$skill_dir/SKILL.md" "$vscode_skill/SKILL.md"
+
+    # Copy scripts/ (dereference symlinks since vsce can't follow them across renamed dirs)
     if [ -d "$skill_dir/scripts" ]; then
         mkdir -p "$vscode_skill/scripts"
         for script in "$skill_dir"/scripts/*.py; do
             [ -f "$script" ] || continue
             script_name=$(basename "$script")
-            if [ -L "$script" ]; then
-                cp -P "$script" "$vscode_skill/scripts/$script_name"
-            else
-                cp "$script" "$vscode_skill/scripts/$script_name"
-            fi
+            cp -L "$script" "$vscode_skill/scripts/$script_name"
         done
-        echo "  $skill_name/scripts/"
     fi
 
     # Copy references/
@@ -140,11 +144,37 @@ for skill_dir in "$SKILLS_DIR"/*/; do
         cp -r "$skill_dir/assets" "$vscode_skill/assets"
     fi
 
-    echo "  $skill_name/"
+    echo "  $rf_name/"
 done
+
+# ── 4. Update VS Code package.json chatSkills paths ─────────────────────────
+PACKAGE_JSON="$REPO_ROOT/vscode-extension/package.json"
+if [ -f "$PACKAGE_JSON" ]; then
+    echo ""
+    echo "=== Updating vscode-extension/package.json chatSkills paths ==="
+    python3 -c "
+import json, os
+
+pkg = json.load(open('$PACKAGE_JSON'))
+skills_dir = '$VSCODE_DIR'
+skill_dirs = sorted(d for d in os.listdir(skills_dir) if os.path.isdir(os.path.join(skills_dir, d)))
+
+pkg['contributes'] = pkg.get('contributes', {})
+pkg['contributes']['chatSkills'] = [
+    {'path': f'./skills/{d}/SKILL.md'}
+    for d in skill_dirs
+]
+
+with open('$PACKAGE_JSON', 'w') as f:
+    json.dump(pkg, f, indent=2)
+    f.write('\n')
+
+print(f'  Updated {len(skill_dirs)} chatSkills paths')
+"
+fi
 
 echo ""
 echo "Sync complete."
 echo "  Root skills/             <- EDIT HERE (single source of truth)"
 echo "  Plugin skills + scripts/ <- auto-generated (transformed)"
-echo "  VS Code skills/          <- auto-generated (identical)"
+echo "  VS Code skills/          <- auto-generated (dir names = name: field)"

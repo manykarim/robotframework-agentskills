@@ -1,7 +1,7 @@
 {
   "name": "robotframework-agentskills",
   "displayName": "Robot Framework Agent Skills",
-  "description": "Agent Skills for Robot Framework test automation — web, API, mobile testing, keyword/test/resource generation, and library documentation tools",
+  "description": "Agent Skills for Robot Framework test automation \u2014 web, API, mobile testing, keyword/test/resource generation, and library documentation tools",
   "version": "1.1.0",
   "publisher": "manykarim",
   "license": "Apache-2.0",
@@ -28,17 +28,39 @@
   "icon": "icon.png",
   "contributes": {
     "chatSkills": [
-      { "path": "./skills/robotframework-results/SKILL.md" },
-      { "path": "./skills/robotframework-libdoc-search/SKILL.md" },
-      { "path": "./skills/robotframework-libdoc-explain/SKILL.md" },
-      { "path": "./skills/robotframework-keyword-builder/SKILL.md" },
-      { "path": "./skills/robotframework-testcase-builder/SKILL.md" },
-      { "path": "./skills/robotframework-resource-architect/SKILL.md" },
-      { "path": "./skills/robotframework-browser-skill/SKILL.md" },
-      { "path": "./skills/robotframework-selenium-skill/SKILL.md" },
-      { "path": "./skills/robotframework-requests-skill/SKILL.md" },
-      { "path": "./skills/robotframework-restinstance-skill/SKILL.md" },
-      { "path": "./skills/robotframework-appium-skill/SKILL.md" }
+      {
+        "path": "./skills/rf-appium/SKILL.md"
+      },
+      {
+        "path": "./skills/rf-browser/SKILL.md"
+      },
+      {
+        "path": "./skills/rf-keyword-builder/SKILL.md"
+      },
+      {
+        "path": "./skills/rf-libdoc-explain/SKILL.md"
+      },
+      {
+        "path": "./skills/rf-libdoc-search/SKILL.md"
+      },
+      {
+        "path": "./skills/rf-requests/SKILL.md"
+      },
+      {
+        "path": "./skills/rf-resource-architect/SKILL.md"
+      },
+      {
+        "path": "./skills/rf-restinstance/SKILL.md"
+      },
+      {
+        "path": "./skills/rf-results/SKILL.md"
+      },
+      {
+        "path": "./skills/rf-selenium/SKILL.md"
+      },
+      {
+        "path": "./skills/rf-testcase-builder/SKILL.md"
+      }
     ]
   },
   "activationEvents": [],
