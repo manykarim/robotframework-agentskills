@@ -8,7 +8,8 @@ A Claude Code plugin marketplace providing AI agent skills for Robot Framework t
 
 ```bash
 # Install as Claude Code Plugin
-claude plugin add github:manykarim/robotframework-agentskills
+claude plugin marketplace add manykarim/robotframework-agentskills
+claude plugin install rf-agentskills@robotframework-agentskills
 
 # Or install skills directly to your project
 cp -r skills/robotframework-browser-skill .claude/skills/
