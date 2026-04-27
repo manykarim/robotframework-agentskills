@@ -10,6 +10,14 @@ build/
 venv/
 env/
 
+# Local secrets (do NOT commit) — use .env.example as template
+.env
+
+# Eval harness working state (generated, not committed)
+eval/runs/
+eval/reports/
+results/
+
 # Test output
 .pytest_cache/
 output.xml
@@ -30,7 +38,6 @@ Thumbs.db
 # Claude Flow state (local only)
 .claude-flow/
 .swarm/
-.mcp.json
 
 # Cross-agent skill discovery symlinks (local only)
 .codex/

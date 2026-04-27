@@ -1,0 +1,64 @@
+id: narrow-libdoc-search-02-no-mcp
+skill: libdoc-search
+tier: narrow
+description: |
+  Control task for libdoc-search that deliberately excludes the rf-mcp
+  MCP server from allowed_tools. The agent must derive the answer from
+  the workspace and its own knowledge of SeleniumLibrary, without any
+  dynamic RF tool calls. Session-based graders verify that zero
+  mcp__rf-mcp__* calls were made and that at least one local tool was
+  used (Read/Glob/Grep/Bash).
+prompt: |
+  Write a short plain-text file at `out/click_signature.txt` documenting
+  the SeleniumLibrary `Click Element` keyword. Be concise — the file
+  should contain:
+
+    - A line with the keyword name (must literally include "Click");
+    - One short line describing the `locator` argument;
+    - One short line describing what the keyword does.
+
+  Procedure (keep it tight — you have 12 turns total):
+
+    1. Run ONE Glob or Read to confirm the workspace shape
+       (e.g., `Glob pattern="**/*.robot"`). This is expected; do not
+       skip this step, but do not spend multiple turns on it either.
+    2. Immediately create `out/click_signature.txt` with Write. Create
+       the `out/` directory as part of the Write if needed.
+    3. Stop.
+
+  You do NOT have access to the rf-mcp MCP server for this task.
+  You DO have Read, Write, Edit, Bash, Glob, and Grep. Use your own
+  knowledge of SeleniumLibrary for the keyword signature — no need to
+  look it up externally.
+model: claude-haiku-4-5
+max_turns: 12
+timeout_seconds: 300
+allowed_tools:
+  - Read
+  - Write
+  - Edit
+  - Bash
+  - Glob
+  - Grep
+expected_files:
+  - path: out/click_signature.txt
+    must_contain:
+      - "Click"
+grader_checks:
+  - type: file_exists
+    path: out/click_signature.txt
+  - type: file_contains
+    name: contains_click
+    path: out/click_signature.txt
+    regex: "(?i)click"
+  - type: tool_call_count
+    name: zero_rf_mcp_calls
+    tool_pattern: "mcp__rf-mcp__.*"
+    min: 0
+    max: 0
+  - type: tool_call_count
+    name: used_local_tools
+    tool_pattern: "(Read|Glob|Grep|Bash)"
+    min: 1
+fixture: sut-minimal
+primary_metric: file_contains

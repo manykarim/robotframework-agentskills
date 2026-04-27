@@ -1,0 +1,58 @@
+id: narrow-resource-architect-01
+skill: resource-architect
+tier: narrow
+description: |
+  The fixture contains three test files that each inline the same three
+  setup steps (Open Browser, Set Window Size, Go To). Extract those steps
+  into a shared keyword in a resource file and update all three tests to
+  use the new keyword.
+prompt: |
+  Take a look at tests/checkout_*.robot in this project. You'll notice the
+  same three-line setup block is copy-pasted across all three files:
+
+    Open Browser    ${URL}    ${BROWSER}
+    Set Window Size    1280    800
+    Go To    ${URL}/shop
+
+  Please refactor: extract those three steps into a single keyword called
+  "Open Shop Homepage" in resources/common.resource, then update all three
+  test files to call the new keyword from their Suite Setup (or wherever
+  makes sense).
+
+  The existing tests should still pass after the refactor (don't change
+  behavior, just shape).
+model: claude-haiku-4-5
+max_turns: 10
+timeout_seconds: 360
+allowed_tools:
+  - Read
+  - Write
+  - Edit
+  - Bash
+  - Glob
+  - Grep
+  - mcp__rf-mcp__*
+expected_files:
+  - path: resources/common.resource
+    must_contain:
+      - "Open Shop Homepage"
+grader_checks:
+  - type: file_exists
+    path: resources/common.resource
+  - type: file_contains
+    path: resources/common.resource
+    regex: "Open Shop Homepage"
+  - type: file_contains
+    path: tests/checkout_cart.robot
+    regex: "Open Shop Homepage"
+  - type: file_contains
+    path: tests/checkout_payment.robot
+    regex: "Open Shop Homepage"
+  - type: file_contains
+    path: tests/checkout_confirm.robot
+    regex: "Open Shop Homepage"
+  - type: lint_clean
+    tool: robotidy
+    target: resources/
+fixture: sut-minimal
+primary_metric: file_contains

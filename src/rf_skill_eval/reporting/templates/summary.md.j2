@@ -1,0 +1,29 @@
+# rf-skill-eval summary
+
+**Scorecards:** {{ total }}
+**All passed:** {{ "yes" if all_passed else "no" }}
+
+| Run | Task | Pass rate | Total score | All passed |
+|-----|------|-----------|-------------|------------|
+{% for sc in scorecards %}
+| `{{ sc.run_id }}` | `{{ sc.task_id }}` | {{ "%.0f"|format(sc.pass_rate * 100) }}% | {{ "%.2f"|format(sc.total_score) }} | {{ "yes" if sc.all_passed else "no" }} |
+{% endfor %}
+
+{% for sc in scorecards %}
+## Run `{{ sc.run_id }}`
+
+- Task: `{{ sc.task_id }}`
+- Pass rate: {{ "%.0f"|format(sc.pass_rate * 100) }}%
+- Total score: {{ "%.2f"|format(sc.total_score) }}
+
+{% if sc.verdicts %}
+| Check | Passed | Score | Details |
+|-------|--------|-------|---------|
+{% for v in sc.verdicts %}
+| `{{ v.check_name }}` | {{ "yes" if v.passed else "no" }} | {{ "%.2f"|format(v.score) }} | {{ v.details }} |
+{% endfor %}
+{% else %}
+_No grader checks were recorded for this run._
+{% endif %}
+
+{% endfor %}

@@ -1,0 +1,63 @@
+id: narrow-rf-mcp-execute-01
+skill: testcase-builder
+tier: narrow
+description: |
+  Exercise session-based graders against rf-mcp usage. The agent must
+  discover and execute a BuiltIn keyword via the rf-mcp MCP server,
+  then author a Robot test that uses the verified keyword.
+  NOTE: Do not live-run until a successful interactive rf-mcp session
+  has been demonstrated in the project. See docs/ci/faq.md.
+prompt: |
+  Use the rf-mcp MCP server (tools prefixed with `mcp__rf-mcp__`) to
+  accomplish the following, in order:
+
+    1. Initialize a session with `manage_session` (or the equivalent
+       rf-mcp tool you discover via `get_available_keywords`).
+    2. Discover available BuiltIn keywords through rf-mcp.
+    3. Execute the `Log    hello` keyword via rf-mcp's execute-step tool
+       to verify it works.
+    4. After the above succeeds, write a Robot test file at
+       `tests/hello.robot` that imports no extra libraries and uses
+       the `Log` keyword to log "hello".
+
+  Prefer rf-mcp tools over guessing. Do not skip the rf-mcp execution
+  steps — they are the subject of this evaluation.
+model: claude-haiku-4-5
+max_turns: 12
+timeout_seconds: 300
+allowed_tools:
+  - Read
+  - Write
+  - Edit
+  - Bash
+  - Glob
+  - Grep
+  - "mcp__rf-mcp__*"
+expected_files:
+  - path: tests/hello.robot
+    must_contain:
+      - "Log"
+      - "hello"
+grader_checks:
+  - type: file_exists
+    path: tests/hello.robot
+  - type: file_contains
+    name: uses_log_keyword
+    path: tests/hello.robot
+    regex: "(?i)\\bLog\\b"
+  - type: tool_call_count
+    name: rf_mcp_called_at_least_twice
+    tool_pattern: "mcp__rf-mcp__.*"
+    min: 2
+  - type: tool_result_count
+    name: rf_mcp_had_successful_result
+    tool_pattern: "mcp__rf-mcp__.*"
+    status: "ok"
+    min: 1
+  - type: tool_call_sequence
+    name: rf_mcp_before_write
+    patterns:
+      - "mcp__rf-mcp__.*"
+      - "(Write|Edit)"
+fixture: sut-minimal
+primary_metric: file_contains

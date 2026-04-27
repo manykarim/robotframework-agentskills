@@ -1,0 +1,54 @@
+id: narrow-testcase-builder-01
+skill: testcase-builder
+tier: narrow
+description: |
+  Generate a single Robot Framework test case that exercises the happy-path
+  login flow. The test should reference the pre-existing Login keywords from
+  the fixture's resource file and assert the dashboard greeting.
+prompt: |
+  Please write a Robot Framework test case for the login happy-path. The test
+  should:
+
+    - Be named "Login Happy Path"
+    - Use the shared keywords in resources/common.resource where appropriate
+    - Log in as user "demo" with password "demo"
+    - Verify that after login, a "Welcome, demo" message is visible
+
+  Save the test as tests/login_happy_path.robot. Follow the project's
+  existing style: *** Settings *** at the top, documentation on the test,
+  and appropriate tags.
+model: claude-haiku-4-5
+max_turns: 8
+timeout_seconds: 300
+allowed_tools:
+  - Read
+  - Write
+  - Edit
+  - Bash
+  - Glob
+  - Grep
+  - mcp__rf-mcp__*
+expected_files:
+  - path: tests/login_happy_path.robot
+    must_contain:
+      - "Login Happy Path"
+      - "Welcome, demo"
+grader_checks:
+  - type: file_exists
+    path: tests/login_happy_path.robot
+  - type: file_contains
+    path: tests/login_happy_path.robot
+    regex: "^\\*\\*\\* Test Cases \\*\\*\\*"
+  - type: file_contains
+    path: tests/login_happy_path.robot
+    regex: "Login Happy Path"
+  - type: file_contains
+    path: tests/login_happy_path.robot
+    regex: "\\[Documentation\\]"
+  - type: file_contains
+    path: tests/login_happy_path.robot
+    regex: "\\[Tags\\]"
+  - type: import_resolves
+    path: tests/login_happy_path.robot
+fixture: sut-minimal
+primary_metric: import_resolves

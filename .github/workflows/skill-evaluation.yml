@@ -1,0 +1,250 @@
+name: Skill Evaluation
+
+on:
+  workflow_dispatch:
+    inputs:
+      tier:
+        description: "Evaluation tier to run"
+        required: true
+        default: narrow
+        type: choice
+        options:
+          - narrow
+          - realistic
+          - canary
+      use_api_key:
+        description: "Fall back to ANTHROPIC_API_KEY instead of OAuth token"
+        required: false
+        default: false
+        type: boolean
+  schedule:
+    # Sunday 04:00 UTC - off-hours canary per ADR-005
+    - cron: '0 4 * * 0'
+  pull_request:
+    paths:
+      - 'skills/**'
+      - 'src/rf_skill_eval/**'
+      - 'eval/tasks/**'
+      - 'plugins/rf-agentskills/**'
+      - 'pyproject.toml'
+
+concurrency:
+  group: skill-eval-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+
+jobs:
+  evaluate:
+    name: Evaluate (${{ matrix.tier }})
+    runs-on: ubuntu-latest
+    timeout-minutes: ${{ matrix.tier == 'canary' && 180 || (matrix.tier == 'realistic' && 120 || 60) }}
+    env:
+      CLAUDE_MODEL_DEFAULT: claude-haiku-4-5
+    strategy:
+      max-parallel: 1
+      fail-fast: false
+      matrix:
+        tier:
+          - ${{ github.event_name == 'pull_request' && 'narrow' || (github.event_name == 'schedule' && 'canary' || inputs.tier) }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v3
+        with:
+          enable-cache: true
+          cache-dependency-glob: |
+            pyproject.toml
+            uv.lock
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install Claude Code CLI
+        run: npm install -g @anthropic-ai/claude-code
+
+      - name: Install Python dependencies
+        run: uv sync --all-extras
+
+      - name: Initialize Playwright browsers
+        run: uv run rfbrowser init
+
+      - name: Run doctor health checks
+        env:
+          CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+        run: uv run rf-skill-eval doctor
+
+      - name: Set API key fallback
+        if: ${{ inputs.use_api_key == true }}
+        run: echo "ANTHROPIC_API_KEY=${{ secrets.ANTHROPIC_API_KEY }}" >> "$GITHUB_ENV"
+
+      - name: Run evaluation batch
+        env:
+          CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+        run: |
+          uv run rf-skill-eval run-batch \
+            --tasks-dir eval/tasks/${{ matrix.tier }} \
+            --profile treatment \
+            --output eval/runs/${{ github.run_id }}/treatment \
+            --concurrency 1
+
+      - name: Score results
+        env:
+          CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+        run: |
+          uv run rf-skill-eval score-batch \
+            --runs-dir eval/runs/${{ github.run_id }}/treatment \
+            --tasks-dir eval/tasks/${{ matrix.tier }}
+
+      - name: Generate markdown report
+        env:
+          CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+        run: |
+          uv run rf-skill-eval report \
+            --runs-dir eval/runs/${{ github.run_id }} \
+            --format md \
+            --output eval-report.md
+
+      - name: Upload evaluation artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: skill-eval-${{ github.run_id }}-${{ matrix.tier }}
+          path: |
+            eval/runs/${{ github.run_id }}
+            eval-report.md
+          retention-days: 30
+
+      - name: Comment PR with report
+        if: ${{ github.event_name == 'pull_request' && always() }}
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const marker = '<!-- rf-skill-eval-report -->';
+            let body;
+            try {
+              body = fs.readFileSync('eval-report.md', 'utf8');
+            } catch (err) {
+              body = 'Evaluation report missing (run may have failed before report generation).';
+            }
+            const fullBody = `${marker}\n\n## Skill Evaluation Report (${{ matrix.tier }})\n\n${body}`;
+
+            const { owner, repo } = context.repo;
+            const issue_number = context.issue.number;
+            const { data: comments } = await github.rest.issues.listComments({
+              owner, repo, issue_number, per_page: 100,
+            });
+            const existing = comments.find(c => c.body && c.body.includes(marker));
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner, repo, comment_id: existing.id, body: fullBody,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner, repo, issue_number, body: fullBody,
+              });
+            }
+
+  regression-alert:
+    name: Regression alert (canary)
+    needs: evaluate
+    if: ${{ github.event_name == 'schedule' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Download evaluation artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: skill-eval-${{ github.run_id }}-canary
+          path: eval-artifacts
+
+      - name: Fetch baseline from eval-history branch
+        id: baseline
+        continue-on-error: true
+        run: |
+          set +e
+          git fetch origin eval-history --depth=1 2>/dev/null
+          if git show origin/eval-history:baseline.json > baseline.json 2>/dev/null; then
+            echo "baseline_found=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "baseline_found=false" >> "$GITHUB_OUTPUT"
+            echo "No baseline.json on eval-history branch; skipping regression check."
+          fi
+
+      - name: Detect regressions (>2sigma)
+        if: ${{ steps.baseline.outputs.baseline_found == 'true' }}
+        id: detect
+        continue-on-error: true
+        run: |
+          python3 <<'PY'
+          import json, os, sys, glob, statistics
+          try:
+              baseline = json.load(open("baseline.json"))
+          except Exception as e:
+              print(f"Could not read baseline: {e}")
+              sys.exit(0)
+
+          score_files = glob.glob("eval-artifacts/**/score.json", recursive=True)
+          if not score_files:
+              print("No score.json files found; skipping.")
+              sys.exit(0)
+
+          current_scores = []
+          for sf in score_files:
+              try:
+                  data = json.load(open(sf))
+                  s = data.get("score") if isinstance(data, dict) else None
+                  if isinstance(s, (int, float)):
+                      current_scores.append(float(s))
+              except Exception:
+                  continue
+          if not current_scores:
+              print("No numeric scores extracted; skipping.")
+              sys.exit(0)
+
+          current_mean = statistics.mean(current_scores)
+          b_mean = float(baseline.get("mean", 0.0))
+          b_std = float(baseline.get("std", 0.0))
+          threshold = b_mean - 2 * b_std if b_std > 0 else b_mean
+
+          print(f"Current mean: {current_mean:.4f}")
+          print(f"Baseline mean: {b_mean:.4f} std: {b_std:.4f} threshold(>2sigma drop): {threshold:.4f}")
+
+          regression = current_scores and current_mean < threshold
+          with open(os.environ["GITHUB_OUTPUT"], "a") as fh:
+              fh.write(f"regression={'true' if regression else 'false'}\n")
+              fh.write(f"current_mean={current_mean:.4f}\n")
+              fh.write(f"baseline_mean={b_mean:.4f}\n")
+              fh.write(f"baseline_std={b_std:.4f}\n")
+          PY
+
+      - name: Open regression issue
+        if: ${{ steps.detect.outputs.regression == 'true' }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh issue create \
+            --title "Skill eval canary regression detected (run ${{ github.run_id }})" \
+            --label "eval-regression" \
+            --body "Canary evaluation dropped more than 2 sigma below baseline.
+
+          - Current mean: ${{ steps.detect.outputs.current_mean }}
+          - Baseline mean: ${{ steps.detect.outputs.baseline_mean }}
+          - Baseline std: ${{ steps.detect.outputs.baseline_std }}
+
+          Run: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
