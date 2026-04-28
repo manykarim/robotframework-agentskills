@@ -405,6 +405,13 @@ class ClaudeCodeRunner:
             str(task.max_turns or self._default_max_turns),
             "--model",
             task.model,
+            # Bypass interactive approval prompts that block plugin hooks and
+            # "trust this project" gates in headless runs. The workspace
+            # boundary is still enforced by the prompt preamble plus the
+            # post-run snapshot diff in _detect_workspace_violations, so
+            # this does not weaken the eval sandbox.
+            "--permission-mode",
+            "bypassPermissions",
         ]
         if task.allowed_tools:
             args += ["--allowedTools", ",".join(task.allowed_tools)]

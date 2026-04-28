@@ -21,7 +21,12 @@ prompt: |
   Use the libdoc tooling to check the real documentation — don't guess from
   memory.
 model: claude-haiku-4-5
-max_turns: 10
+# Budget covers skill-selection overhead now that the full plugin is
+# loaded — Haiku may oscillate between libdoc-search and libdoc-explain,
+# and libdoc-explain output for SeleniumLibrary keywords runs ~60KB which
+# triggers Claude Code's persisted-output workflow. 14 turns leaves room
+# without papering over a regression.
+max_turns: 14
 timeout_seconds: 240
 allowed_tools:
   - Read

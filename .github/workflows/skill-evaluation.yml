@@ -122,6 +122,10 @@ jobs:
           path: |
             eval/runs/${{ github.run_id }}
             eval-report.md
+          # v4 silently strips dotfiles by default. We need .mcp.json,
+          # .claude/, and other hidden config artifacts visible for
+          # post-run debugging.
+          include-hidden-files: true
           retention-days: 30
 
       - name: Comment PR with report

@@ -102,6 +102,18 @@ def test_build_cmd_no_preamble_when_no_fixture(tmp_path: Path) -> None:
     assert "isolated workspace" not in prompt
 
 
+def test_build_cmd_passes_bypass_permission_mode(tmp_path: Path) -> None:
+    """Headless runs need bypassPermissions so plugin hooks aren't blocked
+    by the interactive trust prompt that never gets answered."""
+    runner = ClaudeCodeRunner(fixtures_root=tmp_path)
+    task = _make_task(None, tmp_path)
+
+    cmd = runner._build_cmd(task, None)
+
+    assert "--permission-mode" in cmd
+    assert cmd[cmd.index("--permission-mode") + 1] == "bypassPermissions"
+
+
 def test_profile_smoke(tmp_path: Path) -> None:
     """Make sure Profile still works — regression guard."""
     profile = Profile(name="treatment", enabled_skills=("keyword-builder",),
