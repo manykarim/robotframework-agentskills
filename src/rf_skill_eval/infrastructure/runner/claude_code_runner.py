@@ -47,6 +47,7 @@ class ClaudeCodeRunner:
         fixtures_root: Path = Path("eval/fixtures"),
         repo_root: Path | None = None,
         cleanup_violations: bool = True,
+        plugin_root: Path | None = None,
     ) -> None:
         self._claude = claude_binary
         self._default_max_turns = default_max_turns
@@ -54,6 +55,11 @@ class ClaudeCodeRunner:
         self._fixtures_root = fixtures_root
         self._repo_root = (repo_root or Path.cwd()).resolve()
         self._cleanup_violations = cleanup_violations
+        self._plugin_root = (
+            plugin_root.resolve()
+            if plugin_root is not None
+            else (self._repo_root / "plugins" / "rf-agentskills").resolve()
+        )
 
     # --- port --------------------------------------------------------------
 
@@ -70,6 +76,9 @@ class ClaudeCodeRunner:
 
         # Isolated MCP config for this run.
         write_mcp_config(config_dir)
+
+        # Stage skills referenced by the profile so the agent has them.
+        self._provision_skills(profile, config_dir, workspace_dir)
 
         # Write a Claude Code settings.json into the config dir that denies
         # Write/Edit outside the workspace. Defense-in-depth alongside the
@@ -180,6 +189,104 @@ class ClaudeCodeRunner:
                                           "log.html", "report.html"),
         )
         return workspace
+
+    def _provision_skills(
+        self,
+        profile: Profile,
+        config_dir: Path,
+        workspace_dir: Path,
+    ) -> None:
+        """Stage the skills referenced by ``profile`` so Claude Code can load them.
+
+        Two locations are populated for resilience:
+
+        * ``<config_dir>/skills/<name>/`` — Claude Code's per-user skills dir
+          (resolved via ``CLAUDE_CONFIG_DIR``).
+        * ``<workspace>/.claude/skills/<name>/`` — project-scoped fallback
+          picked up via the agent's CWD.
+
+        The plugin's shared ``scripts/`` directory is also copied next to each
+        skill, and the literal token ``${CLAUDE_PLUGIN_ROOT}`` in ``SKILL.md``
+        is rewritten to the absolute path of the staged plugin copy. The token
+        does not expand in personal/project skill bash blocks (Claude Code
+        issue #9354), so substitution is required for the scripts to resolve.
+        """
+        if not profile.enabled_skills:
+            return
+        if not self._plugin_root.is_dir():
+            _log.warning(
+                "plugin root not found at %s; skipping skill provisioning",
+                self._plugin_root,
+            )
+            return
+
+        plugin_skills_src = self._plugin_root / "skills"
+        plugin_scripts_src = self._plugin_root / "scripts"
+
+        # Stage a single canonical copy of the plugin under the config dir
+        # so substituted ${CLAUDE_PLUGIN_ROOT} paths resolve to a stable
+        # location for every skill in this run.
+        plugin_dst = config_dir / "rf-agentskills"
+        if not plugin_dst.exists():
+            shutil.copytree(
+                self._plugin_root,
+                plugin_dst,
+                ignore=shutil.ignore_patterns(
+                    "__pycache__", "*.pyc", ".venv", "node_modules"
+                ),
+            )
+        plugin_root_abs = str(plugin_dst.resolve())
+
+        targets = [
+            config_dir / "skills",
+            workspace_dir / ".claude" / "skills",
+        ]
+        for parent in targets:
+            parent.mkdir(parents=True, exist_ok=True)
+
+        for skill_name in profile.enabled_skills:
+            skill_src = plugin_skills_src / skill_name
+            if not skill_src.is_dir():
+                _log.warning(
+                    "skill '%s' not found under %s; skipping",
+                    skill_name,
+                    plugin_skills_src,
+                )
+                continue
+
+            for parent in targets:
+                skill_dst = parent / skill_name
+                if skill_dst.exists():
+                    shutil.rmtree(skill_dst)
+                shutil.copytree(skill_src, skill_dst)
+                self._rewrite_plugin_root(skill_dst, plugin_root_abs)
+
+        # Also expose scripts inside the workspace for skills that resolve them
+        # via ``${CLAUDE_PLUGIN_ROOT}/scripts/...`` — kept as a co-located copy
+        # so substituted paths point at a single canonical location.
+        if plugin_scripts_src.is_dir():
+            workspace_scripts = workspace_dir / ".claude" / "rf-agentskills-scripts"
+            if not workspace_scripts.exists():
+                shutil.copytree(plugin_scripts_src, workspace_scripts)
+
+    @staticmethod
+    def _rewrite_plugin_root(skill_dir: Path, plugin_root_abs: str) -> None:
+        """Substitute ``${CLAUDE_PLUGIN_ROOT}`` inside SKILL.md and friends."""
+        token = "${CLAUDE_PLUGIN_ROOT}"
+        for path in skill_dir.rglob("*"):
+            if not path.is_file():
+                continue
+            if path.suffix.lower() not in {".md", ".sh", ".py", ".txt"}:
+                continue
+            try:
+                content = path.read_text(encoding="utf-8")
+            except OSError:
+                continue
+            if token not in content:
+                continue
+            path.write_text(
+                content.replace(token, plugin_root_abs), encoding="utf-8"
+            )
 
     def _build_env(self, config_dir: Path) -> dict[str, str]:
         env = os.environ.copy()

@@ -10,6 +10,7 @@ import json
 import logging
 import os
 import shutil
+import subprocess
 import statistics
 import sys
 import time
@@ -397,7 +398,60 @@ def doctor() -> None:
 
     _row("harness version", True, __version__)
 
+    # Active auth probe: catches malformed tokens (e.g., embedded newlines)
+    # that simple env-var presence checks miss. We previously had a CI run
+    # silently fail because the OAuth token had a literal '\n' mid-value;
+    # this probe would have caught it in seconds.
+    ping_ok = True
+    if claude is None or not settings.has_auth():
+        ping_details = "skipped (claude binary or auth missing)"
+    else:
+        ping_ok, ping_details = _claude_auth_ping(claude)
+    _row("claude auth ping", ping_ok, ping_details)
+
     console.print(table)
+
+    if not ping_ok:
+        raise typer.Exit(code=1)
+
+
+def _claude_auth_ping(claude_binary: str) -> tuple[bool, str]:
+    """Probe ``claude`` with a one-turn prompt to verify auth actually works.
+
+    Returns ``(ok, details)``. The probe uses ``--print`` so it stays
+    non-interactive, ``--max-turns 1`` to bound cost, and ``stream-json``
+    output so we can fail fast on visible API errors even when the binary
+    exits 0.
+    """
+    try:
+        result = subprocess.run(
+            [
+                claude_binary,
+                "--print",
+                "ok",
+                "--max-turns",
+                "1",
+                "--output-format",
+                "stream-json",
+                "--verbose",
+            ],
+            capture_output=True,
+            text=True,
+            timeout=30,
+        )
+    except subprocess.TimeoutExpired:
+        return False, "timed out after 30s"
+    except OSError as exc:
+        return False, f"{type(exc).__name__}: {exc}"
+
+    combined = (result.stdout or "") + (result.stderr or "")
+    if "API Error" in combined or "invalid value" in combined.lower():
+        snippet = combined.strip().splitlines()[0][:160] if combined.strip() else "(no output)"
+        return False, f"API rejected probe: {snippet}"
+    if result.returncode != 0:
+        snippet = (result.stderr or result.stdout or "").strip()[:160]
+        return False, f"claude exit={result.returncode}: {snippet}"
+    return True, "auth verified via claude --print"
 
 
 # --- bench --------------------------------------------------------------------

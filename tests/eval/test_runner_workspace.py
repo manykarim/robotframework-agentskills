@@ -187,3 +187,92 @@ def test_write_settings_emits_workspace_allow_list(tmp_path: Path) -> None:
     deny = settings["permissions"]["deny"]
     assert any(f"Write({workspace.resolve()}" in rule for rule in allow)
     assert any("Write(/home/**)" in rule for rule in deny)
+
+
+def _make_plugin(plugin_root: Path, skill_name: str) -> None:
+    skill_dir = plugin_root / "skills" / skill_name
+    skill_dir.mkdir(parents=True)
+    (skill_dir / "SKILL.md").write_text(
+        "---\n"
+        f"name: {skill_name}\n"
+        "description: test\n"
+        "---\n\n"
+        '```bash\npython3 "${CLAUDE_PLUGIN_ROOT}/scripts/foo.py"\n```\n',
+        encoding="utf-8",
+    )
+    scripts_dir = plugin_root / "scripts"
+    scripts_dir.mkdir(parents=True)
+    (scripts_dir / "foo.py").write_text("print('foo')", encoding="utf-8")
+
+
+def test_provision_skills_stages_into_config_and_workspace(tmp_path: Path) -> None:
+    plugin_root = tmp_path / "plugins" / "rf-agentskills"
+    _make_plugin(plugin_root, "libdoc-search")
+    runner = ClaudeCodeRunner(plugin_root=plugin_root)
+    config_dir = tmp_path / "config"
+    config_dir.mkdir()
+    workspace = tmp_path / "ws"
+    workspace.mkdir()
+    profile = Profile(
+        name="treatment",
+        enabled_skills=("libdoc-search",),
+        claude_config_dir=config_dir,
+    )
+
+    runner._provision_skills(profile, config_dir, workspace)
+
+    config_skill = config_dir / "skills" / "libdoc-search" / "SKILL.md"
+    workspace_skill = (
+        workspace / ".claude" / "skills" / "libdoc-search" / "SKILL.md"
+    )
+    assert config_skill.is_file()
+    assert workspace_skill.is_file()
+
+    plugin_dst_abs = str((config_dir / "rf-agentskills").resolve())
+    for path in (config_skill, workspace_skill):
+        content = path.read_text()
+        assert "${CLAUDE_PLUGIN_ROOT}" not in content
+        assert plugin_dst_abs in content
+
+    # The shared plugin copy includes the script the SKILL.md points at.
+    assert (config_dir / "rf-agentskills" / "scripts" / "foo.py").is_file()
+
+
+def test_provision_skills_noop_for_control_profile(tmp_path: Path) -> None:
+    plugin_root = tmp_path / "plugins" / "rf-agentskills"
+    _make_plugin(plugin_root, "libdoc-search")
+    runner = ClaudeCodeRunner(plugin_root=plugin_root)
+    config_dir = tmp_path / "config"
+    config_dir.mkdir()
+    workspace = tmp_path / "ws"
+    workspace.mkdir()
+    profile = Profile(
+        name="control",
+        enabled_skills=(),
+        claude_config_dir=config_dir,
+    )
+
+    runner._provision_skills(profile, config_dir, workspace)
+
+    assert not (config_dir / "skills").exists()
+    assert not (workspace / ".claude").exists()
+
+
+def test_provision_skills_skips_unknown_skill(tmp_path: Path) -> None:
+    plugin_root = tmp_path / "plugins" / "rf-agentskills"
+    _make_plugin(plugin_root, "libdoc-search")
+    runner = ClaudeCodeRunner(plugin_root=plugin_root)
+    config_dir = tmp_path / "config"
+    config_dir.mkdir()
+    workspace = tmp_path / "ws"
+    workspace.mkdir()
+    profile = Profile(
+        name="treatment",
+        enabled_skills=("does-not-exist",),
+        claude_config_dir=config_dir,
+    )
+
+    runner._provision_skills(profile, config_dir, workspace)
+
+    # Targets are created but the unknown skill leaves no SKILL.md behind.
+    assert not (config_dir / "skills" / "does-not-exist").exists()

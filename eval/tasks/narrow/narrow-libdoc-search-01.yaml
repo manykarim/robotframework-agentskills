@@ -21,7 +21,7 @@ prompt: |
   Use the libdoc tooling to check the real documentation — don't guess from
   memory.
 model: claude-haiku-4-5
-max_turns: 6
+max_turns: 10
 timeout_seconds: 240
 allowed_tools:
   - Read
@@ -30,6 +30,7 @@ allowed_tools:
   - Bash
   - Glob
   - Grep
+  - Skill
   - mcp__rf-mcp__*
 expected_files:
   - path: docs/input-text-keyword.md
@@ -51,5 +52,14 @@ grader_checks:
   - type: file_contains
     path: docs/input-text-keyword.md
     regex: "(?i)clear"
+  # Verify the agent actually leveraged the libdoc-search skill rather than
+  # improvising via raw libdoc HTML. Either path counts: invoking the Skill
+  # tool with skill=libdoc-search, or running the rf_libdoc.py script the
+  # SKILL.md directs to.
+  - type: tool_call_count
+    name: invoked_libdoc_search_skill
+    tool_pattern: "(Bash|Skill)"
+    input_pattern: "(rf_libdoc|libdoc-search)"
+    min: 1
 fixture: sut-minimal
 primary_metric: file_contains

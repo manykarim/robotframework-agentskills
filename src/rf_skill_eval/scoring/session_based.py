@@ -13,6 +13,7 @@ they encode failure in ``Verdict.details``. They raise
 
 from __future__ import annotations
 
+import json
 import logging
 import re
 from collections.abc import Iterator
@@ -65,11 +66,18 @@ def _no_transcript_verdict(run: Run, name: str) -> Verdict:
 
 
 def check_tool_call_count(run: Run, name: str, params: dict[str, Any]) -> Verdict:
-    """Count ToolCall events whose tool_name fullmatches ``tool_pattern``."""
+    """Count ToolCall events matching ``tool_pattern`` (and optional input filter).
+
+    ``tool_pattern`` is fullmatched against the tool name. When
+    ``input_pattern`` is supplied it is searched (not fullmatched) against
+    the JSON-serialized ``tool_input`` — useful for narrowing on e.g. the
+    ``Skill`` tool's ``skill`` arg or a Bash command substring.
+    """
 
     pattern_str = params.get("tool_pattern")
     if not pattern_str:
         raise GraderError("tool_call_count requires 'tool_pattern'")
+    input_pattern_str = params.get("input_pattern")
     minimum = int(params.get("min", 1))
     maximum_raw = params.get("max")
     maximum: int | None = int(maximum_raw) if maximum_raw is not None else None
@@ -79,29 +87,47 @@ def check_tool_call_count(run: Run, name: str, params: dict[str, Any]) -> Verdic
         return _no_transcript_verdict(run, name)
 
     pattern = _compile_pattern(str(pattern_str), "tool_pattern")
+    input_pattern = (
+        _compile_pattern(str(input_pattern_str), "input_pattern")
+        if input_pattern_str
+        else None
+    )
 
     count = 0
     sample: list[str] = []
     for event in _iter_events(transcript):
-        if isinstance(event, ToolCall) and pattern.fullmatch(event.tool_name):
-            count += 1
-            if len(sample) < 3:
-                sample.append(event.tool_name)
+        if not (isinstance(event, ToolCall) and pattern.fullmatch(event.tool_name)):
+            continue
+        if input_pattern is not None:
+            try:
+                input_repr = json.dumps(event.tool_input, sort_keys=True, default=str)
+            except (TypeError, ValueError):
+                input_repr = str(event.tool_input)
+            if not input_pattern.search(input_repr):
+                continue
+        count += 1
+        if len(sample) < 3:
+            sample.append(event.tool_name)
 
     min_ok = count >= minimum
     max_ok = maximum is None or count <= maximum
     passed = min_ok and max_ok
 
-    details = (
-        f"count={count} matching={pattern_str!r} "
-        f"min={minimum} max={maximum} sample={sample}"
-    )
+    details_parts = [
+        f"count={count}",
+        f"matching={pattern_str!r}",
+        f"min={minimum}",
+        f"max={maximum}",
+    ]
+    if input_pattern_str:
+        details_parts.append(f"input_pattern={input_pattern_str!r}")
+    details_parts.append(f"sample={sample}")
     return Verdict(
         run_id=run.id,
         check_name=name,
         passed=passed,
         score=1.0 if passed else 0.0,
-        details=details,
+        details=" ".join(details_parts),
     )
 
 

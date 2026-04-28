@@ -34,7 +34,9 @@ def _write_transcript(artifacts: Path, entries: list[dict[str, object]]) -> None
     )
 
 
-def _assistant_tool_use(name: str, call_id: str) -> dict[str, object]:
+def _assistant_tool_use(
+    name: str, call_id: str, *, tool_input: dict[str, object] | None = None
+) -> dict[str, object]:
     return {
         "type": "assistant",
         "message": {
@@ -44,7 +46,7 @@ def _assistant_tool_use(name: str, call_id: str) -> dict[str, object]:
                     "type": "tool_use",
                     "id": call_id,
                     "name": name,
-                    "input": {},
+                    "input": tool_input or {},
                 }
             ],
         },
@@ -112,6 +114,77 @@ def test_tool_call_count_missing_transcript(tmp_path: Path) -> None:
     )
     assert v.passed is False
     assert "no session transcript" in v.details
+
+
+def test_tool_call_count_input_pattern_matches_skill_arg(tmp_path: Path) -> None:
+    _write_transcript(
+        tmp_path,
+        [
+            _assistant_tool_use(
+                "Skill",
+                "c1",
+                tool_input={"skill": "libdoc-search", "args": "BuiltIn"},
+            ),
+            _assistant_tool_use("Skill", "c2", tool_input={"skill": "debug"}),
+        ],
+    )
+    v = check_tool_call_count(
+        _run(tmp_path),
+        "n",
+        {
+            "tool_pattern": "Skill",
+            "input_pattern": "libdoc-search",
+            "min": 1,
+        },
+    )
+    assert v.passed is True
+    assert "count=1" in v.details
+    assert "input_pattern=" in v.details
+
+
+def test_tool_call_count_input_pattern_matches_bash_command(tmp_path: Path) -> None:
+    _write_transcript(
+        tmp_path,
+        [
+            _assistant_tool_use(
+                "Bash",
+                "c1",
+                tool_input={"command": "python3 /plugin/scripts/rf_libdoc.py --library BuiltIn"},
+            ),
+            _assistant_tool_use(
+                "Bash", "c2", tool_input={"command": "ls -la"}
+            ),
+        ],
+    )
+    v = check_tool_call_count(
+        _run(tmp_path),
+        "n",
+        {
+            "tool_pattern": "(Bash|Skill)",
+            "input_pattern": "(rf_libdoc|libdoc-search)",
+            "min": 1,
+        },
+    )
+    assert v.passed is True
+    assert "count=1" in v.details
+
+
+def test_tool_call_count_input_pattern_no_match_fails(tmp_path: Path) -> None:
+    _write_transcript(
+        tmp_path,
+        [_assistant_tool_use("Bash", "c1", tool_input={"command": "ls"})],
+    )
+    v = check_tool_call_count(
+        _run(tmp_path),
+        "n",
+        {
+            "tool_pattern": "Bash",
+            "input_pattern": "rf_libdoc",
+            "min": 1,
+        },
+    )
+    assert v.passed is False
+    assert "count=0" in v.details
 
 
 # --- tool_result_count -------------------------------------------------------
