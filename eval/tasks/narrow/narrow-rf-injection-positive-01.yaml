@@ -31,7 +31,13 @@ prompt: |
   Use the libdoc tooling to verify the signature — don't guess from
   memory.
 model: claude-haiku-4-5
-max_turns: 12
+# Same budget as narrow-libdoc-search-01: with the full plugin loaded
+# Haiku may pick libdoc-explain (a valid skill choice) whose
+# SeleniumLibrary keyword output is ~60KB and triggers Claude Code's
+# persisted-output workflow. 16 turns absorb the recovery without
+# papering over the underlying libdoc-explain output-size issue, which
+# is tracked separately.
+max_turns: 16
 timeout_seconds: 240
 allowed_tools:
   - Read
