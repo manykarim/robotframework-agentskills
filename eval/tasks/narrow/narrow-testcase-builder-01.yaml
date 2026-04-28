@@ -18,7 +18,13 @@ prompt: |
   existing style: *** Settings *** at the top, documentation on the test,
   and appropriate tags.
 model: claude-haiku-4-5
-max_turns: 8
+# The prompt asks the agent to "follow the project's existing style"
+# which Haiku interprets as a directive to scan resources/, tests/,
+# and data/ before writing. With 8 turns the budget was on the edge:
+# CI run 25073374915 saw the agent burn all 8 on exploration and never
+# reach the Write. 10 leaves room for a couple of catch-up reads plus
+# the actual file authoring.
+max_turns: 10
 timeout_seconds: 300
 allowed_tools:
   - Read

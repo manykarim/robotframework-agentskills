@@ -77,43 +77,43 @@ realistic) and reproducibility of the scoring model across batches.
 4. Run the task once by hand to confirm the prompt lands and the grader fires.
 5. Add the task id to the suite manifest (runner auto-discovers by default).
 
-## Known plugin regressions
+## Resolved plugin regressions
 
-The harness deliberately keeps tests failing when they expose real plugin
-issues, so the signal stays visible across runs. Loosening these tests
-would defeat their purpose.
+Issues the eval has caught and that have since been fixed in the plugin.
+Kept here as historical context — these are the behaviors the canary
+tasks (`narrow-non-rf-control-01` plus `narrow-rf-injection-positive-01`)
+guard against re-introducing.
 
-### `narrow-non-rf-control-01` — non-RF prompt no-op under full plugin
+### `narrow-non-rf-control-01` — non-RF prompt no-op under static UserPromptSubmit (RESOLVED)
 
-- **Symptom**: With the full rf-agentskills plugin staged (skills + hooks
-  + agents) and `claude-haiku-4-5`, a plain JSON-authoring prompt that
-  has nothing to do with Robot Framework completes with `num_turns=0`
-  and no tool calls. The model produces ~93 output tokens of text and
-  exits cleanly (`is_error=false`).
-- **Suspected cause**: the plugin's `UserPromptSubmit` hook injects "*If
-  this request involves Robot Framework test automation, load the
-  relevant skill's SKILL.md before responding...*" into every prompt.
-  Haiku appears to treat this as a permission gate ("is this RF?" → no
-  → done) rather than as supplementary guidance.
+- **Was**: With the static `type: "prompt"` UserPromptSubmit hook and
+  `claude-haiku-4-5`, a plain JSON-authoring prompt completed with
+  `num_turns=0` and zero tool calls. The model produced ~93 output
+  tokens of text and exited cleanly (`is_error=false`).
+- **Cause**: the plugin injected "*If this request involves Robot
+  Framework test automation, load the relevant skill's SKILL.md before
+  responding...*" into every prompt. Haiku read this as a permission
+  gate ("is this RF?" → no → done).
 - **First seen**: CI run `25057802426` on 2026-04-28.
-- **Disposition**: failing PR check is intentional. The fix lives in the
-  plugin (make `UserPromptSubmit` conditional on RF-related triggers in
-  the prompt), not in the eval. Re-running this task green will confirm
-  the plugin fix landed.
+- **Fix**: branch `fix/plugin-hooks` converted UserPromptSubmit (and
+  Stop) to `type: "command"` hooks that read the prompt on stdin and
+  only inject context when an RF signal is present. The negative
+  control task and a new `narrow-rf-injection-positive-01` task lock
+  in both halves of the conditional behavior.
 
-### `narrow-libdoc-search-01` — `PostToolUse` hook never fires
+### `PostToolUse` matcher false alarm (NOT actually broken)
 
-- **Symptom**: `validate_robot.sh` is configured under
-  `PostToolUse` with `matcher: "Write|Edit"` but does not run after
-  any Write/Edit in the eval. Only the `SessionStart` hook
-  (`check_rf_environment.sh`) shows up in the session event stream.
-- **Suspected cause**: Claude Code 2.1's hook matcher does not interpret
-  `Write|Edit` as a regex alternation against tool names. Likely needs
-  separate entries (`matcher: "Write"` and `matcher: "Edit"`) or
-  `(Write|Edit)`.
-- **Disposition**: not currently a graded check; surfaced via manual
-  inspection of the artifact's stream JSONL. A future task could assert
-  the presence of a `hook_response` event for `PostToolUse:*`.
+- **Was assumed**: `PostToolUse` with `matcher: "Write|Edit"` doesn't
+  fire because the artifact stream JSON shows no `hook_*` events for
+  it. (Documented as a separate issue during the PR #2 post-mortem.)
+- **Reality**: the matcher works correctly. Claude Code 2.1.121 emits
+  `hook_started/progress/response` envelopes for `SessionStart`-class
+  events but **not** for `PostToolUse`. Hooks fire silently — verifying
+  them requires inspecting side effects (log files, file changes), not
+  the stream JSON.
+- **Status**: no fix needed. Documented in
+  `plugins/rf-agentskills/hooks/README.md` so future debugging doesn't
+  chase the same false trail.
 
 ## References
 
