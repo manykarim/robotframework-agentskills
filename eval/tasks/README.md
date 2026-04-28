@@ -77,6 +77,44 @@ realistic) and reproducibility of the scoring model across batches.
 4. Run the task once by hand to confirm the prompt lands and the grader fires.
 5. Add the task id to the suite manifest (runner auto-discovers by default).
 
+## Known plugin regressions
+
+The harness deliberately keeps tests failing when they expose real plugin
+issues, so the signal stays visible across runs. Loosening these tests
+would defeat their purpose.
+
+### `narrow-non-rf-control-01` — non-RF prompt no-op under full plugin
+
+- **Symptom**: With the full rf-agentskills plugin staged (skills + hooks
+  + agents) and `claude-haiku-4-5`, a plain JSON-authoring prompt that
+  has nothing to do with Robot Framework completes with `num_turns=0`
+  and no tool calls. The model produces ~93 output tokens of text and
+  exits cleanly (`is_error=false`).
+- **Suspected cause**: the plugin's `UserPromptSubmit` hook injects "*If
+  this request involves Robot Framework test automation, load the
+  relevant skill's SKILL.md before responding...*" into every prompt.
+  Haiku appears to treat this as a permission gate ("is this RF?" → no
+  → done) rather than as supplementary guidance.
+- **First seen**: CI run `25057802426` on 2026-04-28.
+- **Disposition**: failing PR check is intentional. The fix lives in the
+  plugin (make `UserPromptSubmit` conditional on RF-related triggers in
+  the prompt), not in the eval. Re-running this task green will confirm
+  the plugin fix landed.
+
+### `narrow-libdoc-search-01` — `PostToolUse` hook never fires
+
+- **Symptom**: `validate_robot.sh` is configured under
+  `PostToolUse` with `matcher: "Write|Edit"` but does not run after
+  any Write/Edit in the eval. Only the `SessionStart` hook
+  (`check_rf_environment.sh`) shows up in the session event stream.
+- **Suspected cause**: Claude Code 2.1's hook matcher does not interpret
+  `Write|Edit` as a regex alternation against tool names. Likely needs
+  separate entries (`matcher: "Write"` and `matcher: "Edit"`) or
+  `(Write|Edit)`.
+- **Disposition**: not currently a graded check; surfaced via manual
+  inspection of the artifact's stream JSONL. A future task could assert
+  the presence of a `hook_response` event for `PostToolUse:*`.
+
 ## References
 
 - `docs/ci/rf-agentskills-eval-implementation-plan.md` — overall plan.
