@@ -1,0 +1,68 @@
+id: narrow-rf-injection-positive-01
+skill: libdoc-search
+tier: narrow
+description: |
+  Positive control for the conditional UserPromptSubmit hook. Companion
+  to narrow-non-rf-control-01 (the negative case). Together they verify
+  that the rf-agentskills plugin's UserPromptSubmit hook injects context
+  for RF prompts AND skips injection for non-RF prompts.
+
+  This task's prompt explicitly mentions Robot Framework and
+  SeleniumLibrary, so `maybe_inject_rf_context.sh` should fire its
+  additionalContext payload describing the available rf-agentskills.
+  The agent should then leverage that context — invoke the Skill tool
+  for libdoc-search/libdoc-explain, run rf_libdoc.py via Bash, or call
+  an rf-mcp lookup tool — rather than guessing the keyword signature
+  from memory.
+
+  Pass criteria:
+    - The expected file is produced and contains the keyword info.
+    - At least one rf-agentskills lookup path was taken (Skill /
+      rf_libdoc.py / mcp__rf-mcp__find_keywords / get_keyword_info).
+prompt: |
+  I'm working on a Robot Framework test suite that uses SeleniumLibrary.
+  I need a brief reference for the `Click Element` keyword. Write a
+  short markdown file at `docs/click-element.md` covering:
+
+    - The keyword signature (name + arguments + defaults)
+    - Two-sentence description of what it does
+    - One short usage example
+
+  Use the libdoc tooling to verify the signature — don't guess from
+  memory.
+model: claude-haiku-4-5
+max_turns: 12
+timeout_seconds: 240
+allowed_tools:
+  - Read
+  - Write
+  - Edit
+  - Bash
+  - Glob
+  - Grep
+  - Skill
+  - mcp__rf-mcp__*
+expected_files:
+  - path: docs/click-element.md
+    must_contain:
+      - "Click Element"
+      - "locator"
+grader_checks:
+  - type: file_exists
+    path: docs/click-element.md
+  - type: file_contains
+    path: docs/click-element.md
+    regex: "Click Element"
+  - type: file_contains
+    path: docs/click-element.md
+    regex: "(?i)locator"
+  # The conditional UserPromptSubmit hook injected rf-agentskills
+  # context for this RF prompt — agent should reach for one of the
+  # documented lookup paths rather than improvising raw libdoc commands.
+  - type: tool_call_count
+    name: leveraged_rf_lookup
+    tool_pattern: "(Bash|Skill|mcp__rf-mcp__.*)"
+    input_pattern: "(rf_libdoc|libdoc-search|libdoc-explain|find_keywords|get_keyword_info)"
+    min: 1
+fixture: sut-minimal
+primary_metric: file_contains

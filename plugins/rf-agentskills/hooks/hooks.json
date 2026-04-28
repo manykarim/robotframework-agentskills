@@ -16,8 +16,8 @@
         "matcher": "",
         "hooks": [
           {
-            "type": "prompt",
-            "prompt": "If this request involves Robot Framework test automation, load the relevant skill's SKILL.md before responding. Available skills: browser, selenium, appium, requests, restinstance (library references); keyword-builder, testcase-builder, resource-architect, libdoc-search, libdoc-explain, results (script-based tools). Available agents: rf-test-architect, rf-debug-expert, rf-keyword-consultant, rf-migration-guide."
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/scripts/maybe_inject_rf_context.sh"
           }
         ]
       }
@@ -38,8 +38,8 @@
         "matcher": "",
         "hooks": [
           {
-            "type": "prompt",
-            "prompt": "If you generated or modified any .robot or .resource files during this session, remind the user to:\n1. Run the test suite to verify: `robot --outputdir results tests/`\n2. Check results with: `python3 \"${CLAUDE_PLUGIN_ROOT}/scripts/rf_results.py\" --output results/output.xml --sections summary,errors --pretty`\n3. Review the generated HTML report at `results/report.html`"
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/scripts/maybe_remind_robot_tests.sh"
           }
         ]
       }
