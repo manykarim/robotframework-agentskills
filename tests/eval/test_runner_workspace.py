@@ -371,9 +371,31 @@ def test_write_settings_includes_hooks_when_provided(tmp_path: Path) -> None:
     runner._write_settings(config_dir, workspace, hooks=hooks)
 
     import json as _json
-    settings = _json.loads((config_dir / "settings.json").read_text())
-    assert "hooks" in settings
-    assert settings["hooks"] == hooks
+    user_settings = _json.loads((config_dir / "settings.json").read_text())
+    assert "hooks" in user_settings
+    assert user_settings["hooks"] == hooks
+
+    # Project-scope copy is what Claude Code actually reads hooks from
+    # in headless mode — covered by the same call, not a separate API.
+    project_settings_path = workspace / ".claude" / "settings.json"
+    assert project_settings_path.is_file()
+    project_settings = _json.loads(project_settings_path.read_text())
+    assert project_settings == {"hooks": hooks}
+
+
+def test_write_settings_skips_project_file_when_no_hooks(tmp_path: Path) -> None:
+    runner = ClaudeCodeRunner()
+    config_dir = tmp_path / "config"
+    config_dir.mkdir()
+    workspace = tmp_path / "ws"
+    workspace.mkdir()
+
+    runner._write_settings(config_dir, workspace, hooks=None)
+
+    # Permissions still go to the user-scope file.
+    assert (config_dir / "settings.json").is_file()
+    # No hooks → no project-scope file (avoid creating .claude/ noise).
+    assert not (workspace / ".claude" / "settings.json").exists()
 
 
 def test_stage_plugin_returns_none_when_plugin_missing(tmp_path: Path) -> None:

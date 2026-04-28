@@ -453,44 +453,54 @@ class ClaudeCodeRunner:
         *,
         hooks: dict[str, Any] | None = None,
     ) -> None:
-        """Write a Claude Code ``settings.json`` that restricts writes to workspace.
+        """Write Claude Code ``settings.json`` for permissions and hooks.
 
-        Path-pattern permissions syntax (``Write(glob)``, ``Edit(glob)``) is
-        documented in the Claude Code docs; at minimum the preamble PLUS the
-        integrity check guarantee detection, so this is defense-in-depth.
+        The user-scope file at ``<config_dir>/settings.json`` carries the
+        ``permissions`` block (workspace allow + system-write deny) — Claude
+        Code 2.1 honours that block reliably from ``${CLAUDE_CONFIG_DIR}``.
 
-        When ``hooks`` is provided (the plugin's ``hooks/hooks.json`` content,
-        with ``${CLAUDE_PLUGIN_ROOT}`` already substituted), it is wired in
-        under the top-level ``hooks`` field so PostToolUse/UserPromptSubmit/
-        SessionStart/Stop hooks fire during the run.
+        Hooks, by contrast, only fire when configured at project scope:
+        Claude Code in headless ``-p`` mode silently skips the ``hooks``
+        block from ``${CLAUDE_CONFIG_DIR}/settings.json`` even with
+        ``--permission-mode bypassPermissions``. So when ``hooks`` are
+        provided, we additionally write ``<workspace>/.claude/settings.json``
+        — that one IS read and, with bypassPermissions, fires without a
+        trust prompt.
         """
         workspace_abs = str(workspace_dir.resolve())
-        settings: dict[str, Any] = {
-            "permissions": {
-                "allow": [
-                    f"Read({workspace_abs}/**)",
-                    f"Write({workspace_abs}/**)",
-                    f"Edit({workspace_abs}/**)",
-                    f"MultiEdit({workspace_abs}/**)",
-                    "Bash(*)",
-                    "Glob(*)",
-                    "Grep(*)",
-                ],
-                "deny": [
-                    "Write(/home/**)",
-                    "Edit(/home/**)",
-                    "MultiEdit(/home/**)",
-                    "Write(/etc/**)",
-                    "Write(/usr/**)",
-                    "Write(/var/**)",
-                ],
-            }
+        permissions = {
+            "allow": [
+                f"Read({workspace_abs}/**)",
+                f"Write({workspace_abs}/**)",
+                f"Edit({workspace_abs}/**)",
+                f"MultiEdit({workspace_abs}/**)",
+                "Bash(*)",
+                "Glob(*)",
+                "Grep(*)",
+            ],
+            "deny": [
+                "Write(/home/**)",
+                "Edit(/home/**)",
+                "MultiEdit(/home/**)",
+                "Write(/etc/**)",
+                "Write(/usr/**)",
+                "Write(/var/**)",
+            ],
         }
+
+        user_settings: dict[str, Any] = {"permissions": permissions}
         if hooks:
-            settings["hooks"] = hooks
+            user_settings["hooks"] = hooks
         (config_dir / "settings.json").write_text(
-            json.dumps(settings, indent=2), encoding="utf-8"
+            json.dumps(user_settings, indent=2), encoding="utf-8"
         )
+
+        if hooks:
+            project_dir = workspace_dir / ".claude"
+            project_dir.mkdir(parents=True, exist_ok=True)
+            (project_dir / "settings.json").write_text(
+                json.dumps({"hooks": hooks}, indent=2), encoding="utf-8"
+            )
 
     def _record_violations(
         self,
