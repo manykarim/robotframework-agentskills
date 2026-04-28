@@ -189,90 +189,183 @@ def test_write_settings_emits_workspace_allow_list(tmp_path: Path) -> None:
     assert any("Write(/home/**)" in rule for rule in deny)
 
 
-def _make_plugin(plugin_root: Path, skill_name: str) -> None:
-    skill_dir = plugin_root / "skills" / skill_name
-    skill_dir.mkdir(parents=True)
-    (skill_dir / "SKILL.md").write_text(
-        "---\n"
-        f"name: {skill_name}\n"
-        "description: test\n"
-        "---\n\n"
-        '```bash\npython3 "${CLAUDE_PLUGIN_ROOT}/scripts/foo.py"\n```\n',
-        encoding="utf-8",
-    )
+def _make_plugin(plugin_root: Path, skill_names: tuple[str, ...] = ("libdoc-search",)) -> None:
+    """Create a minimal plugin layout with skills, agents, hooks, and an MCP server."""
+    for skill_name in skill_names:
+        skill_dir = plugin_root / "skills" / skill_name
+        skill_dir.mkdir(parents=True)
+        (skill_dir / "SKILL.md").write_text(
+            "---\n"
+            f"name: {skill_name}\n"
+            "description: test\n"
+            "---\n\n"
+            '```bash\npython3 "${CLAUDE_PLUGIN_ROOT}/scripts/foo.py"\n```\n',
+            encoding="utf-8",
+        )
     scripts_dir = plugin_root / "scripts"
     scripts_dir.mkdir(parents=True)
     (scripts_dir / "foo.py").write_text("print('foo')", encoding="utf-8")
+    (scripts_dir / "validate.sh").write_text(
+        '#!/usr/bin/env bash\necho ok\n', encoding="utf-8"
+    )
+
+    agents_dir = plugin_root / "agents"
+    agents_dir.mkdir(parents=True)
+    (agents_dir / "rf-architect.md").write_text(
+        "---\nname: rf-architect\ndescription: test\n---\nbody\n",
+        encoding="utf-8",
+    )
+
+    hooks_dir = plugin_root / "hooks"
+    hooks_dir.mkdir(parents=True)
+    import json as _json
+    (hooks_dir / "hooks.json").write_text(
+        _json.dumps(
+            {
+                "hooks": {
+                    "PostToolUse": [
+                        {
+                            "matcher": "Write|Edit",
+                            "hooks": [
+                                {
+                                    "type": "command",
+                                    "command": "${CLAUDE_PLUGIN_ROOT}/scripts/validate.sh",
+                                }
+                            ],
+                        }
+                    ]
+                }
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    (plugin_root / ".mcp.json").write_text(
+        _json.dumps(
+            {
+                "mcpServers": {
+                    "rf-tools": {
+                        "command": "python3",
+                        "args": ["${CLAUDE_PLUGIN_ROOT}/servers/srv.py"],
+                    }
+                }
+            }
+        ),
+        encoding="utf-8",
+    )
 
 
-def test_provision_skills_stages_into_config_and_workspace(tmp_path: Path) -> None:
+def test_stage_plugin_substitutes_plugin_root_token(tmp_path: Path) -> None:
     plugin_root = tmp_path / "plugins" / "rf-agentskills"
-    _make_plugin(plugin_root, "libdoc-search")
+    _make_plugin(plugin_root)
     runner = ClaudeCodeRunner(plugin_root=plugin_root)
     config_dir = tmp_path / "config"
     config_dir.mkdir()
-    workspace = tmp_path / "ws"
-    workspace.mkdir()
-    profile = Profile(
-        name="treatment",
-        enabled_skills=("libdoc-search",),
-        claude_config_dir=config_dir,
-    )
 
-    runner._provision_skills(profile, config_dir, workspace)
+    plugin_dst = runner._stage_plugin(config_dir)
 
-    config_skill = config_dir / "skills" / "libdoc-search" / "SKILL.md"
-    workspace_skill = (
-        workspace / ".claude" / "skills" / "libdoc-search" / "SKILL.md"
-    )
-    assert config_skill.is_file()
-    assert workspace_skill.is_file()
+    assert plugin_dst is not None
+    assert plugin_dst == config_dir / "rf-agentskills"
+    plugin_root_abs = str(plugin_dst.resolve())
 
-    plugin_dst_abs = str((config_dir / "rf-agentskills").resolve())
-    for path in (config_skill, workspace_skill):
-        content = path.read_text()
+    # Token should be gone everywhere; absolute path appears in its place.
+    skill_md = (plugin_dst / "skills" / "libdoc-search" / "SKILL.md").read_text()
+    hooks_json = (plugin_dst / "hooks" / "hooks.json").read_text()
+    mcp_json = (plugin_dst / ".mcp.json").read_text()
+    for content in (skill_md, hooks_json, mcp_json):
         assert "${CLAUDE_PLUGIN_ROOT}" not in content
-        assert plugin_dst_abs in content
-
-    # The shared plugin copy includes the script the SKILL.md points at.
-    assert (config_dir / "rf-agentskills" / "scripts" / "foo.py").is_file()
+        assert plugin_root_abs in content
 
 
-def test_provision_skills_noop_for_control_profile(tmp_path: Path) -> None:
+def test_provision_skills_copies_every_skill_to_both_locations(tmp_path: Path) -> None:
     plugin_root = tmp_path / "plugins" / "rf-agentskills"
-    _make_plugin(plugin_root, "libdoc-search")
+    _make_plugin(plugin_root, skill_names=("libdoc-search", "keyword-builder"))
     runner = ClaudeCodeRunner(plugin_root=plugin_root)
     config_dir = tmp_path / "config"
     config_dir.mkdir()
     workspace = tmp_path / "ws"
     workspace.mkdir()
-    profile = Profile(
-        name="control",
-        enabled_skills=(),
-        claude_config_dir=config_dir,
-    )
 
-    runner._provision_skills(profile, config_dir, workspace)
+    plugin_dst = runner._stage_plugin(config_dir)
+    assert plugin_dst is not None
+    runner._provision_skills(plugin_dst, config_dir, workspace)
 
-    assert not (config_dir / "skills").exists()
-    assert not (workspace / ".claude").exists()
+    for name in ("libdoc-search", "keyword-builder"):
+        assert (config_dir / "skills" / name / "SKILL.md").is_file()
+        assert (workspace / ".claude" / "skills" / name / "SKILL.md").is_file()
 
 
-def test_provision_skills_skips_unknown_skill(tmp_path: Path) -> None:
+def test_provision_agents_copies_to_both_locations(tmp_path: Path) -> None:
     plugin_root = tmp_path / "plugins" / "rf-agentskills"
-    _make_plugin(plugin_root, "libdoc-search")
+    _make_plugin(plugin_root)
     runner = ClaudeCodeRunner(plugin_root=plugin_root)
     config_dir = tmp_path / "config"
     config_dir.mkdir()
     workspace = tmp_path / "ws"
     workspace.mkdir()
-    profile = Profile(
-        name="treatment",
-        enabled_skills=("does-not-exist",),
-        claude_config_dir=config_dir,
-    )
 
-    runner._provision_skills(profile, config_dir, workspace)
+    plugin_dst = runner._stage_plugin(config_dir)
+    assert plugin_dst is not None
+    runner._provision_agents(plugin_dst, config_dir, workspace)
 
-    # Targets are created but the unknown skill leaves no SKILL.md behind.
-    assert not (config_dir / "skills" / "does-not-exist").exists()
+    assert (config_dir / "agents" / "rf-architect.md").is_file()
+    assert (workspace / ".claude" / "agents" / "rf-architect.md").is_file()
+
+
+def test_extra_mcp_servers_returns_substituted_servers(tmp_path: Path) -> None:
+    plugin_root = tmp_path / "plugins" / "rf-agentskills"
+    _make_plugin(plugin_root)
+    runner = ClaudeCodeRunner(plugin_root=plugin_root)
+    config_dir = tmp_path / "config"
+    config_dir.mkdir()
+
+    plugin_dst = runner._stage_plugin(config_dir)
+    assert plugin_dst is not None
+    servers = runner._extra_mcp_servers(plugin_dst)
+
+    assert servers is not None
+    assert "rf-tools" in servers
+    args = servers["rf-tools"]["args"]
+    assert any(str(plugin_dst.resolve()) in a for a in args)
+    assert all("${CLAUDE_PLUGIN_ROOT}" not in a for a in args)
+
+
+def test_extract_hooks_returns_substituted_hooks(tmp_path: Path) -> None:
+    plugin_root = tmp_path / "plugins" / "rf-agentskills"
+    _make_plugin(plugin_root)
+    runner = ClaudeCodeRunner(plugin_root=plugin_root)
+    config_dir = tmp_path / "config"
+    config_dir.mkdir()
+
+    plugin_dst = runner._stage_plugin(config_dir)
+    assert plugin_dst is not None
+    hooks = runner._extract_hooks(plugin_dst)
+
+    assert hooks is not None
+    assert "PostToolUse" in hooks
+    cmd = hooks["PostToolUse"][0]["hooks"][0]["command"]
+    assert "${CLAUDE_PLUGIN_ROOT}" not in cmd
+    assert str(plugin_dst.resolve()) in cmd
+
+
+def test_write_settings_includes_hooks_when_provided(tmp_path: Path) -> None:
+    runner = ClaudeCodeRunner()
+    config_dir = tmp_path / "config"
+    config_dir.mkdir()
+    workspace = tmp_path / "ws"
+    workspace.mkdir()
+    hooks = {"PostToolUse": [{"matcher": "Write", "hooks": []}]}
+
+    runner._write_settings(config_dir, workspace, hooks=hooks)
+
+    import json as _json
+    settings = _json.loads((config_dir / "settings.json").read_text())
+    assert "hooks" in settings
+    assert settings["hooks"] == hooks
+
+
+def test_stage_plugin_returns_none_when_plugin_missing(tmp_path: Path) -> None:
+    runner = ClaudeCodeRunner(plugin_root=tmp_path / "missing")
+    config_dir = tmp_path / "config"
+    config_dir.mkdir()
+    assert runner._stage_plugin(config_dir) is None
