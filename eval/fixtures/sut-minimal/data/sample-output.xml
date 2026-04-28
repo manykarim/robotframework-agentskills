@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<robot generator="Robot 7.0.1" generated="20260401 09:15:23.412" rpa="false" schemaversion="4">
+<suite id="s1" name="Sample Run" source="/tmp/sample">
+  <suite id="s1-s1" name="Smoke Suite" source="/tmp/sample/smoke.robot">
+    <test id="s1-s1-t1" name="Smoke Test A" line="5">
+      <kw name="Log"><arg>hello</arg><status status="PASS" start="20260401 09:15:23.500" elapsed="0.001"/></kw>
+      <status status="PASS" start="20260401 09:15:23.499" elapsed="0.003"/>
+    </test>
+    <test id="s1-s1-t2" name="Smoke Test B" line="9">
+      <kw name="Log"><arg>ok</arg><status status="PASS" start="20260401 09:15:23.510" elapsed="0.001"/></kw>
+      <status status="PASS" start="20260401 09:15:23.509" elapsed="0.002"/>
+    </test>
+    <status status="PASS" start="20260401 09:15:23.498" elapsed="0.020"/>
+  </suite>
+  <suite id="s1-s2" name="Checkout Suite" source="/tmp/sample/checkout.robot">
+    <test id="s1-s2-t1" name="Cart Page Loads" line="5">
+      <kw name="Log"><arg>nope</arg><status status="PASS" start="20260401 09:15:23.520" elapsed="0.001"/></kw>
+      <status status="FAIL" start="20260401 09:15:23.519" elapsed="0.004">AssertionError: cart did not load</status>
+    </test>
+    <test id="s1-s2-t2" name="Payment Form Renders" line="9">
+      <kw name="Log"><arg>ok</arg><status status="PASS" start="20260401 09:15:23.530" elapsed="0.001"/></kw>
+      <status status="PASS" start="20260401 09:15:23.529" elapsed="0.002"/>
+    </test>
+    <test id="s1-s2-t3" name="Order Confirmation Visible" line="13">
+      <kw name="Log"><arg>oops</arg><status status="PASS" start="20260401 09:15:23.540" elapsed="0.001"/></kw>
+      <status status="FAIL" start="20260401 09:15:23.539" elapsed="0.004">AssertionError: confirm page timeout</status>
+    </test>
+    <status status="FAIL" start="20260401 09:15:23.518" elapsed="0.030"/>
+  </suite>
+  <status status="FAIL" start="20260401 09:15:23.497" elapsed="0.055"/>
+</suite>
+<statistics>
+  <total>
+    <stat pass="3" fail="2" skip="0">All Tests</stat>
+  </total>
+  <tag/>
+  <suite>
+    <stat pass="3" fail="2" skip="0" id="s1" name="Sample Run">Sample Run</stat>
+    <stat pass="2" fail="0" skip="0" id="s1-s1" name="Smoke Suite">Sample Run.Smoke Suite</stat>
+    <stat pass="1" fail="2" skip="0" id="s1-s2" name="Checkout Suite">Sample Run.Checkout Suite</stat>
+  </suite>
+</statistics>
+<errors/>
+</robot>

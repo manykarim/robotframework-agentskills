@@ -1,0 +1,17 @@
+[project]
+name = "sut-minimal"
+version = "0.0.1"
+description = "Minimal Robot Framework fixture for the rf-agentskills eval harness."
+requires-python = ">=3.10"
+dependencies = [
+  "robotframework>=7.0",
+  "robotframework-tidy>=4.11",
+  "robotframework-seleniumlibrary>=6.5",
+]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = []

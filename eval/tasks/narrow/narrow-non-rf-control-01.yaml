@@ -1,0 +1,98 @@
+id: narrow-non-rf-control-01
+skill: libdoc-search
+tier: narrow
+description: |
+  Negative-control task: a deliberately non-Robot-Framework prompt that
+  must complete cleanly even with an RF skill provisioned. Guards against
+  two regressions seen in interactive use of the rf-agentskills plugin:
+
+    1. The agent over-invokes Robot Framework tooling (rf-mcp, libdoc,
+       skill scripts) for prompts that have nothing to do with RF.
+    2. Hooks or skill guidance push the agent into a loop on simple tasks
+       (e.g., PostToolUse matchers re-triggering tooling on every Write,
+       UserPromptSubmit injection biasing every response toward RF).
+
+  Tight `max_turns` and `timeout_seconds` are intentional — a hooked loop
+  or runaway tool-use would blow past either bound and the run would fail
+  the file checks.
+
+  KNOWN FAILURE (run 25057802426, 2026-04-28): with the full plugin
+  loaded under haiku-4-5, this task fails at `bounded_tool_calls` with
+  count=0 — Haiku produces a short text response (~93 output tokens) and
+  exits without calling any tool. The leading suspect is the plugin's
+  `UserPromptSubmit` hook, which prepends "If this request involves
+  Robot Framework test automation, load the relevant skill's SKILL.md
+  before responding..." to every prompt. On a non-RF task Haiku
+  apparently treats this as "evaluate then conclude no action needed".
+  We are deliberately leaving this task in its failing state so the
+  regression remains visible — this is exactly what the test was
+  designed to catch. See eval/tasks/README.md "Known plugin regressions".
+prompt: |
+  Write a JSON file at `data/colors.json` that contains EXACTLY this
+  content (no extra keys, no comments):
+
+      {"primary": "blue", "secondary": "yellow"}
+
+  This is a plain JSON authoring task. It has nothing to do with Robot
+  Framework, libdoc, test automation, or any other RF concern. Do not
+  search libdoc, do not initialize an rf-mcp session, do not consult any
+  skill — just create the file and stop.
+model: claude-haiku-4-5
+max_turns: 4
+timeout_seconds: 60
+allowed_tools:
+  - Read
+  - Write
+  - Edit
+  - Bash
+  - Glob
+  - Grep
+  - Skill
+  - mcp__rf-mcp__*
+expected_files:
+  - path: data/colors.json
+    must_contain:
+      - "primary"
+      - "blue"
+      - "secondary"
+      - "yellow"
+grader_checks:
+  - type: file_exists
+    path: data/colors.json
+  - type: file_contains
+    name: has_primary_blue
+    path: data/colors.json
+    regex: '"primary"\s*:\s*"blue"'
+  - type: file_contains
+    name: has_secondary_yellow
+    path: data/colors.json
+    regex: '"secondary"\s*:\s*"yellow"'
+  # Negative assertion: no rf-mcp calls. The agent has the tools available
+  # (allowed_tools includes mcp__rf-mcp__*), but should NOT use them for a
+  # plain JSON-authoring prompt. A regression here usually means the agent
+  # is being biased toward RF tooling by hook guidance or skill prompts.
+  - type: tool_call_count
+    name: no_rf_mcp_calls
+    tool_pattern: "mcp__rf-mcp__.*"
+    min: 0
+    max: 0
+  # Negative assertion: no libdoc-search invocations. The skill is staged
+  # (treatment profile provisions skill=libdoc-search) but is irrelevant
+  # to the prompt; invoking it would be over-application.
+  - type: tool_call_count
+    name: no_libdoc_search_invocation
+    tool_pattern: "(Bash|Skill)"
+    input_pattern: "(rf_libdoc|libdoc-search)"
+    min: 0
+    max: 0
+  # Loop detector: bound the total number of tool calls. A clean run for
+  # this task is 1-3 tool calls (one Write, optionally a Bash mkdir, an
+  # optional Read to verify). Anything beyond ~6 suggests the agent is
+  # being looped back into tool use by hooks or skill guidance.
+  - type: tool_call_count
+    name: bounded_tool_calls
+    tool_pattern: ".*"
+    min: 1
+    max: 6
+fixture: sut-minimal
+primary_metric: file_contains

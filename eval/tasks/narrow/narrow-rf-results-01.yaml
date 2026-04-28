@@ -1,0 +1,46 @@
+id: narrow-rf-results-01
+skill: results
+tier: narrow
+description: |
+  Parse a provided output.xml using the rf-results skill and report the
+  total number of failed tests along with the names of the failing suites.
+prompt: |
+  I just finished a test run and the output.xml is saved at
+  data/sample-output.xml. Can you parse it and give me:
+
+    - The total number of tests executed
+    - The number of tests that failed
+    - The names of any suites that had failures
+
+  Write your findings to reports/run-summary.md as a short bulleted summary.
+  Make sure the counts come straight from the XML, not from a guess.
+model: claude-haiku-4-5
+max_turns: 6
+timeout_seconds: 240
+allowed_tools:
+  - Read
+  - Write
+  - Edit
+  - Bash
+  - Glob
+  - Grep
+  - mcp__rf-mcp__*
+expected_files:
+  - path: reports/run-summary.md
+    must_contain:
+      - "Total"
+      - "Failed"
+grader_checks:
+  - type: file_exists
+    path: reports/run-summary.md
+  - type: file_contains
+    path: reports/run-summary.md
+    regex: "(?i)total.*5"
+  - type: file_contains
+    path: reports/run-summary.md
+    regex: "(?i)failed.*2"
+  - type: file_contains
+    path: reports/run-summary.md
+    regex: "Checkout Suite"
+fixture: sut-minimal
+primary_metric: file_contains

@@ -1,0 +1,59 @@
+id: realistic-api-testing-01
+skill: requests
+tier: realistic
+description: |
+  Write a RequestsLibrary-based test that reads a static JSON fixture,
+  hits a simple URL (the fixture ships a static JSON file served from the
+  local filesystem via `file://` or a tiny inline HTTP handler), and
+  asserts on specific field values. Exercises the API-authoring loop
+  without requiring external network connectivity.
+prompt: |
+  The file data/users-api-response.json in this project contains a mocked
+  API response for a GET /users endpoint. It's a JSON array of user
+  objects. Each user has id, name, and email fields.
+
+  Please write a Robot Framework test at tests/api_users.robot that:
+
+    1. Loads data/users-api-response.json (either via RequestsLibrary with a
+       local HTTP server you spin up in a Suite Setup, or via the OperatingSystem
+       library + json module — pick whichever is cleaner given there's no real
+       network involved)
+    2. Parses the response as JSON
+    3. Asserts there are exactly 3 users
+    4. Asserts the first user's name is "Alice"
+    5. Asserts every user has a non-empty email field
+
+  Then run the test with `robot tests/api_users.robot` and confirm it
+  passes. Leave the test in a state where it would still pass on a fresh
+  checkout of the fixture.
+model: claude-sonnet-4-6
+max_turns: 18
+timeout_seconds: 900
+allowed_tools:
+  - Read
+  - Write
+  - Edit
+  - Bash
+  - Glob
+  - Grep
+  - mcp__rf-mcp__*
+expected_files:
+  - path: tests/api_users.robot
+    must_contain:
+      - "Alice"
+      - "users"
+grader_checks:
+  - type: file_exists
+    path: tests/api_users.robot
+  - type: file_contains
+    path: tests/api_users.robot
+    regex: "^\\*\\*\\* Test Cases \\*\\*\\*"
+  - type: file_contains
+    path: tests/api_users.robot
+    regex: "Alice"
+  - type: robot_pass
+    target: tests/api_users.robot
+  - type: no_deprecated_keywords
+    target: tests/api_users.robot
+fixture: sut-minimal
+primary_metric: robot_pass

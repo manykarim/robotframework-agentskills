@@ -1,0 +1,70 @@
+id: narrow-libdoc-search-01
+skill: libdoc-search
+tier: narrow
+description: |
+  Look up a specific SeleniumLibrary keyword ("Input Text") using the
+  libdoc-search skill and produce a short report documenting its arguments
+  and signature. Tests whether the agent uses the documentation tooling
+  rather than guessing the signature from memory.
+prompt: |
+  I'm new to SeleniumLibrary and I need to know the exact signature of the
+  "Input Text" keyword: what arguments does it take, in what order, and
+  which ones are optional?
+
+  Please write a short markdown report at docs/input-text-keyword.md that
+  includes:
+
+    - The full keyword signature (name + argument list with defaults)
+    - A one-sentence description of what the keyword does
+    - A minimal usage example
+
+  Use the libdoc tooling to check the real documentation — don't guess from
+  memory.
+model: claude-haiku-4-5
+# Budget covers skill-selection overhead now that the full plugin is
+# loaded — Haiku may oscillate between libdoc-search and libdoc-explain,
+# and libdoc-explain output for SeleniumLibrary keywords runs ~60KB which
+# triggers Claude Code's persisted-output workflow. 14 turns leaves room
+# without papering over a regression.
+max_turns: 14
+timeout_seconds: 240
+allowed_tools:
+  - Read
+  - Write
+  - Edit
+  - Bash
+  - Glob
+  - Grep
+  - Skill
+  - mcp__rf-mcp__*
+expected_files:
+  - path: docs/input-text-keyword.md
+    must_contain:
+      - "Input Text"
+      - "locator"
+grader_checks:
+  - type: file_exists
+    path: docs/input-text-keyword.md
+  - type: file_contains
+    path: docs/input-text-keyword.md
+    regex: "Input Text"
+  - type: file_contains
+    path: docs/input-text-keyword.md
+    regex: "(?i)locator"
+  - type: file_contains
+    path: docs/input-text-keyword.md
+    regex: "(?i)text"
+  - type: file_contains
+    path: docs/input-text-keyword.md
+    regex: "(?i)clear"
+  # Verify the agent actually leveraged the libdoc-search skill rather than
+  # improvising via raw libdoc HTML. Either path counts: invoking the Skill
+  # tool with skill=libdoc-search, or running the rf_libdoc.py script the
+  # SKILL.md directs to.
+  - type: tool_call_count
+    name: invoked_libdoc_search_skill
+    tool_pattern: "(Bash|Skill)"
+    input_pattern: "(rf_libdoc|libdoc-search)"
+    min: 1
+fixture: sut-minimal
+primary_metric: file_contains

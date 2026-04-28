@@ -212,6 +212,20 @@ claude --plugin-dir ./plugins/rf-agentskills
 
 Agent Skills are an open standard supported by multiple agent systems. The `skills/` directory at the repository root provides standalone skill access for systems that don't use the Claude Code plugin format (e.g., GitHub Copilot).
 
+## Running skill evaluations
+
+This repository ships an evaluation harness (`rf-skill-eval`) that grades each
+skill under controlled Claude Code sessions and produces a scorecard. See
+[docs/ci/usage.md](docs/ci/usage.md) for the full walkthrough. Quick start:
+
+```bash
+cp .env.example .env      # add your CLAUDE_CODE_OAUTH_TOKEN
+uv sync
+uv run rfbrowser init
+uv run rf-skill-eval doctor
+bash scripts/eval-local.sh
+```
+
 ## License
 
 Apache-2.0

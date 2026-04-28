@@ -1,0 +1,174 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "rf-skill-eval"
+version = "0.1.0"
+description = "CI-gated evaluation harness for Robot Framework Agent Skills"
+readme = "README.md"
+requires-python = ">=3.12"
+license = { text = "Apache-2.0" }
+authors = [
+    { name = "Many Kasiriha", email = "many.kasiriha@gmail.com" },
+]
+keywords = ["robotframework", "claude-code", "agent-skills", "evaluation"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Framework :: Robot Framework",
+    "Programming Language :: Python :: 3.12",
+    "License :: OSI Approved :: Apache Software License",
+]
+
+dependencies = [
+    "pydantic>=2.5",
+    "pydantic-settings>=2.2",
+    "polars>=1.0",
+    "scipy>=1.13",
+    "numpy>=1.26",
+    "jinja2>=3.1",
+    "robotframework>=7.0",
+    "python-dotenv>=1.0",
+    "typer>=0.12",
+    "rich>=13.7",
+    "pyyaml>=6.0",
+    "httpx>=0.27",
+    # Robot Framework MCP server. Package confirmed on PyPI as `rf-mcp`
+    # (author: Many Kasiriha). The `[all]` extra pulls in the full Browser /
+    # Selenium / API library set used by evaluation fixtures.
+    "rf-mcp[all]>=0.31",
+]
+
+[project.optional-dependencies]
+# Kept only for PEP 621 tools that don't understand `dependency-groups`.
+# Canonical dev deps live under `[dependency-groups.dev]` below.
+
+[dependency-groups]
+dev = [
+    "pytest>=8",
+    "pytest-cov>=5",
+    "pytest-asyncio>=0.23",
+    "ruff>=0.5",
+    "mypy>=1.11",
+    "types-PyYAML>=6.0",
+]
+
+[project.scripts]
+rf-skill-eval = "rf_skill_eval.cli:app"
+
+[project.urls]
+Homepage = "https://github.com/manykarim/robotframework-agentskills"
+Repository = "https://github.com/manykarim/robotframework-agentskills"
+
+[tool.uv]
+# Prefer the highest compatible versions; lockfile is committed for reproducibility.
+resolution = "highest"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/rf_skill_eval"]
+
+# --- Ruff --------------------------------------------------------------------
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+src = ["src", "tests/eval"]
+extend-exclude = [
+    "build",
+    "dist",
+    ".venv",
+    "eval/runs",
+    "skills",
+    "plugins",
+    "vscode-extension",
+    "tests/test_*.py",  # legacy plugin tests, not managed by this harness
+]
+
+[tool.ruff.lint]
+select = [
+    "E",    # pycodestyle errors
+    "W",    # pycodestyle warnings
+    "F",    # pyflakes
+    "I",    # isort
+    "B",    # bugbear
+    "UP",   # pyupgrade
+    "N",    # pep8-naming
+    "C90",  # mccabe complexity
+    "SIM",  # simplify
+    "RUF",  # ruff-specific
+]
+ignore = [
+    "E501",   # long lines — line-length handles it
+    "RUF001", # ambiguous unicode in strings (we use en-dashes and times intentionally)
+    "RUF002", # ambiguous unicode in docstrings
+    "RUF003", # ambiguous unicode in comments
+]
+
+[tool.ruff.lint.per-file-ignores]
+# Tests use pytest.raises(Exception) for pydantic ValidationError assertions;
+# that's intentional. N818 is for upstream naming we inherit.
+"tests/**" = ["N802", "N803", "SIM117", "B017"]
+# Typer relies on function-call defaults (the `Option(...)` sentinel) — that's
+# the documented API, so B008 is a known false positive here.
+"src/rf_skill_eval/cli.py" = ["B008"]
+# RunnerTimeout mirrors stdlib naming (subprocess.TimeoutExpired); the N818
+# "Error" suffix rule would make the name redundant.
+"src/rf_skill_eval/errors.py" = ["N818"]
+
+# --- Mypy --------------------------------------------------------------------
+[tool.mypy]
+python_version = "3.12"
+strict = true
+warn_unused_ignores = true
+warn_return_any = true
+disallow_untyped_defs = true
+show_error_codes = true
+files = ["src/rf_skill_eval"]
+
+[[tool.mypy.overrides]]
+module = [
+    "scipy",
+    "scipy.*",
+    "polars",
+    "polars.*",
+    "robot",
+    "robot.*",
+    "rf_mcp",
+    "rf_mcp.*",
+    "robotmcp",
+    "robotmcp.*",
+    "dotenv",
+]
+ignore_missing_imports = true
+
+# --- Pytest ------------------------------------------------------------------
+[tool.pytest.ini_options]
+minversion = "8.0"
+# tests/eval is the harness test suite; `tests/` legacy dir holds plugin tests
+# and is kept out of the default collection to avoid import conflicts.
+testpaths = ["tests/eval"]
+asyncio_mode = "auto"
+addopts = [
+    "-ra",
+    "--strict-markers",
+    "--strict-config",
+]
+markers = [
+    "integration: marks tests that spawn subprocesses or hit the filesystem heavily",
+    "requires_robot: marks tests that require the `robot` CLI on PATH",
+    "requires_claude: marks tests that require the `claude` CLI on PATH",
+]
+
+# --- Coverage ----------------------------------------------------------------
+[tool.coverage.run]
+source = ["src/rf_skill_eval"]
+branch = true
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "raise NotImplementedError",
+    "if TYPE_CHECKING:",
+    "if __name__ == .__main__.:",
+]
+show_missing = true
+skip_covered = false

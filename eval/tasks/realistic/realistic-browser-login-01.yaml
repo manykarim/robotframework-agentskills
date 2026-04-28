@@ -1,0 +1,59 @@
+id: realistic-browser-login-01
+skill: browser
+tier: realistic
+description: |
+  Write and successfully run a Browser-library test against the local
+  login page shipped in the sut-browser fixture. The task exercises the
+  full authoring loop: read the HTML, write the test, execute it, debug
+  failures if any, and confirm a green run.
+prompt: |
+  The file pages/login.html in this project is a minimal login page with
+  two inputs (id="username" and id="password") and a submit button
+  (id="submit"). On successful submit (username "demo", password "demo")
+  the page displays a div with id="welcome" containing the text
+  "Welcome, demo".
+
+  Please write a Browser-library Robot Framework test at
+  tests/browser_login.robot that:
+
+    1. Opens the local login page (file:// URL)
+    2. Fills in username "demo" and password "demo"
+    3. Clicks submit
+    4. Verifies the welcome message appears and contains "Welcome, demo"
+
+  Then run the test with `robot tests/browser_login.robot` and confirm it
+  passes. Fix anything that's wrong until you get a green run.
+
+  Playwright browsers are already initialized (`rfbrowser init` has been
+  run for you) so `New Browser` / `New Page` should work out of the box.
+model: claude-sonnet-4-6
+max_turns: 20
+timeout_seconds: 900
+allowed_tools:
+  - Read
+  - Write
+  - Edit
+  - Bash
+  - Glob
+  - Grep
+  - mcp__rf-mcp__*
+expected_files:
+  - path: tests/browser_login.robot
+    must_contain:
+      - "Library    Browser"
+      - "Welcome, demo"
+grader_checks:
+  - type: file_exists
+    path: tests/browser_login.robot
+  - type: file_contains
+    path: tests/browser_login.robot
+    regex: "Library\\s+Browser"
+  - type: file_contains
+    path: tests/browser_login.robot
+    regex: "(?i)welcome,\\s*demo"
+  - type: robot_pass
+    target: tests/browser_login.robot
+  - type: no_deprecated_keywords
+    target: tests/browser_login.robot
+fixture: sut-browser
+primary_metric: robot_pass

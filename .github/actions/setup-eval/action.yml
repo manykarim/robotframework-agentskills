@@ -1,0 +1,43 @@
+name: Setup skill-eval environment
+description: >-
+  Installs uv, Node 20, the Claude Code CLI, Python dependencies via uv sync,
+  and initializes Playwright browsers for robotframework-browser. Shared by
+  the Skill Evaluation workflow tiers.
+
+inputs:
+  node-version:
+    description: "Node.js version for the Claude Code CLI"
+    required: false
+    default: "20"
+  uv-cache-glob:
+    description: "Glob(s) uv should key its dependency cache on"
+    required: false
+    default: |
+      pyproject.toml
+      uv.lock
+
+runs:
+  using: composite
+  steps:
+    - name: Set up uv
+      uses: astral-sh/setup-uv@v3
+      with:
+        enable-cache: true
+        cache-dependency-glob: ${{ inputs.uv-cache-glob }}
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ inputs.node-version }}
+
+    - name: Install Claude Code CLI
+      shell: bash
+      run: npm install -g @anthropic-ai/claude-code
+
+    - name: Install Python dependencies
+      shell: bash
+      run: uv sync --all-extras
+
+    - name: Initialize Playwright browsers
+      shell: bash
+      run: uv run rfbrowser init

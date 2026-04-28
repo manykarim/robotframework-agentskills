@@ -1,0 +1,51 @@
+id: narrow-keyword-builder-01
+skill: keyword-builder
+tier: narrow
+description: |
+  Create a reusable Robot Framework keyword named "Login With Valid Credentials"
+  that accepts a username and a password argument and navigates the login flow.
+  The agent should use the keyword-builder skill to scaffold the keyword with
+  the correct section headers and argument handling.
+prompt: |
+  I need a new reusable keyword for my test suite. Please create a Robot
+  Framework keyword called "Login With Valid Credentials" that takes two
+  arguments: ${username} and ${password}. It should open the browser, fill in
+  the login form, click submit, and confirm the dashboard has loaded.
+
+  Put the keyword in resources/login_keywords.resource. The resource file
+  should be self-contained (appropriate Settings section, any needed
+  imports) and follow Robot Framework conventions.
+model: claude-haiku-4-5
+max_turns: 8
+timeout_seconds: 300
+allowed_tools:
+  - Read
+  - Write
+  - Edit
+  - Bash
+  - Glob
+  - Grep
+  - mcp__rf-mcp__*
+expected_files:
+  - path: resources/login_keywords.resource
+    must_contain:
+      - "Login With Valid Credentials"
+      - "${username}"
+      - "${password}"
+grader_checks:
+  - type: file_exists
+    path: resources/login_keywords.resource
+  - type: file_contains
+    path: resources/login_keywords.resource
+    regex: "^\\*\\*\\* Keywords \\*\\*\\*"
+  - type: file_contains
+    path: resources/login_keywords.resource
+    regex: "Login With Valid Credentials"
+  - type: file_contains
+    path: resources/login_keywords.resource
+    regex: "\\[Arguments\\].*\\$\\{username\\}.*\\$\\{password\\}"
+  - type: lint_clean
+    tool: robotidy
+    target: resources/
+fixture: sut-minimal
+primary_metric: file_contains
