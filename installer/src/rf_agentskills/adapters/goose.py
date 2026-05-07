@@ -95,20 +95,79 @@ class GooseAdapter(AdapterBase):
             return project / GOOSEHINTS_FILENAME
         return Path.home() / GOOSEHINTS_FILENAME
 
+    def _skills_root(self, opts: InstallOptions) -> Path:
+        """Goose v1.25+ reads skills from ``~/.agents/skills/`` (global) or
+        ``<project>/.agents/skills/`` (project). The Summon extension
+        auto-discovers them at startup — no registration needed.
+
+        ``--prefix`` co-locates skills at ``<prefix>/agents/skills/`` so the
+        sandbox tests don't need to assume a writable ``$HOME/.agents/``.
+        """
+        if opts.prefix is not None:
+            return opts.prefix / "agents" / "skills"
+        if opts.scope == "project":
+            project = opts.project_dir
+            assert project is not None
+            return project / ".agents" / "skills"
+        return Path.home() / ".agents" / "skills"
+
     # ------------------------------------------------------------------
     # plan
     # ------------------------------------------------------------------
 
     def plan(self, opts: InstallOptions) -> InstallPlan:
         root = self.install_root(opts)
+        skills_root = self._skills_root(opts)
         targets: list[InstallTarget] = []
         merges: list[ConfigMergeOp] = []
         notes: list[str] = []
 
         with _assets.asset_root_path() as src_root:
-            # 1. Goosehints — composed from subagent descriptions + skill list.
-            #    We always write it as long as the user asked for skills or
-            #    agents (without it, Goose has no idea our personas exist).
+            # 1. Skills → ~/.agents/skills/<name>/ (Goose v1.25+ Summon
+            #    extension auto-discovers them). SKILL.md format is
+            #    identical to Anthropic's — verbatim copy plus
+            #    ${CLAUDE_PLUGIN_ROOT} substitution. The skill body's
+            #    references / scripts / assets subdirs come along too.
+            #    Goose has no plugin-root env var of its own (per
+            #    docs.goose-docs.ai/.../using-skills/), so the
+            #    install-time substitution is what makes the skill's
+            #    bash blocks resolvable.
+            if "skills" in opts.what:
+                skills_src = src_root / "skills"
+                if skills_src.is_dir():
+                    plugin_root_abs = _x.to_native_path_string(
+                        (root / "rf-agentskills-files").resolve()
+                    )
+                    for f in sorted(skills_src.rglob("*")):
+                        if not f.is_file():
+                            continue
+                        rel = f.relative_to(skills_src)
+                        targets.append(InstallTarget(
+                            dst=skills_root / rel,
+                            payload=self._read_with_substitution(f, plugin_root_abs),
+                            transform_name="plugin_root_substitution",
+                        ))
+                    # Co-locate scripts/servers under <root>/rf-agentskills-files/
+                    # so substituted paths in skill bodies resolve.
+                    for category in ("scripts", "servers"):
+                        cat_src = src_root / category
+                        if not cat_src.is_dir():
+                            continue
+                        for f in sorted(cat_src.rglob("*")):
+                            if not f.is_file():
+                                continue
+                            rel = f.relative_to(src_root)
+                            targets.append(InstallTarget(
+                                dst=root / "rf-agentskills-files" / rel,
+                                payload=self._read_with_substitution(f, plugin_root_abs),
+                                transform_name="plugin_root_substitution",
+                                executable=f.suffix in (".sh", ".ps1"),
+                            ))
+
+            # 2. Goosehints — Goose has no subagent primitive, so we fold
+            #    subagent descriptions plus a skill index into the hints
+            #    file. This ALSO helps users discover the skills installed
+            #    in step 1 by giving them a single high-level summary.
             if {"skills", "agents"} & opts.what:
                 hints_text = self._compose_goosehints(src_root)
                 targets.append(InstallTarget(
@@ -117,7 +176,7 @@ class GooseAdapter(AdapterBase):
                     transform_name="goosehints_persona",
                 ))
 
-            # 2. MCP → extensions block in config.yaml
+            # 3. MCP → extensions block in config.yaml
             if "mcp" in opts.what:
                 plugin_mcp = src_root / ".mcp.json"
                 if plugin_mcp.is_file():
@@ -126,20 +185,15 @@ class GooseAdapter(AdapterBase):
                         target=root / CONFIG_FILENAME,
                     ))
 
-        # 3. Honest skip-notes for missing native equivalents.
-        if "skills" in opts.what:
-            notes.append(
-                "Goose has no native equivalent for skills — they are "
-                "summarised in .goosehints instead. See post_install."
-            )
+        # 4. Honest skip-notes for the categories Goose still lacks.
         if "agents" in opts.what:
             notes.append(
-                "Goose has no native equivalent for subagents — their "
-                "descriptions are folded into .goosehints. See post_install."
+                "Goose has no native subagent primitive — subagent "
+                "descriptions are folded into .goosehints instead."
             )
         if "hooks" in opts.what:
             notes.append(
-                "Goose has no hooks system — hooks were skipped. See post_install."
+                "Goose has no hooks system — hooks were skipped."
             )
 
         return InstallPlan(
@@ -147,6 +201,17 @@ class GooseAdapter(AdapterBase):
             merges=tuple(merges),
             notes=tuple(notes),
         )
+
+    # ------------------------------------------------------------------
+    # internals
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def _read_with_substitution(src: Path, plugin_root_abs: str) -> bytes:
+        data = src.read_bytes()
+        if _x.is_substitution_candidate(src):
+            return _x.substitute_plugin_root_bytes(data, plugin_root_abs)
+        return data
 
     # ------------------------------------------------------------------
     # post_install

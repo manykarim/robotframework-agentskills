@@ -217,14 +217,38 @@ def test_goose_mcp_yaml_merge_kind(install_prefix: Path) -> None:
     assert yaml_merges[0].key_path == ("extensions",)
 
 
-def test_goose_skills_skipped_with_note(install_prefix: Path) -> None:
+def test_goose_skills_install_to_agents_dir(install_prefix: Path) -> None:
+    """Goose v1.25+ reads skills from ``~/.agents/skills/`` (Summon ext)."""
     cls = by_name("goose")
     assert cls is not None
     plan = cls().plan(InstallOptions(
         prefix=install_prefix, what=frozenset({"skills"})
     ))
-    assert any("no native equivalent" in n.lower() or "skills" in n.lower()
-               for n in plan.notes)
+    skill_targets = [t for t in plan.targets
+                     if "/agents/skills/" in str(t.dst) and t.dst.name == "SKILL.md"]
+    assert skill_targets, (
+        "expected SKILL.md targets under <prefix>/agents/skills/<name>/"
+    )
+
+
+def test_goose_subagents_still_fold_into_goosehints(install_prefix: Path) -> None:
+    """Goose has no subagent primitive — only skills are first-class."""
+    cls = by_name("goose")
+    assert cls is not None
+    plan = cls().plan(InstallOptions(
+        prefix=install_prefix, what=frozenset({"agents"})
+    ))
+    # No <prefix>/agents/<name>.md targets (those would be Claude Code shape)
+    agent_md_targets = [t for t in plan.targets
+                        if str(t.dst).endswith(".md")
+                        and "/agents/" in str(t.dst)
+                        and "/skills/" not in str(t.dst)]
+    assert agent_md_targets == []
+    # Goosehints should be written instead
+    hints = [t for t in plan.targets if t.dst.name == ".goosehints"]
+    assert len(hints) == 1
+    # And there's a note explaining the fold
+    assert any("subagent" in n.lower() for n in plan.notes)
 
 
 def test_goose_e2e_yaml_round_trip(
