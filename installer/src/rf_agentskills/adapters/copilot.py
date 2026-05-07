@@ -60,9 +60,9 @@ class CopilotAdapter(ClaudeCodeAdapter):
         notes = list(super().post_install(opts))
         notes.append(
             "VS Code Copilot 1.108+ reads `.claude/` paths natively. "
-            "If you don't see skills/agents/hooks, enable the preview flags "
-            "in VS Code settings: chat.agent.plugins.enabled, "
-            "chat.skills.enabled, chat.hooks.enabled."
+            "If you don't see skills/agents/hooks, enable the preview flag "
+            "`chat.useAgentSkills` in VS Code settings (and `chat.hooks.enabled` "
+            "if you want hooks active)."
         )
         if "mcp" in opts.what and opts.scope == "project":
             notes.append(

@@ -1,8 +1,14 @@
 """Adapter for OpenAI Codex CLI.
 
-Per the proposal (docs/installer/proposal.md, Phase 2):
+Per the proposal (docs/installer/proposal.md, Phase 2) — adjusted
+2026-05-07 against developers.openai.com/codex/skills, which lists
+``$HOME/.agents/skills`` as the canonical USER-scope path (the
+cross-vendor "agentskills.io" convention also honoured by Cursor 2.4+
+and Goose v1.25+ Summon). Codex *also* reads ``~/.codex/skills`` (where
+its bundled `.system` skills live) but the public spec is ``.agents``:
 
-* skills      → ``~/.codex/skills/<name>/`` (or project ``.codex/skills/``).
+* skills      → ``~/.agents/skills/<name>/`` (USER) or
+                ``<project>/.agents/skills/<name>/`` (PROJECT).
                 SKILL.md format identical to Claude Code; verbatim copy
                 modulo ``${CLAUDE_PLUGIN_ROOT}`` substitution.
 * subagents   → ``~/.codex/agents/<name>.toml``, transformed from the
@@ -65,6 +71,19 @@ class CodexAdapter(AdapterBase):
     # plan
     # ------------------------------------------------------------------
 
+    def _skills_root(self, opts: InstallOptions) -> Path:
+        """Codex docs canonical user-scope skills path is ``$HOME/.agents/skills``
+        (cross-vendor universal). With ``--prefix`` we keep the layout
+        consistent with Goose's adapter: ``<prefix>/agents/skills/``.
+        """
+        if opts.prefix is not None:
+            return opts.prefix / "agents" / "skills"
+        if opts.scope == "project":
+            project = opts.project_dir
+            assert project is not None
+            return project / ".agents" / "skills"
+        return Path.home() / ".agents" / "skills"
+
     def plan(self, opts: InstallOptions) -> InstallPlan:
         root = self.install_root(opts)
         plugin_dst = root / PLUGIN_FILES_SUBDIR
@@ -74,6 +93,7 @@ class CodexAdapter(AdapterBase):
             targets = list(self._collect_targets(
                 src_root=src_root,
                 root=root,
+                skills_root=self._skills_root(opts),
                 plugin_dst=plugin_dst,
                 plugin_root_abs=plugin_root_abs,
                 what=opts.what,
@@ -99,23 +119,26 @@ class CodexAdapter(AdapterBase):
         *,
         src_root: Path,
         root: Path,
+        skills_root: Path,
         plugin_dst: Path,
         plugin_root_abs: str,
         what: frozenset[str],
     ) -> Iterable[InstallTarget]:
-        # 1. Skills — <root>/skills/<name>/SKILL.md (+ subtree). Verbatim
-        #    copy: Codex SKILL.md format is identical to Claude Code's
-        #    (per proposal Appendix A — the bundled skill-installer in
-        #    Codex inspects the same frontmatter shape).
+        # 1. Skills — ``$HOME/.agents/skills/<name>/`` per Codex docs
+        #    (developers.openai.com/codex/skills, USER scope row).
+        #    SKILL.md format is identical to Claude Code's so we copy
+        #    the whole tree (SKILL.md + references/ + assets/ + scripts/)
+        #    verbatim, with ${CLAUDE_PLUGIN_ROOT} substituted at install
+        #    time.
         if "skills" in what:
             skill_src = src_root / "skills"
             if skill_src.is_dir():
                 for f in sorted(skill_src.rglob("*")):
                     if not f.is_file():
                         continue
-                    rel = f.relative_to(src_root)
+                    rel = f.relative_to(skill_src)
                     yield InstallTarget(
-                        dst=root / rel,
+                        dst=skills_root / rel,
                         payload=self._read_with_substitution(f, plugin_root_abs),
                         transform_name="plugin_root_substitution",
                     )

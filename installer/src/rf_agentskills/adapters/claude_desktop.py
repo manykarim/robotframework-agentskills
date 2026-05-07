@@ -142,12 +142,21 @@ class ClaudeDesktopAdapter(AdapterBase):
     # ------------------------------------------------------------------
 
     def post_install(self, opts: InstallOptions) -> list[str]:
-        return [
+        notes = [
             "Claude Desktop only supports MCP servers from this bundle. "
-            "Skills, subagents, and hooks aren't installable.",
+            "Skills, subagents, and hooks aren't installable (per Anthropic's "
+            "docs — Desktop skills are server-side via Settings → Capabilities, "
+            "not filesystem-loaded).",
             "Restart Claude Desktop to pick up the MCP server registration.",
             "First MCP tool invocation will trigger a trust prompt — accept it once.",
         ]
+        if sys.platform.startswith("linux"):
+            notes.append(
+                "Note: Claude Desktop is officially supported on macOS and "
+                "Windows only. Linux installs are community/unofficial — "
+                "the path used was ~/.config/Claude/claude_desktop_config.json."
+            )
+        return notes
 
     # ------------------------------------------------------------------
     # internals

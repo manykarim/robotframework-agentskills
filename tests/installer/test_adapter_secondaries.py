@@ -155,26 +155,35 @@ def test_codex_e2e_writes_valid_toml_files(
 # ---- Cursor-specific ---------------------------------------------------
 
 
-def test_cursor_skills_become_mdc_with_globs(install_prefix: Path) -> None:
+def test_cursor_skills_install_natively_to_skills_dir(
+    install_prefix: Path,
+) -> None:
+    """Cursor 2.4+ reads SKILL.md natively — verbatim copy, no MDC transform."""
     cls = by_name("cursor")
     assert cls is not None
     plan = cls().plan(InstallOptions(prefix=install_prefix))
-    mdc_targets = [t for t in plan.targets if str(t.dst).endswith(".mdc")
-                   and "_subagent-" not in str(t.dst)]
-    assert mdc_targets, "expected SKILL→MDC targets"
-    for t in mdc_targets:
+    skill_targets = [t for t in plan.targets
+                     if str(t.dst).endswith("SKILL.md")
+                     and "/skills/" in str(t.dst)]
+    assert skill_targets, "expected SKILL.md targets under <root>/skills/<name>/"
+    # The frontmatter should be unchanged from the source SKILL.md
+    for t in skill_targets:
         doc = _x.parse_frontmatter(t.payload.decode("utf-8"))
+        assert "name" in doc.frontmatter
         assert "description" in doc.frontmatter
-        assert "globs" in doc.frontmatter
-        assert doc.frontmatter.get("alwaysApply") is False
+    # No MDC files anywhere (the transform was removed)
+    mdc_targets = [t for t in plan.targets if str(t.dst).endswith(".mdc")]
+    assert mdc_targets == []
 
 
-def test_cursor_subagents_become_underscored_mdc(install_prefix: Path) -> None:
+def test_cursor_subagents_copy_natively(install_prefix: Path) -> None:
+    """Cursor 2.4 added native subagent support — same .md format as Claude."""
     cls = by_name("cursor")
     assert cls is not None
     plan = cls().plan(InstallOptions(prefix=install_prefix))
-    sub_targets = [t for t in plan.targets if "_subagent-" in str(t.dst)]
-    assert sub_targets, "expected at least one _subagent-*.mdc target"
+    agent_targets = [t for t in plan.targets
+                     if str(t.dst).endswith(".md") and "/agents/" in str(t.dst)]
+    assert agent_targets, "expected agents/<name>.md targets"
 
 
 def test_cursor_hooks_use_namespaced_matchers(
@@ -283,18 +292,25 @@ def test_opencode_subagents_copied_directly(install_prefix: Path) -> None:
         assert t.transform_name == "plugin_root_substitution"
 
 
-def test_opencode_skills_become_commands(install_prefix: Path) -> None:
+def test_opencode_skills_install_natively_to_skills_dir(
+    install_prefix: Path,
+) -> None:
+    """OpenCode reads SKILL.md natively (per opencode.ai/docs/skills/, May 2026)."""
     cls = by_name("opencode")
     assert cls is not None
     plan = cls().plan(InstallOptions(prefix=install_prefix))
-    cmd_targets = [t for t in plan.targets if "/commands/" in str(t.dst)]
-    assert cmd_targets, "expected commands/<name>.md targets"
-    # Commands have only `description` in frontmatter
-    for t in cmd_targets:
+    skill_targets = [t for t in plan.targets
+                     if str(t.dst).endswith("SKILL.md")
+                     and "/skills/" in str(t.dst)]
+    assert skill_targets, "expected SKILL.md targets under <root>/skills/<name>/"
+    for t in skill_targets:
         doc = _x.parse_frontmatter(t.payload.decode("utf-8"))
+        # Native frontmatter preserved (name + description required by docs)
+        assert "name" in doc.frontmatter
         assert "description" in doc.frontmatter
-        # OpenCode commands shouldn't carry the original SKILL name field
-        assert set(doc.frontmatter.keys()) <= {"description"}
+    # No commands/<name>.md transforms anymore
+    cmd_targets = [t for t in plan.targets if "/commands/" in str(t.dst)]
+    assert cmd_targets == []
 
 
 def test_opencode_mcp_translation_to_command_array(

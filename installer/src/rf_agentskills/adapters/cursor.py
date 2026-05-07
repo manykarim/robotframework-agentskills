@@ -1,16 +1,23 @@
-"""Adapter for Cursor (1.7+).
+"""Adapter for Cursor (≥ 2.4).
 
-Cursor doesn't have a native SKILL.md loader, so we transform the
-bundled assets into the shapes Cursor reads:
+Cursor 2.4+ added native SKILL.md support (changelog "Subagents,
+Skills, and Image Generation" at cursor.com/changelog/2-4). Skills are
+auto-discovered from any of:
 
-* skills    → ``<root>/rules/<name>.mdc`` via
-              :func:`transforms.skill_md_to_cursor_mdc`. Cursor rules
-              are flat single-file MDC, so any ``references/`` /
-              ``assets/`` subtrees inside a SKILL package are folded
-              into the rule body's text only — extra files are dropped.
-* subagents → ``<root>/rules/_subagent-<name>.mdc``. Cursor has no
-              dedicated subagent target, so we re-emit them as rules
-              prefixed with ``_subagent-`` and tag the description.
+* ``<project>/.cursor/skills/<name>/`` (project)
+* ``~/.cursor/skills/<name>/``         (user)
+* Plus cross-vendor: ``.claude/skills/``, ``.codex/skills/``,
+  ``.agents/skills/`` — all read by Cursor automatically.
+
+We pick the agent-native path (``~/.cursor/skills/<name>/``) so users
+who installed Cursor without any other agent still get the bundle.
+
+* skills    → ``<root>/skills/<name>/SKILL.md`` (+ subtree). Verbatim
+              copy modulo ``${CLAUDE_PLUGIN_ROOT}`` substitution. Same
+              format Cursor 2.4 documents at cursor.com/docs/skills.
+* subagents → ``<root>/agents/<name>.md``. Cursor 2.4 also added
+              native subagent support — same .md frontmatter shape as
+              Claude Code, so verbatim copy works.
 * hooks     → ``<root>/hooks.json`` via
               :func:`transforms.rewrite_hooks_for_cursor` (lowercases
               event names and namespaces ``mcp__rf-mcp__*`` matchers
@@ -96,42 +103,33 @@ class CursorAdapter(AdapterBase):
         plugin_root_abs: str,
         what: frozenset[str],
     ) -> Iterable[InstallTarget]:
-        # 1. Skills → rules/<name>.mdc (flat, single-file MDC).
+        # 1. Skills → <root>/skills/<name>/ (Cursor 2.4+ reads SKILL.md
+        #    natively per cursor.com/docs/skills). Verbatim copy of the
+        #    full skill tree so references/, assets/, scripts/ come
+        #    along too.
         if "skills" in what:
             skills_src = src_root / "skills"
             if skills_src.is_dir():
-                for skill_dir in sorted(p for p in skills_src.iterdir() if p.is_dir()):
-                    skill_md = skill_dir / "SKILL.md"
-                    if not skill_md.is_file():
+                for f in sorted(skills_src.rglob("*")):
+                    if not f.is_file():
                         continue
-                    text = _x.substitute_plugin_root(
-                        skill_md.read_text(encoding="utf-8"),
-                        plugin_root_abs,
-                    )
-                    mdc = _x.skill_md_to_cursor_mdc(text)
+                    rel = f.relative_to(skills_src)
                     yield InstallTarget(
-                        dst=root / "rules" / f"{skill_dir.name}.mdc",
-                        payload=mdc.encode("utf-8"),
-                        transform_name="skill_md_to_cursor_mdc",
+                        dst=root / "skills" / rel,
+                        payload=self._read_with_substitution(f, plugin_root_abs),
+                        transform_name="plugin_root_substitution",
                     )
-                    # Note: any references/ or assets/ subdirs under the
-                    # skill are intentionally skipped — Cursor rules are
-                    # flat single-file MDC.
 
-        # 2. Subagents → rules/_subagent-<name>.mdc (no native target).
+        # 2. Subagents → <root>/agents/<name>.md (Cursor 2.4 added
+        #    native subagent support; same .md format as Claude Code).
         if "agents" in what:
             agents_src = src_root / "agents"
             if agents_src.is_dir():
                 for agent_md in sorted(agents_src.glob("*.md")):
-                    text = _x.substitute_plugin_root(
-                        agent_md.read_text(encoding="utf-8"),
-                        plugin_root_abs,
-                    )
-                    mdc = self._subagent_md_to_mdc(text, name=agent_md.stem)
                     yield InstallTarget(
-                        dst=root / "rules" / f"_subagent-{agent_md.stem}.mdc",
-                        payload=mdc.encode("utf-8"),
-                        transform_name="subagent_md_to_cursor_mdc",
+                        dst=root / "agents" / agent_md.name,
+                        payload=self._read_with_substitution(agent_md, plugin_root_abs),
+                        transform_name="plugin_root_substitution",
                     )
 
         # 3. Plugin-co-located files: scripts/, servers/, hooks/.
@@ -214,30 +212,6 @@ class CursorAdapter(AdapterBase):
             return _x.substitute_plugin_root_bytes(data, plugin_root_abs)
         return data
 
-    @staticmethod
-    def _subagent_md_to_mdc(agent_text: str, *, name: str) -> str:
-        """Fold a subagent .md into a Cursor MDC rule.
-
-        We reuse the same MDC frontmatter shape as skills (description /
-        globs / alwaysApply) but tag the description so users can
-        distinguish subagent-derived rules from skill-derived rules in
-        the rules picker.
-        """
-        doc = _x.parse_frontmatter(agent_text)
-        original_desc = doc.frontmatter.get("description", "")
-        new_fm = {
-            "description": f"rf-agentskills subagent: {name}",
-            "globs": ["**/*.robot", "**/*.resource"],
-            "alwaysApply": False,
-        }
-        body = doc.body
-        # Preserve the original description in a comment so a human
-        # reading the rule file can see what the subagent was for.
-        header_lines = [f"<!-- rf-agentskills subagent source: {name} -->"]
-        if original_desc:
-            header_lines.append(f"<!-- original description: {original_desc} -->")
-        body = "\n".join(header_lines) + "\n" + body
-        return _x.render_frontmatter(new_fm, body)
 
     def _hooks_merge_op(
         self,

@@ -1,23 +1,27 @@
 """Adapter for OpenCode (sst/opencode).
 
-OpenCode supports subagents (markdown), slash commands (markdown), and
-MCP servers via opencode.json. It does **not** support skills as a
-first-class primitive — we map them to slash commands. Hooks use JS
-plugin modules and are deferred for v1.
+Per opencode.ai/docs/skills/ (page updated 2026-05-07), OpenCode now
+loads SKILL.md natively via a built-in ``skill`` tool. Skill folders
+are auto-discovered from any of:
+
+* ``<project>/.opencode/skills/<name>/SKILL.md`` (project)
+* ``~/.config/opencode/skills/<name>/SKILL.md``  (user, XDG)
+* Plus cross-vendor: ``.claude/skills/`` and ``.agents/skills/``
 
 Layout produced:
 
-* ``<root>/agents/<name>.md``        — direct copy of subagent .md
-* ``<root>/commands/<name>.md``      — SKILL.md transformed to
-                                       OpenCode slash-command format
-                                       via :func:`transforms.skill_md_to_opencode_command`
-* ``<root>/opencode.json``           — MCP servers merged under
-                                       top-level ``"mcp"`` key
-* ``<root>/rf-agentskills-files/``   — co-located scripts/servers so
-                                       ``${CLAUDE_PLUGIN_ROOT}`` paths
-                                       resolve
+* ``<root>/skills/<name>/`` (+ subtree) — verbatim SKILL.md copy
+* ``<root>/agents/<name>.md``           — direct copy of subagent .md
+* ``<root>/opencode.json``              — MCP servers merged under
+                                          top-level ``"mcp"`` key
+* ``<root>/rf-agentskills-files/``      — co-located scripts/servers
+                                          so ``${CLAUDE_PLUGIN_ROOT}``
+                                          paths resolve
 
 User scope: ``~/.config/opencode/``. Project scope: ``<project>/.opencode/``.
+
+Hooks: deferred. OpenCode hooks use JS plugin modules, not bash —
+out of scope for v1; ``post_install`` notes the gap.
 """
 
 from __future__ import annotations
@@ -108,22 +112,20 @@ class OpenCodeAdapter(AdapterBase):
                         transform_name="plugin_root_substitution",
                     )
 
-        # 2. Skills → <root>/commands/<name>.md  (slash command).
+        # 2. Skills → <root>/skills/<name>/ (OpenCode reads SKILL.md
+        #    natively per opencode.ai/docs/skills/). Verbatim copy of
+        #    the full skill tree.
         if "skills" in what:
             skills_src = src_root / "skills"
             if skills_src.is_dir():
-                for skill_dir in sorted(p for p in skills_src.iterdir() if p.is_dir()):
-                    skill_md = skill_dir / "SKILL.md"
-                    if not skill_md.is_file():
+                for f in sorted(skills_src.rglob("*")):
+                    if not f.is_file():
                         continue
-                    text = _x.substitute_plugin_root(
-                        skill_md.read_text(encoding="utf-8"), plugin_root_abs
-                    )
-                    cmd_text = _x.skill_md_to_opencode_command(text)
+                    rel = f.relative_to(skills_src)
                     yield InstallTarget(
-                        dst=root / "commands" / f"{skill_dir.name}.md",
-                        payload=cmd_text.encode("utf-8"),
-                        transform_name="skill_md_to_opencode_command",
+                        dst=root / "skills" / rel,
+                        payload=self._read_with_substitution(f, plugin_root_abs),
+                        transform_name="plugin_root_substitution",
                     )
 
         # 3. Plugin co-located scripts/servers/hooks under
