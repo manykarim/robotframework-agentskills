@@ -1,0 +1,101 @@
+# rf-agentskills installer package.
+#
+# This is a separate Python package from the repo-root rf-skill-eval
+# evaluation harness. It bundles the plugin tree at
+# plugins/rf-agentskills/ and writes it to a target coding agent's
+# expected install paths (Claude Code, Copilot, Codex, Cursor, Goose,
+# OpenCode, Claude Desktop) — see docs/installer/proposal.md for the
+# full design.
+
+[build-system]
+requires = ["hatchling>=1.21"]
+build-backend = "hatchling.build"
+
+[project]
+name = "rf-agentskills"
+version = "0.3.0"
+description = "Cross-agent installer for Robot Framework agent skills (Claude Code, Copilot, Codex, Cursor, Goose, OpenCode, Claude Desktop)"
+readme = "README.md"
+license = { text = "Apache-2.0" }
+requires-python = ">=3.10"
+authors = [{ name = "Many Kasiriha", email = "many.kasiriha@gmail.com" }]
+keywords = [
+    "robotframework",
+    "claude-code",
+    "github-copilot",
+    "openai-codex",
+    "cursor",
+    "goose",
+    "opencode",
+    "agent-skills",
+    "installer",
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Framework :: Robot Framework",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "License :: OSI Approved :: Apache Software License",
+    "Operating System :: OS Independent",
+    "Topic :: Software Development :: Testing",
+]
+dependencies = [
+    # Keep transitive deps tiny — the installer reaches into the user's
+    # $HOME, so the smaller the supply-chain surface, the better.
+    "tomli >=2.0; python_version<'3.11'",   # TOML reads on 3.10
+    "tomli-w >=1.0",                        # TOML round-trip writes (Codex config.toml)
+    "pyyaml >=6.0",                         # YAML round-trip (Goose config.yaml)
+    "rich >=13.7",                          # nicer doctor / list output
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest >=8",
+    "pytest-cov >=5",
+    "ruff >=0.5",
+]
+
+[project.scripts]
+rf-agentskills = "rf_agentskills.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/manykarim/robotframework-agentskills"
+Repository = "https://github.com/manykarim/robotframework-agentskills"
+Issues = "https://github.com/manykarim/robotframework-agentskills/issues"
+
+[tool.hatch.build]
+# The build hook in hatch_build.py mirrors plugins/rf-agentskills/ into
+# src/rf_agentskills/_assets/ before hatchling assembles the wheel, so
+# the bundle ships inside the installable package without requiring
+# duplicate maintenance of the asset tree.
+include = [
+    "src/rf_agentskills/**",
+    "README.md",
+    "hatch_build.py",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/rf_agentskills"]
+
+[tool.hatch.build.targets.sdist]
+include = [
+    "src/rf_agentskills/**",
+    "hatch_build.py",
+    "README.md",
+    "pyproject.toml",
+    # Ship the source-of-truth tree in the sdist too so editable installs
+    # without the build hook having run can still find assets.
+    "../plugins/rf-agentskills/**",
+]
+
+[tool.hatch.build.hooks.custom]
+# Custom build hook resolves to <package-root>/hatch_build.py per
+# https://hatch.pypa.io/latest/plugins/build-hook/custom/.
+path = "hatch_build.py"
+
+[tool.pytest.ini_options]
+testpaths = ["../tests/installer"]
+asyncio_mode = "auto"
