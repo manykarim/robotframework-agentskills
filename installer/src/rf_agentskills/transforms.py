@@ -419,20 +419,36 @@ def merge_toml_table(path: Path, table_path: list[str], value: Any) -> list[str]
 
 
 def remove_toml_table(path: Path, table_path: list[str]) -> None:
-    """Inverse of merge_toml_table — drop the nested table."""
+    """Inverse of merge_toml_table — drop the nested table.
+
+    Walks back up the path and removes any intermediate dicts that
+    become empty (``[mcp_servers.rf-tools]`` removal also drops the
+    empty ``[mcp_servers]`` parent so the file doesn't accumulate
+    useless headers). Removes the file entirely if the document ends
+    up empty.
+    """
     if not path.is_file():
         return
     try:
         data = tomllib.loads(path.read_text(encoding="utf-8"))
     except (OSError, tomllib.TOMLDecodeError):
         return
-    cursor = data
+
+    # Walk to the leaf's parent, recording the chain so we can prune.
+    chain: list[dict[str, Any]] = [data]
     for k in table_path[:-1]:
-        nxt = cursor.get(k)
+        nxt = chain[-1].get(k)
         if not isinstance(nxt, dict):
             return
-        cursor = nxt
-    cursor.pop(table_path[-1], None)
+        chain.append(nxt)
+    chain[-1].pop(table_path[-1], None)
+
+    # Walk back up: drop any now-empty intermediate dicts.
+    for i in range(len(chain) - 1, 0, -1):
+        if chain[i]:
+            break
+        chain[i - 1].pop(table_path[i - 1], None)
+
     if data:
         path.write_text(tomli_w.dumps(data), encoding="utf-8")
     else:
