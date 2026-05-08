@@ -23,14 +23,21 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
       - name: Install dependencies
-        run: pip install robotframework pytest
+        run: |
+          pip install robotframework pytest
+          # tests/installer/ imports rf_agentskills; install it from the
+          # in-repo package so the test collector can resolve it. The
+          # editable install also runs the hatchling build hook that
+          # mirrors plugins/rf-agentskills/ into the package's _assets/
+          # tree — that's what the runtime asset-loader reads.
+          pip install -e ./installer
       - name: Run tests
         # tests/eval/ is the rf-skill-eval harness suite — it imports
         # `rf_skill_eval` and brings the eval harness's full dep set
         # (pydantic, typer, jinja2, sqlite, parquet…). That suite is
         # exercised end-to-end by the Skill Evaluation workflow, plus
         # locally via `uv run pytest tests/eval/`. Keep this CI job
-        # focused on the plugin's own Python scripts.
+        # focused on the plugin's own Python scripts plus the installer.
         run: python -m pytest tests/ --ignore=tests/eval -v --tb=short
 
   lint:
