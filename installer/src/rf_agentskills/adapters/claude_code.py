@@ -118,11 +118,18 @@ class ClaudeCodeAdapter(AdapterBase):
                         transform_name="plugin_root_substitution",
                     )
 
-        # 3. Plugin-co-located files: scripts/, servers/, hooks/. These
-        #    live under <root>/rf-agentskills-files/ so the substituted
+        # 3. Plugin-co-located files: scripts/, servers/, hooks/, plus
+        #    the .claude-plugin/ manifest. These live under
+        #    <root>/rf-agentskills-files/ so the substituted
         #    ${CLAUDE_PLUGIN_ROOT} paths in skills/agents/hooks resolve.
+        #
+        #    Staging the .claude-plugin/plugin.json manifest makes the
+        #    resulting tree a valid Claude Code plugin: `claude plugin
+        #    validate <plugin_dst>` succeeds, and a sufficiently bold
+        #    user could `claude plugin install <local-path>` against
+        #    it as an alternative entry point.
         if {"hooks", "skills", "mcp"} & what:
-            for category in ("scripts", "servers", "hooks"):
+            for category in ("scripts", "servers", "hooks", ".claude-plugin"):
                 cat_src = src_root / category
                 if not cat_src.is_dir():
                     continue
