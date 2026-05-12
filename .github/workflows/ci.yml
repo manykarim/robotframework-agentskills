@@ -32,12 +32,15 @@ jobs:
           # tree — that's what the runtime asset-loader reads.
           pip install -e ./installer
       - name: Run tests
-        # tests/eval/ is the rf-skill-eval harness suite — it imports
-        # `rf_skill_eval` and brings the eval harness's full dep set
-        # (pydantic, typer, jinja2, sqlite, parquet…). That suite is
-        # exercised end-to-end by the Skill Evaluation workflow, plus
-        # locally via `uv run pytest tests/eval/`. Keep this CI job
-        # focused on the plugin's own Python scripts plus the installer.
+        # tests/eval/ is the rf-skill-eval harness suite — an INTERNAL
+        # workspace package (root pyproject; "Private :: Do Not Upload")
+        # whose live-agent tests live under tests/eval/ and bring in
+        # the full eval dep set (pydantic, typer, jinja2, sqlite,
+        # parquet…). That suite is exercised end-to-end by the
+        # skill-evaluation workflow against real Claude Code; locally
+        # run with `uv sync --all-extras && uv run pytest tests/eval/`.
+        # This CI job stays focused on the plugin's own Python scripts
+        # plus the public rf-agentskills installer (installed above).
         run: python -m pytest tests/ --ignore=tests/eval -v --tb=short
 
   lint:
