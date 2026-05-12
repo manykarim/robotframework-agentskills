@@ -14,6 +14,15 @@ authors = [
 ]
 keywords = ["robotframework", "claude-code", "agent-skills", "evaluation"]
 classifiers = [
+    # rf-skill-eval is the internal evaluation harness used in CI to
+    # grade rf-agentskills against live coding agents — it is **not**
+    # intended for PyPI distribution. The `Private :: Do Not Upload`
+    # classifier makes pypi.org reject any accidental upload, so
+    # running `twine upload dist/*` against a build that includes this
+    # package will fail loudly rather than silently publishing internal
+    # tooling. Only rf-agentskills (in installer/) is the public PyPI
+    # release artifact.
+    "Private :: Do Not Upload",
     "Development Status :: 3 - Alpha",
     "Framework :: Robot Framework",
     "Programming Language :: Python :: 3.12",
@@ -64,8 +73,77 @@ Repository = "https://github.com/manykarim/robotframework-agentskills"
 # Prefer the highest compatible versions; lockfile is committed for reproducibility.
 resolution = "highest"
 
+# uv workspace — multi-package monorepo with two distinct distribution
+# scopes:
+#
+#   PUBLIC (PyPI release):
+#     installer/  →  rf-agentskills  (cross-agent installer)
+#
+#   INTERNAL (CI eval only, never uploaded to PyPI):
+#     this file  →  rf-skill-eval    (evaluation harness, tagged with
+#                                     "Private :: Do Not Upload" so
+#                                     pypi.org refuses the upload)
+#
+# Commands:
+#   uv build --package rf-agentskills  → release artifact only
+#   uv build --all-packages            → both (release + internal)
+#   uv build                           → root package only (internal)
+#   scripts/build-packages.sh          → builds the public release
+#   scripts/build-packages.sh --all    → also builds the internal harness
+#
+# Reference: https://docs.astral.sh/uv/concepts/projects/workspaces/
+[tool.uv.workspace]
+members = ["installer"]
+
 [tool.hatch.build.targets.wheel]
 packages = ["src/rf_skill_eval"]
+
+[tool.hatch.build.targets.sdist]
+# Hatch's default sdist picks up everything in the project root —
+# which on a developer machine leaks `.claude/`, `plugins/`,
+# `installer/`, `vscode-extension/`, `tests/`, `docs/`, scratch
+# files, and any README.md in any sub-tree (those are
+# auto-included by hatch as project metadata). Lock the sdist down
+# to exactly what belongs in the rf-skill-eval distribution.
+include = [
+    "src/rf_skill_eval/**",
+    "README.md",
+    "LICENSE",
+    "pyproject.toml",
+    "uv.lock",
+]
+# Explicit exclude wins over hatch's auto-include of READMEs / etc.
+# in sub-trees. Pin every sibling dir + dev-local turd by name so a
+# `uv build` on a polluted working tree still produces a clean
+# tarball.
+exclude = [
+    ".claude",
+    ".env",
+    ".env.*",
+    ".github",
+    ".swarm",
+    ".vscode",
+    "CLAUDE.md",
+    "AGENTS.md",
+    "docs",
+    "eval",
+    "installer",
+    "library-skills-implementation-plan.md",
+    "plugins",
+    "sample.robot",
+    "scripts",
+    "skills",
+    "vscode-extension",
+    "**/__pycache__",
+    "**/*.pyc",
+    "**/.pytest_cache",
+    "**/.mypy_cache",
+    "**/.ruff_cache",
+    "**/.DS_Store",
+    "**/Thumbs.db",
+    "**/.swp",
+    "**/*~",
+]
 
 # --- Ruff --------------------------------------------------------------------
 [tool.ruff]
