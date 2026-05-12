@@ -43,10 +43,29 @@ class CustomBuildHook(BuildHookInterface):  # type: ignore[misc]
         plugin_src = (Path(self.root) / PLUGIN_REL).resolve()
         assets_dst = (Path(self.root) / ASSETS_REL).resolve()
 
+        # Build flow:
+        #   1. sdist build   — runs from the repo, finds ../plugins/, copies
+        #                      it into the package's _assets/ tree, and the
+        #                      sdist tarball includes _assets/ as part of
+        #                      the package contents.
+        #   2. wheel build   — runs from an extracted sdist (no parent
+        #                      `plugins/` available). Here we *skip* the
+        #                      copy; _assets/ is already populated from
+        #                      the sdist contents and is what we want
+        #                      shipped in the wheel.
         if not plugin_src.is_dir():
+            if assets_dst.is_dir() and any(assets_dst.rglob("SKILL.md")):
+                self.app.display_info(
+                    f"rf-agentskills: plugin source not present at "
+                    f"{plugin_src} but _assets/ is already populated "
+                    f"({_count_files(assets_dst)} files) — assuming "
+                    f"sdist→wheel build, skipping mirror step"
+                )
+                return
             raise FileNotFoundError(
-                f"plugin source not found at {plugin_src}; cannot build "
-                "rf-agentskills wheel without the bundled asset tree"
+                f"plugin source not found at {plugin_src} and no "
+                f"populated _assets/ tree at {assets_dst}; cannot build "
+                f"rf-agentskills wheel without the bundled assets"
             )
 
         # Wipe the previous mirror so removed files don't linger in the

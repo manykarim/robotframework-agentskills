@@ -64,6 +64,19 @@ Repository = "https://github.com/manykarim/robotframework-agentskills"
 # Prefer the highest compatible versions; lockfile is committed for reproducibility.
 resolution = "highest"
 
+# uv workspace — declares the repo as a multi-package monorepo:
+#   * root pyproject (this file)             → rf-skill-eval  (eval harness)
+#   * installer/                             → rf-agentskills (cross-agent installer)
+#
+# Commands:
+#   uv build                       → root package only (rf-skill-eval)
+#   uv build --package rf-agentskills   → just the installer
+#   uv build --all-packages        → BOTH packages (use this for releases)
+#
+# Reference: https://docs.astral.sh/uv/concepts/projects/workspaces/
+[tool.uv.workspace]
+members = ["installer"]
+
 [tool.hatch.build.targets.wheel]
 packages = ["src/rf_skill_eval"]
 
