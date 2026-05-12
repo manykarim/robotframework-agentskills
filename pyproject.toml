@@ -14,6 +14,15 @@ authors = [
 ]
 keywords = ["robotframework", "claude-code", "agent-skills", "evaluation"]
 classifiers = [
+    # rf-skill-eval is the internal evaluation harness used in CI to
+    # grade rf-agentskills against live coding agents — it is **not**
+    # intended for PyPI distribution. The `Private :: Do Not Upload`
+    # classifier makes pypi.org reject any accidental upload, so
+    # running `twine upload dist/*` against a build that includes this
+    # package will fail loudly rather than silently publishing internal
+    # tooling. Only rf-agentskills (in installer/) is the public PyPI
+    # release artifact.
+    "Private :: Do Not Upload",
     "Development Status :: 3 - Alpha",
     "Framework :: Robot Framework",
     "Programming Language :: Python :: 3.12",
@@ -64,14 +73,23 @@ Repository = "https://github.com/manykarim/robotframework-agentskills"
 # Prefer the highest compatible versions; lockfile is committed for reproducibility.
 resolution = "highest"
 
-# uv workspace — declares the repo as a multi-package monorepo:
-#   * root pyproject (this file)             → rf-skill-eval  (eval harness)
-#   * installer/                             → rf-agentskills (cross-agent installer)
+# uv workspace — multi-package monorepo with two distinct distribution
+# scopes:
+#
+#   PUBLIC (PyPI release):
+#     installer/  →  rf-agentskills  (cross-agent installer)
+#
+#   INTERNAL (CI eval only, never uploaded to PyPI):
+#     this file  →  rf-skill-eval    (evaluation harness, tagged with
+#                                     "Private :: Do Not Upload" so
+#                                     pypi.org refuses the upload)
 #
 # Commands:
-#   uv build                       → root package only (rf-skill-eval)
-#   uv build --package rf-agentskills   → just the installer
-#   uv build --all-packages        → BOTH packages (use this for releases)
+#   uv build --package rf-agentskills  → release artifact only
+#   uv build --all-packages            → both (release + internal)
+#   uv build                           → root package only (internal)
+#   scripts/build-packages.sh          → builds the public release
+#   scripts/build-packages.sh --all    → also builds the internal harness
 #
 # Reference: https://docs.astral.sh/uv/concepts/projects/workspaces/
 [tool.uv.workspace]
