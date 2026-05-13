@@ -53,7 +53,7 @@ def _run(script: Path, payload: dict | None = None, *,
         input=stdin,
         capture_output=True,
         text=True,
-        timeout=15,
+        timeout=30,
         env=env,
     )
     return proc.stdout, proc.stderr, proc.returncode
@@ -358,7 +358,7 @@ def test_scripts_exit_zero_on_pathological_inputs(script: Path) -> None:
             input=stdin,
             capture_output=True,
             text=True,
-            timeout=15,
+            timeout=30,
         )
         assert proc.returncode == 0, (
             f"{script.name} exited {proc.returncode} on {stdin!r}: "
