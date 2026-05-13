@@ -32,8 +32,9 @@ case "${1:-}" in
     # responsibility — we don't toggle it)
     need_file "$CODEX/hooks.json"
     # Plugin scripts staged
-    need_file "$PLUGIN_FILES/scripts/validate_robot.sh"
-    need_no_substitution "$PLUGIN_FILES/scripts/validate_robot.sh"
+    need_file "$PLUGIN_FILES/scripts/validate_robot.mjs"
+    need_file "$PLUGIN_FILES/scripts/python_runtime.json"
+    need_no_substitution "$PLUGIN_FILES/scripts/validate_robot.mjs"
 
     # API-free agent introspection: codex's bundled skill-installer
     # reads $CODEX_HOME/skills (and Codex itself reads .agents/skills).

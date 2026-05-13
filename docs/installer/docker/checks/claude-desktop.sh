@@ -19,9 +19,10 @@ case "${1:-}" in
     need_file "$CONFIG"
     need_json_key "$CONFIG" 'mcpServers."rf-tools"'
     # Plugin scripts co-located
-    need_file "$PLUGIN_FILES/scripts/validate_robot.sh"
+    need_file "$PLUGIN_FILES/scripts/validate_robot.mjs"
+    need_file "$PLUGIN_FILES/scripts/python_runtime.json"
     need_file "$PLUGIN_FILES/servers/rf-tools-server.py"
-    need_no_substitution "$PLUGIN_FILES/scripts/validate_robot.sh"
+    need_no_substitution "$PLUGIN_FILES/scripts/validate_robot.mjs"
     ;;
 
 --post-uninstall)

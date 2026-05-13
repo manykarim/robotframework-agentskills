@@ -6,7 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/scripts/validate_robot.sh"
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/validate_robot.mjs\""
           }
         ]
       }
@@ -17,7 +17,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/scripts/maybe_inject_rf_context.sh"
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/maybe_inject_rf_context.mjs\""
           }
         ]
       }
@@ -28,7 +28,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/scripts/check_rf_environment.sh"
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/check_rf_environment.mjs\""
           }
         ]
       }
@@ -39,7 +39,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/scripts/maybe_remind_robot_tests.sh"
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/maybe_remind_robot_tests.mjs\""
           }
         ]
       }

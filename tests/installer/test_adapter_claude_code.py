@@ -56,11 +56,22 @@ def test_plan_what_filter_excludes_skills(install_prefix: Path) -> None:
     assert not any(p.endswith("SKILL.md") and "/skills/" in p for p in paths)
 
 
-def test_plan_marks_sh_files_executable(install_prefix: Path) -> None:
+def test_plan_writes_python_runtime_config(install_prefix: Path) -> None:
+    """Replaces the old test_plan_marks_sh_files_executable now that
+    hook scripts are Node-based — none of our bundled scripts use ``.sh``
+    anymore. The new uniform expectation is that every plan that copies
+    scripts also emits a ``python_runtime.json`` config pinning the
+    install-time interpreter (so .mjs hooks find the right Python)."""
     plan = ClaudeCodeAdapter().plan(InstallOptions(prefix=install_prefix))
-    sh_targets = [t for t in plan.targets if t.dst.suffix == ".sh"]
-    assert sh_targets, "no .sh files in the plan"
-    assert all(t.executable for t in sh_targets)
+    runtime = [
+        t for t in plan.targets
+        if t.dst.name == "python_runtime.json"
+        and t.dst.parent.name == "scripts"
+    ]
+    assert runtime, "expected python_runtime.json target in scripts/"
+    cfg = json.loads(runtime[0].payload.decode("utf-8"))
+    assert "interpreter" in cfg
+    assert cfg["fallbacks"] == ["python3", "python"]
 
 
 def test_plan_includes_hooks_and_mcp_merges(install_prefix: Path) -> None:
@@ -248,3 +259,101 @@ def test_copilot_plan_with_windows_style_substitution_target(
         b"C:\\Users\\x\\.claude\\rf-agentskills-files" not in t.payload
         for t in plan.targets
     )
+
+
+# ---- Hook-command file-existence regression test --------------------------
+
+
+def test_every_hook_command_resolves_to_an_existing_file(
+    install_prefix: Path, fake_home: Path, tmp_path: Path
+) -> None:
+    """Every script invoked by an emitted hook command must actually exist
+    in the on-disk install tree.
+
+    This is the regression test for v0.4.1's broken ``.sh→.ps1`` rewrite:
+    that release shipped hook commands referencing ``.ps1`` files that
+    were never bundled, so every Claude Code SessionStart on Windows
+    logged an error. A test of this shape — *do the things our hooks
+    refer to actually exist?* — would have caught it pre-release. The
+    test runs on every CI cell (POSIX + Windows).
+    """
+    import re
+    from rf_agentskills.cli import main
+
+    rc = main([
+        "install", "--agent", "claude-code",
+        "--prefix", str(install_prefix),
+    ])
+    assert rc == 0, "claude-code install must succeed"
+
+    settings = install_prefix / "settings.json"
+    assert settings.is_file(), "expected settings.json was written"
+    blob = json.loads(settings.read_text(encoding="utf-8"))
+    assert "hooks" in blob, "expected a hooks block in settings.json"
+
+    # Collect every "command" field from the hooks block (any depth).
+    commands: list[str] = []
+    def walk(v: object) -> None:
+        if isinstance(v, dict):
+            if v.get("type") == "command" and isinstance(v.get("command"), str):
+                commands.append(v["command"])
+            for x in v.values():
+                walk(x)
+        elif isinstance(v, list):
+            for x in v:
+                walk(x)
+    walk(blob["hooks"])
+    assert commands, "hooks block contained no commands"
+
+    # Each `node "<…>.mjs"` (or python / bash etc. in future) names a
+    # script file as its last positional argument. Extract that path
+    # and assert it exists on disk.
+    for cmd in commands:
+        m = re.search(r'"([^"]+\.(?:mjs|cjs|js|py|sh|ps1))"', cmd)
+        assert m, f"hook command did not name a script file: {cmd!r}"
+        script_path = Path(m.group(1))
+        assert script_path.is_file(), (
+            f"hook command references missing file: {script_path}\n"
+            f"  full command: {cmd!r}"
+        )
+
+
+def test_install_skips_hooks_with_note_when_node_absent(
+    install_prefix: Path, fake_home: Path, monkeypatch
+) -> None:
+    """When ``node`` isn't on PATH, the install should still succeed,
+    but skip writing the hooks block (which would otherwise reference
+    an unrunnable ``node "<…>.mjs"`` command) and surface a clear note."""
+    from rf_agentskills import transforms as _x
+
+    monkeypatch.setattr(_x, "node_available", lambda: False)
+
+    plan = ClaudeCodeAdapter().plan(InstallOptions(prefix=install_prefix))
+    # The settings.json hooks merge (description starts with "merge hooks
+    # block …") must be absent. Other merges (e.g. .mcp.json) can stay —
+    # the Node gap only affects hooks.
+    hook_merges = [
+        m for m in plan.merges if m.description.startswith("merge hooks block")
+    ]
+    assert hook_merges == [], (
+        f"expected no hooks merge when node is absent, got: {hook_merges}"
+    )
+    # Note explaining the gap, mentioning Node.
+    flat = " ".join(plan.notes).lower()
+    assert "node" in flat
+    assert ("hooks" in flat or "hook" in flat)
+
+
+def test_install_writes_hooks_normally_when_node_present(
+    install_prefix: Path, fake_home: Path, monkeypatch
+) -> None:
+    """Smoke-test the positive branch of the Node probe."""
+    from rf_agentskills import transforms as _x
+
+    monkeypatch.setattr(_x, "node_available", lambda: True)
+
+    plan = ClaudeCodeAdapter().plan(InstallOptions(prefix=install_prefix))
+    hook_merges = [
+        m for m in plan.merges if m.description.startswith("merge hooks block")
+    ]
+    assert hook_merges, "expected hooks merge when node is present"

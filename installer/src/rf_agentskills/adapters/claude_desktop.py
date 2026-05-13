@@ -111,6 +111,12 @@ class ClaudeDesktopAdapter(AdapterBase):
                             transform_name="plugin_root_substitution",
                             executable=f.suffix in (".sh", ".ps1"),
                         ))
+                # Pin install-time Python interpreter (see claude_code.py).
+                targets.append(InstallTarget(
+                    dst=plugin_dst / "scripts" / "python_runtime.json",
+                    payload=_x.python_runtime_config_bytes(),
+                    transform_name="python_runtime_pin",
+                ))
 
                 # 2. MCP merge into claude_desktop_config.json.
                 plugin_mcp = src_root / ".mcp.json"

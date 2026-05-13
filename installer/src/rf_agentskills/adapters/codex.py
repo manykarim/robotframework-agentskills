@@ -89,6 +89,11 @@ class CodexAdapter(AdapterBase):
         plugin_dst = root / PLUGIN_FILES_SUBDIR
         plugin_root_abs = _x.to_native_path_string(plugin_dst.resolve())
 
+        # Codex hooks invoke `node "<…>.mjs"`. If Node isn't on PATH at
+        # install time, skip writing hooks.json entirely and surface a
+        # post_install note (the file would be inert anyway).
+        register_hooks = "hooks" in opts.what and _x.node_available()
+
         with _assets.asset_root_path() as src_root:
             targets = list(self._collect_targets(
                 src_root=src_root,
@@ -97,6 +102,7 @@ class CodexAdapter(AdapterBase):
                 plugin_dst=plugin_dst,
                 plugin_root_abs=plugin_root_abs,
                 what=opts.what,
+                register_hooks=register_hooks,
             ))
             merges = list(self._collect_merges(
                 src_root=src_root,
@@ -107,11 +113,18 @@ class CodexAdapter(AdapterBase):
 
         notes: list[str] = []
         if "hooks" in opts.what:
-            notes.append(
-                "Codex hooks are experimental — enable them by adding "
-                "`[features]\\ncodex_hooks = true` to ~/.codex/config.toml "
-                "(installer does not flip this flag for you)."
-            )
+            if register_hooks:
+                notes.append(
+                    "Codex hooks are experimental — enable them by adding "
+                    "`[features]\\ncodex_hooks = true` to ~/.codex/config.toml "
+                    "(installer does not flip this flag for you)."
+                )
+            else:
+                notes.append(
+                    "Node.js was not found on PATH; Codex hooks.json was NOT "
+                    "written. Install Node.js then re-run `rf-agentskills "
+                    "install --agent codex` to enable hooks."
+                )
         return InstallPlan(targets=tuple(targets), merges=tuple(merges), notes=tuple(notes))
 
     def _collect_targets(
@@ -123,6 +136,7 @@ class CodexAdapter(AdapterBase):
         plugin_dst: Path,
         plugin_root_abs: str,
         what: frozenset[str],
+        register_hooks: bool = True,
     ) -> Iterable[InstallTarget]:
         # 1. Skills — ``$HOME/.agents/skills/<name>/`` per Codex docs
         #    (developers.openai.com/codex/skills, USER scope row).
@@ -161,8 +175,9 @@ class CodexAdapter(AdapterBase):
         # 3. Hooks — <root>/hooks.json. Verbatim copy of the plugin's
         #    hooks.json; the actual activation happens via
         #    [features] codex_hooks = true in config.toml, which we
-        #    deliberately do NOT toggle (see post_install).
-        if "hooks" in what:
+        #    deliberately do NOT toggle (see post_install). Skipped when
+        #    Node isn't on PATH (the hook command shells out to node).
+        if register_hooks:
             hooks_src = src_root / "hooks" / "hooks.json"
             if hooks_src.is_file():
                 yield InstallTarget(
@@ -190,6 +205,12 @@ class CodexAdapter(AdapterBase):
                         transform_name="plugin_root_substitution",
                         executable=f.suffix in (".sh", ".ps1") or f.name.endswith(".bash"),
                     )
+            # Pin the install-time Python interpreter (see claude_code.py).
+            yield InstallTarget(
+                dst=plugin_dst / "scripts" / "python_runtime.json",
+                payload=_x.python_runtime_config_bytes(),
+                transform_name="python_runtime_pin",
+            )
 
     def _collect_merges(
         self,

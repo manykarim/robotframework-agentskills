@@ -4,6 +4,90 @@ The `rf-agentskills` package is versioned independently from the
 content bundle (Claude Code plugin, VS Code extension, skills
 tarballs). See `RELEASING.md` at the repo root for the policy.
 
+## 0.4.2 — 2026-05-13
+
+### Bundled content
+- **rf-agentskills plugin manifest: 1.2.0** — unchanged from 0.4.1.
+
+### Fixed
+- **ClaudeCode SessionStart hook error on Windows / PowerShell**:
+  After installing v0.4.1, every ClaudeCode session opened on Windows
+  logged
+
+  ```
+  SessionStart:startup hook error
+  Failed with non-blocking status code:
+  The argument '…/scripts/check_rf_environment.ps1' to the -File
+  parameter does not exist.
+  ```
+
+  Root cause: v0.4.1's `transforms.rewrite_hooks_for_windows()`
+  substituted `.sh` → `.ps1` in the hooks block, **but no `.ps1` files
+  ever shipped in the package**. All four hook commands (SessionStart,
+  PostToolUse, UserPromptSubmit, Stop) pointed at non-existent files.
+  Reported in
+  `docs/issues/rf-agentskills_claudecode_powershell_error.txt`; full
+  analysis and alternatives considered in
+  `docs/issues/claudecode-powershell-startup-fix-proposal.md`.
+
+### Changed — hook scripts migrated to Node.js
+- The four hook scripts are now `.mjs` (Node.js) instead of `.sh` (bash).
+  Hook commands look like
+  `node "${CLAUDE_PLUGIN_ROOT}/scripts/<name>.mjs"`.
+- Rationale (per
+  [claudefa.st cross-platform-hooks guidance](https://claudefa.st/blog/tools/hooks/cross-platform-hooks)):
+  Claude Code itself ships as a Node.js CLI, so `node` is on PATH for
+  the vast majority of installs. One implementation runs identically
+  on Linux, macOS, and Windows — no `.sh`/`.ps1` parity to maintain.
+- `transforms.rewrite_hooks_for_windows()` is **removed**. The
+  Windows-specific hook command rewrite is no longer needed; the same
+  hooks block is now written verbatim on every OS.
+- Affects every adapter that registers hooks: Claude Code, Copilot
+  (inherits from Claude Code), Cursor, and Codex.
+
+### Added — Node-availability probe + graceful fallback
+- At install time, the Claude Code / Cursor / Codex adapters probe
+  `shutil.which("node")`. If Node is not on PATH, the hooks merge is
+  **skipped** and a clear `post_install` note explains what to do
+  (e.g. `winget install OpenJS.NodeJS` on Windows). Skills, subagents,
+  and MCP server install normally regardless.
+
+### Added — install-time Python interpreter is pinned for hooks
+- `validate_robot.mjs` and `check_rf_environment.mjs` need to invoke
+  Python to parse Robot Framework files (`from robot.api import
+  get_model`) and probe library availability. They now read
+  `<plugin_dst>/scripts/python_runtime.json` — written by the
+  installer from `sys.executable` — to find the **same** Python
+  rf-agentskills was installed into.
+- This is the only correct interpreter to use under pipx, uv tool
+  install, and venv setups, where `python3` / `python` on PATH is NOT
+  the env that has `robotframework` installed. Without this pinning,
+  hooks would falsely report Robot Framework as missing.
+- If the recorded interpreter is unreachable (user moved their venv),
+  the hooks fall back to `python3` → `python` on PATH. If neither has
+  `robotframework`, hooks exit silently (non-blocking by design).
+
+### Added — regression tests
+- New test: every command in the Windows install's hooks block must
+  resolve to an existing file in the bundled `_assets/`. This is the
+  exact test shape that would have caught v0.4.1's broken `.ps1`
+  rewrite pre-release. Runs on every CI cell (POSIX + Windows).
+- New tests: graceful-degrade when `node` is absent (hooks merge
+  skipped, note surfaced) and positive branch (hooks merge present
+  when Node is on PATH).
+- New tests: `python_runtime_config_bytes()` pins `sys.executable`.
+- The `tests/test_hook_scripts.py` Windows skip we added in v0.4.1 is
+  **lifted** — the new Node-driven tests run on every OS.
+
+### Compatibility
+- Drop-in upgrade from 0.4.1 if Node.js is on PATH. If Node isn't
+  installed, the install still succeeds; hooks are silently skipped
+  with a clear note.
+- Users already on v0.4.1 with broken `.ps1` references in
+  `~/.claude/settings.json` should run `rf-agentskills uninstall
+  --agent claude-code` then `install --agent claude-code` to refresh
+  the hooks block. Or use `install --force`.
+
 ## 0.4.1 — 2026-05-13
 
 ### Bundled content

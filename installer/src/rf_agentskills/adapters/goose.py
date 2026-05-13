@@ -163,6 +163,16 @@ class GooseAdapter(AdapterBase):
                                 transform_name="plugin_root_substitution",
                                 executable=f.suffix in (".sh", ".ps1"),
                             ))
+                    # Pin the install-time Python interpreter so hook
+                    # .mjs scripts can find the env with robotframework
+                    # if a user manually wires them up. Goose itself
+                    # doesn't register hooks, but the script files are
+                    # still shipped — keep the runtime config uniform.
+                    targets.append(InstallTarget(
+                        dst=root / "rf-agentskills-files" / "scripts" / "python_runtime.json",
+                        payload=_x.python_runtime_config_bytes(),
+                        transform_name="python_runtime_pin",
+                    ))
 
             # 2. Goosehints — Goose has no subagent primitive, so we fold
             #    subagent descriptions plus a skill index into the hints

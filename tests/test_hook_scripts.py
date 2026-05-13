@@ -1,28 +1,30 @@
-"""Unit tests for the bash hook scripts in plugins/rf-agentskills/scripts/.
+"""Unit tests for the Node.js hook scripts in plugins/rf-agentskills/scripts/.
 
-We invoke the scripts as subprocesses with synthetic Claude Code event
-JSON on stdin and assert on the (stdout, exit-code) pair. No live LLM
-involved; these are deterministic shell tests.
+We invoke each ``.mjs`` script as a subprocess (driven by ``node``) with
+synthetic Claude Code event JSON on stdin and assert on the
+``(stdout, exit-code)`` pair. No live LLM involved; these are
+deterministic shell tests.
+
+Cross-platform: the scripts are pure Node.js (per the
+[claudefa.st cross-platform-hooks guidance](https://claudefa.st/blog/tools/hooks/cross-platform-hooks))
+so they run identically on Linux, macOS, and Windows. The whole module
+is gated only on whether ``node`` is on PATH — most CI agents have it.
 """
 
 from __future__ import annotations
 
 import json
+import shutil
 import subprocess
-import sys
 from pathlib import Path
 
 import pytest
 
-# The hook scripts under test are bash (``#!/usr/bin/env bash``). On Windows
-# they're not natively executable — the corresponding ``.ps1`` ports run
-# there instead, and the Claude Code adapter switches to those at install
-# time (see ``transforms.rewrite_hooks_for_windows``). Skip the whole
-# module on Windows; the PowerShell variants don't have their own unit
-# tests yet.
+NODE = shutil.which("node")
+
 pytestmark = pytest.mark.skipif(
-    sys.platform == "win32",
-    reason="bash hook scripts run on POSIX only; .ps1 ports used on Windows",
+    NODE is None,
+    reason="Node.js not on PATH; rf-agentskills hooks are Node-based",
 )
 
 PLUGIN_SCRIPTS = (
@@ -31,18 +33,28 @@ PLUGIN_SCRIPTS = (
     / "rf-agentskills"
     / "scripts"
 )
-INJECT_SCRIPT = PLUGIN_SCRIPTS / "maybe_inject_rf_context.sh"
-REMIND_SCRIPT = PLUGIN_SCRIPTS / "maybe_remind_robot_tests.sh"
+INJECT_SCRIPT = PLUGIN_SCRIPTS / "maybe_inject_rf_context.mjs"
+REMIND_SCRIPT = PLUGIN_SCRIPTS / "maybe_remind_robot_tests.mjs"
+VALIDATE_SCRIPT = PLUGIN_SCRIPTS / "validate_robot.mjs"
+CHECK_ENV_SCRIPT = PLUGIN_SCRIPTS / "check_rf_environment.mjs"
 
 
-def _run(script: Path, payload: dict) -> tuple[str, str, int]:
-    """Pipe ``payload`` as JSON to ``script`` and return (stdout, stderr, rc)."""
+def _run(script: Path, payload: dict | None = None, *,
+         stdin: str | None = None, env: dict | None = None) -> tuple[str, str, int]:
+    """Pipe ``payload`` as JSON to ``node script`` and return (stdout, stderr, rc).
+
+    When ``stdin`` is passed verbatim it overrides ``payload`` (used for
+    malformed-JSON / empty / pathological inputs).
+    """
+    if stdin is None:
+        stdin = json.dumps(payload) if payload is not None else ""
     proc = subprocess.run(
-        [str(script)],
-        input=json.dumps(payload),
+        [NODE, str(script)],  # type: ignore[arg-type]  # NODE is non-None per skipif
+        input=stdin,
         capture_output=True,
         text=True,
-        timeout=10,
+        timeout=30,
+        env=env,
     )
     return proc.stdout, proc.stderr, proc.returncode
 
@@ -56,14 +68,14 @@ def _expect_no_injection(stdout: str) -> None:
 
 def _expect_injection(stdout: str) -> dict:
     """Parse stdout and return the hookSpecificOutput payload."""
-    assert stdout.strip(), f"expected JSON injection, got empty stdout"
+    assert stdout.strip(), "expected JSON injection, got empty stdout"
     payload = json.loads(stdout)
     assert "hookSpecificOutput" in payload, payload
     assert "additionalContext" in payload["hookSpecificOutput"], payload
     return payload["hookSpecificOutput"]
 
 
-# --- maybe_inject_rf_context.sh: positive cases ---------------------------
+# --- maybe_inject_rf_context.mjs: positive cases --------------------------
 
 
 @pytest.mark.parametrize(
@@ -95,7 +107,7 @@ def test_inject_fires_on_rf_signals(prompt: str) -> None:
     assert "libdoc-search" in ctx
 
 
-# --- maybe_inject_rf_context.sh: negative cases ---------------------------
+# --- maybe_inject_rf_context.mjs: negative cases --------------------------
 
 
 @pytest.mark.parametrize(
@@ -134,27 +146,19 @@ def test_inject_handles_missing_prompt_field() -> None:
 
 
 def test_inject_handles_empty_stdin() -> None:
-    proc = subprocess.run(
-        [str(INJECT_SCRIPT)], input="", capture_output=True, text=True, timeout=10
-    )
-    assert proc.returncode == 0
-    _expect_no_injection(proc.stdout)
+    out, _err, rc = _run(INJECT_SCRIPT, stdin="")
+    assert rc == 0
+    _expect_no_injection(out)
 
 
 def test_inject_handles_malformed_json() -> None:
-    proc = subprocess.run(
-        [str(INJECT_SCRIPT)],
-        input="not valid json {",
-        capture_output=True,
-        text=True,
-        timeout=10,
-    )
+    out, _err, rc = _run(INJECT_SCRIPT, stdin="not valid json {")
     # Hook is non-blocking — it must exit 0 even on bad input.
-    assert proc.returncode == 0
-    _expect_no_injection(proc.stdout)
+    assert rc == 0
+    _expect_no_injection(out)
 
 
-# --- maybe_remind_robot_tests.sh ------------------------------------------
+# --- maybe_remind_robot_tests.mjs -----------------------------------------
 
 
 def _write_transcript(tmp_path: Path, lines: list[str]) -> Path:
@@ -257,21 +261,88 @@ def test_remind_does_not_match_substring_in_unrelated_path(tmp_path: Path) -> No
     _expect_no_injection(out)
 
 
+# --- validate_robot.mjs ---------------------------------------------------
+
+
+def test_validate_silently_skips_when_no_tool_input(tmp_path: Path) -> None:
+    """No TOOL_INPUT environment variable → exit 0, no output."""
+    # Copy the parent env and strip TOOL_INPUT. We can't pass ``env={}``
+    # because Windows requires SystemRoot/Path to spawn any process —
+    # an empty env crashes the node child with exit code 134.
+    import os
+    env = {k: v for k, v in os.environ.items() if k != "TOOL_INPUT"}
+    out, err, rc = _run(VALIDATE_SCRIPT, stdin="", env=env)
+    assert rc == 0
+    assert out == ""
+    assert err == ""
+
+
+def test_validate_silently_skips_for_non_rf_file(tmp_path: Path) -> None:
+    """A Write/Edit to a .py file should be ignored by the validator."""
+    import os
+    env = os.environ.copy()
+    env["TOOL_INPUT"] = json.dumps({"file_path": "/tmp/foo.py"})
+    out, err, rc = _run(VALIDATE_SCRIPT, stdin="", env=env)
+    assert rc == 0
+    assert out == ""
+    assert err == ""
+
+
+def test_validate_silently_skips_for_missing_file(tmp_path: Path) -> None:
+    """A .robot path that doesn't exist on disk should be ignored."""
+    import os
+    env = os.environ.copy()
+    env["TOOL_INPUT"] = json.dumps(
+        {"file_path": str(tmp_path / "does-not-exist.robot")}
+    )
+    out, err, rc = _run(VALIDATE_SCRIPT, stdin="", env=env)
+    assert rc == 0
+    assert out == ""
+
+
+def test_validate_accepts_valid_robot_file(tmp_path: Path) -> None:
+    """A well-formed .robot file → exit 0 with a stderr OK message
+    (assuming the test runner has robotframework installed)."""
+    import os
+    robot_file = tmp_path / "ok.robot"
+    robot_file.write_text(
+        "*** Test Cases ***\nLogin\n    Log    hello\n", encoding="utf-8"
+    )
+    env = os.environ.copy()
+    env["TOOL_INPUT"] = json.dumps({"file_path": str(robot_file)})
+    out, err, rc = _run(VALIDATE_SCRIPT, stdin="", env=env)
+    # Either "syntax OK" (robotframework installed) or
+    # "skipping syntax validation" (robotframework missing) — both rc=0.
+    assert rc == 0
+    assert ("syntax OK" in err) or ("skipping syntax validation" in err), err
+
+
+# --- check_rf_environment.mjs ---------------------------------------------
+
+
+def test_check_rf_environment_runs_to_completion() -> None:
+    """SessionStart diagnostic must always exit 0 and print to stderr."""
+    out, err, rc = _run(CHECK_ENV_SCRIPT, stdin="")
+    assert rc == 0
+    assert "Robot Framework Environment Check" in err
+
+
 # --- Cross-script invariants ----------------------------------------------
 
 
-@pytest.mark.parametrize("script", [INJECT_SCRIPT, REMIND_SCRIPT])
-def test_scripts_are_executable(script: Path) -> None:
-    import os
-
-    assert script.is_file(), script
-    assert os.access(script, os.X_OK), f"{script} is not executable"
+@pytest.mark.parametrize(
+    "script",
+    [INJECT_SCRIPT, REMIND_SCRIPT, VALIDATE_SCRIPT, CHECK_ENV_SCRIPT],
+)
+def test_scripts_exist(script: Path) -> None:
+    assert script.is_file(), f"{script} missing"
 
 
 @pytest.mark.parametrize("script", [INJECT_SCRIPT, REMIND_SCRIPT])
 def test_scripts_exit_zero_on_pathological_inputs(script: Path) -> None:
     """A misbehaving hook script can break user sessions; double-check
-    that neither script ever exits non-zero on weird input."""
+    that neither stdin-consuming script ever exits non-zero on weird
+    input."""
     for stdin in [
         "",
         "\x00\x01garbage\xff",
@@ -283,12 +354,13 @@ def test_scripts_exit_zero_on_pathological_inputs(script: Path) -> None:
         '{"prompt": ' + ('"' + "x" * 10_000 + '"') + "}",
     ]:
         proc = subprocess.run(
-            [str(script)],
+            [NODE, str(script)],  # type: ignore[arg-type]
             input=stdin,
             capture_output=True,
             text=True,
-            timeout=10,
+            timeout=30,
         )
         assert proc.returncode == 0, (
-            f"{script.name} exited {proc.returncode} on {stdin!r}: stderr={proc.stderr!r}"
+            f"{script.name} exited {proc.returncode} on {stdin!r}: "
+            f"stderr={proc.stderr!r}"
         )
