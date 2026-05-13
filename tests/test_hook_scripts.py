@@ -266,7 +266,11 @@ def test_remind_does_not_match_substring_in_unrelated_path(tmp_path: Path) -> No
 
 def test_validate_silently_skips_when_no_tool_input(tmp_path: Path) -> None:
     """No TOOL_INPUT environment variable → exit 0, no output."""
-    env = {}  # explicit empty environment
+    # Copy the parent env and strip TOOL_INPUT. We can't pass ``env={}``
+    # because Windows requires SystemRoot/Path to spawn any process —
+    # an empty env crashes the node child with exit code 134.
+    import os
+    env = {k: v for k, v in os.environ.items() if k != "TOOL_INPUT"}
     out, err, rc = _run(VALIDATE_SCRIPT, stdin="", env=env)
     assert rc == 0
     assert out == ""
