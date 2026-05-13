@@ -12,9 +12,14 @@ from rf_agentskills.cli import main
 def test_cli_version(capsys) -> None:
     rc = main(["version"])
     assert rc == 0
-    out = capsys.readouterr().out.strip()
-    # Version is rendered through rich; allow for trailing styling whitespace.
-    assert "0.3.0" in out or out.startswith("0.")
+    out = capsys.readouterr().out
+    # Installer version is the rf_agentskills package version
+    assert "rf-agentskills" in out
+    assert "0.3.0" in out
+    # Bundled content version is surfaced from the staged plugin
+    # manifest — kept independent from the installer version on
+    # purpose (see RELEASING.md for the versioning policy).
+    assert "bundled content" in out
 
 
 def test_cli_targets_runs(capsys) -> None:

@@ -317,8 +317,43 @@ def cmd_doctor(_args: argparse.Namespace) -> int:
 
 
 def cmd_version(_args: argparse.Namespace) -> int:
-    console.print(__version__)
+    """Print the installer version and the bundled-content version.
+
+    The two are versioned independently on purpose (see RELEASING.md):
+    the installer's ``__version__`` tracks adapter / CLI / manifest
+    changes; the bundled content (skills, agents, hooks, MCP server)
+    has its own version from the upstream plugin manifest, surfaced
+    here so support tickets and triage can be precise without
+    requiring alignment.
+    """
+    console.print(f"rf-agentskills {__version__}")
+    bundled = _bundled_content_version()
+    if bundled is not None:
+        console.print(
+            f"bundled content: {bundled}  "
+            f"[dim](from rf-agentskills plugin manifest)[/dim]"
+        )
     return 0
+
+
+def _bundled_content_version() -> str | None:
+    """Read the version of the staged plugin bundle.
+
+    Reads ``_assets/.claude-plugin/plugin.json`` via importlib.resources
+    so it works under wheel install, editable install, and zipapp.
+    Returns ``None`` if the file isn't present (e.g. pre-build editable
+    install before the hatch hook ran).
+    """
+    try:
+        with _assets.asset_root_path() as root:
+            manifest = root / ".claude-plugin" / "plugin.json"
+            if not manifest.is_file():
+                return None
+            data = json.loads(manifest.read_text(encoding="utf-8"))
+        version = data.get("version")
+        return str(version) if version else None
+    except (OSError, json.JSONDecodeError):
+        return None
 
 
 # ---------------------------------------------------------------------------
