@@ -1,0 +1,55 @@
+PS C:\workspace\claude-demo> uv run rf-agentskills targets
+                    agent detection
+┏━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━┓
+┃ agent          ┃ display                  ┃ detected ┃
+┡━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━┩
+│ claude-code    │ Claude Code              │ yes      │
+│ copilot        │ GitHub Copilot (VS Code) │ yes      │
+│ codex          │ OpenAI Codex CLI         │ yes      │
+│ cursor         │ Cursor                   │ no       │
+│ goose          │ Project Goose            │ yes      │
+│ opencode       │ OpenCode                 │ no       │
+│ claude-desktop │ Claude Desktop           │ no       │
+└────────────────┴──────────────────────────┴──────────┘
+PS C:\workspace\claude-demo> uv run rf-agentskills install --agent claude-code
+Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "C:\workspace\claude-demo\.venv\Scripts\rf-agentskills.exe\__main__.py", line 10, in <module>
+    sys.exit(main())
+             ~~~~^^
+  File "C:\workspace\claude-demo\.venv\Lib\site-packages\rf_agentskills\cli.py", line 494, in main
+    return handlers[args.cmd](args)
+           ~~~~~~~~~~~~~~~~~~^^^^^^
+  File "C:\workspace\claude-demo\.venv\Lib\site-packages\rf_agentskills\cli.py", line 141, in cmd_install
+    plan = adapter.plan(opts)
+  File "C:\workspace\claude-demo\.venv\Lib\site-packages\rf_agentskills\adapters\claude_code.py", line 76, in plan
+    merges = list(self._collect_merges(
+        src_root=src_root,
+    ...<3 lines>...
+        opts=opts,
+    ))
+  File "C:\workspace\claude-demo\.venv\Lib\site-packages\rf_agentskills\adapters\claude_code.py", line 160, in _collect_merges
+    yield self._hooks_merge_op(
+          ~~~~~~~~~~~~~~~~~~~~^
+        hooks_json_src=hooks_json_src,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        settings_path=root / "settings.json",
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        plugin_root_abs=plugin_root_abs,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\workspace\claude-demo\.venv\Lib\site-packages\rf_agentskills\adapters\claude_code.py", line 234, in _hooks_merge_op
+    hooks_obj = json.loads(raw)
+  File "C:\Users\MKASIRIH\AppData\Roaming\uv\python\cpython-3.13.11-windows-x86_64-none\Lib\json\__init__.py", line 352, in loads
+    return _default_decoder.decode(s)
+           ~~~~~~~~~~~~~~~~~~~~~~~^^^
+  File "C:\Users\MKASIRIH\AppData\Roaming\uv\python\cpython-3.13.11-windows-x86_64-none\Lib\json\decoder.py", line 345, in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+               ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\MKASIRIH\AppData\Roaming\uv\python\cpython-3.13.11-windows-x86_64-none\Lib\json\decoder.py", line 361, in raw_decode
+    obj, end = self.scan_once(s, idx)
+               ~~~~~~~~~~~~~~^^^^^^^^
+json.decoder.JSONDecodeError: Invalid \escape: line 9 column 27 (char 165)
+PS C:\workspace\claude-demo>

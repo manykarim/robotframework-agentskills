@@ -41,6 +41,60 @@ def test_is_substitution_candidate_by_suffix() -> None:
     assert _x.is_substitution_candidate(Path('a.md'))
     assert _x.is_substitution_candidate(Path('a.json'))
     assert _x.is_substitution_candidate(Path('a.ps1'))
+
+
+# ---- to_native_path_string -------------------------------------------------
+
+
+def test_to_native_path_string_on_posix() -> None:
+    """On non-Windows, returns ``str(path)`` unchanged."""
+    import sys
+    if sys.platform == "win32":
+        pytest.skip("POSIX-only assertion")
+    assert _x.to_native_path_string(Path("/home/x/.claude")) == "/home/x/.claude"
+
+
+def test_to_native_path_string_on_windows_emits_forward_slashes(monkeypatch) -> None:
+    """Regression for docs/issues/rf-agentskills_install_issues_win_powershell.txt.
+
+    On Windows the substituted plugin root used to come back with
+    backslashes — which crashed json.loads inside every adapter's
+    config-merge with ``Invalid \\escape``. The fix returns forward
+    slashes (still a valid Windows path; accepted by Claude Code,
+    Codex, PowerShell, Python pathlib, and all JSON/TOML/YAML
+    parsers).
+    """
+    import sys
+    from pathlib import PureWindowsPath
+
+    monkeypatch.setattr(sys, "platform", "win32")
+
+    # Construct a path that has Windows separators. PureWindowsPath
+    # works on Linux too — it only models Windows semantics.
+    win_path = PureWindowsPath(r"C:\Users\x\.claude\rf-agentskills-files")
+    out = _x.to_native_path_string(win_path)
+
+    assert "\\" not in out, f"expected no backslashes, got {out!r}"
+    assert out == "C:/Users/x/.claude/rf-agentskills-files"
+
+
+def test_to_native_path_string_result_is_json_safe(monkeypatch) -> None:
+    """Substituted into a JSON string, the Windows path produced by
+    ``to_native_path_string`` must round-trip cleanly through
+    ``json.loads``."""
+    import sys
+    from pathlib import PureWindowsPath
+
+    monkeypatch.setattr(sys, "platform", "win32")
+
+    win_path = PureWindowsPath(r"C:\Users\MKASIRIH\.claude\rf-agentskills-files")
+    out = _x.to_native_path_string(win_path)
+
+    # Simulate the substitute-then-parse pattern that crashed pre-fix
+    fake_json = '{"command": "${CLAUDE_PLUGIN_ROOT}/scripts/x.sh"}'
+    substituted = _x.substitute_plugin_root(fake_json, out)
+    data = json.loads(substituted)  # would crash if `out` had backslashes
+    assert data["command"] == f"{out}/scripts/x.sh"
     assert not _x.is_substitution_candidate(Path('a.png'))
 
 

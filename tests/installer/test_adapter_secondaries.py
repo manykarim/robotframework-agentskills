@@ -408,3 +408,49 @@ def test_claude_desktop_e2e_round_trip(
     assert rc == 0
     files_left = [p for p in install_prefix.rglob("*") if p.is_file()]
     assert files_left == []
+
+
+# ---- Windows-platform regression tests ------------------------------------
+
+
+@pytest.mark.parametrize("agent", SECONDARY_AGENTS)
+def test_plan_succeeds_with_windows_style_substitution_target(
+    agent: str, install_prefix: Path, monkeypatch
+) -> None:
+    """Regression for docs/issues/win-powershell-install-fix-proposal.md.
+
+    Every adapter calls ``to_native_path_string`` to compute the
+    substitution target and then runs the substituted text through a
+    parser (``json.loads`` for JSON adapters, ``tomllib.loads`` for
+    Codex, ``yaml.safe_load`` for Goose). With backslash-separator
+    Windows paths this used to crash with ``Invalid \\escape``
+    (JSON), or fail TOML/YAML scalar parsing similarly.
+
+    We mock the helper to return a Windows-style **forward-slash**
+    path (what the post-fix function returns on Windows) and assert
+    that plan-build completes and no payload retains an
+    unescaped-backslash form of the same path.
+    """
+    from rf_agentskills import transforms as _x
+
+    win_path = "C:/Users/x/.config/rf-agentskills-files"
+    monkeypatch.setattr(_x, "to_native_path_string", lambda p: win_path)
+
+    cls = by_name(agent)
+    assert cls is not None
+    plan = cls().plan(InstallOptions(prefix=install_prefix))
+
+    # Each adapter produces *something* — targets, merges, or both.
+    assert plan.targets or plan.merges, (
+        f"adapter {agent!r} produced an empty plan under Windows-mock"
+    )
+
+    # No payload should contain the literal backslash-separator form
+    # of the substituted path — that would mean someone bypassed
+    # to_native_path_string or reverted the fix.
+    bad_marker = b"C:\\Users\\x\\.config\\rf-agentskills-files"
+    for tgt in plan.targets:
+        assert bad_marker not in tgt.payload, (
+            f"{agent}: payload for {tgt.dst} contains the pre-fix "
+            f"backslash form of the substituted path"
+        )
