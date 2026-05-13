@@ -1,35 +1,91 @@
-# Robot Framework Agent Skills for Claude Code
+# Robot Framework Agent Skills
 
-A Claude Code plugin marketplace providing AI agent skills for Robot Framework test automation. Includes skills for web testing (Browser/Selenium), API testing (Requests/RESTinstance), mobile testing (Appium), asset generation, and RF analysis tools.
+AI agent skills for Robot Framework test automation, distributed for **seven coding agents**: Claude Code, GitHub Copilot (VS Code), OpenAI Codex, Cursor, OpenCode, Project Goose, Claude Desktop. Includes skills for web testing (Browser/Selenium), API testing (Requests/RESTinstance), mobile testing (Appium), asset generation, and RF analysis tools — plus 4 specialised subagents, 4 hooks, and an MCP server.
 
-## Quick Install
+## Install
 
-### Claude Code Plugin
+### Recommended: cross-agent Python installer (`rf-agentskills`)
+
+A single command auto-detects every supported agent on your machine and writes the bundle into each one's documented install paths:
 
 ```bash
-# Install as Claude Code Plugin
+# Install the installer
+pipx install https://github.com/manykarim/robotframework-agentskills/releases/download/rf-agentskills-v0.4.0/rf_agentskills-0.4.0-py3-none-any.whl
+
+# Detect what's installed
+rf-agentskills targets
+
+# Install into every detected agent
+rf-agentskills install --all
+
+# Or just one
+rf-agentskills install --agent claude-code
+```
+
+Other commands: `uninstall`, `list`, `doctor`, `version`. Useful flags: `--scope user|project [--project DIR]`, `--prefix DIR`, `--dry-run`, `--what skills,agents,hooks,mcp`, `--force`.
+
+Manifest at `$XDG_DATA_HOME/rf-agentskills/installed.json` tracks every file we wrote (hash + transform); `uninstall` only removes files whose hash still matches, so any user edits are preserved.
+
+| Agent | What lands where | Coverage |
+|---|---|---|
+| **Claude Code** ≥ 2.1 | `~/.claude/skills`, `~/.claude/agents`, `settings.json` hooks, `~/.mcp.json` | full native |
+| **GitHub Copilot** (VS Code ≥ 1.108) | reuses Claude Code paths (Copilot reads them natively) | full native |
+| **OpenAI Codex** | `~/.agents/skills` per docs, `~/.codex/agents/*.toml`, MCP in `config.toml` | full (hooks experimental, opt-in via `[features] codex_hooks=true`) |
+| **Cursor** ≥ 2.4 | `~/.cursor/skills`, `~/.cursor/agents`, `mcp.json`, `hooks.json` (namespaced matchers) | full native |
+| **OpenCode** | `~/.config/opencode/skills`, `agents`, `opencode.json` MCP block | full native (hooks deferred — JS-only) |
+| **Project Goose** ≥ 1.25 | `~/.agents/skills` (Summon), MCP in `config.yaml`, `.goosehints` persona | skills + MCP; hooks N/A |
+| **Claude Desktop** | per-OS `claude_desktop_config.json` (MCP only) | MCP only — no skill/agent loader |
+
+Release notes, sha256 hashes, and the latest wheel + sdist are on the **[rf-agentskills releases](https://github.com/manykarim/robotframework-agentskills/releases)** page (tag prefix `rf-agentskills-v*`). PyPI publication pending.
+
+### Alternative: Claude Code marketplace
+
+If you prefer Claude Code's native plugin system over the cross-agent installer:
+
+```bash
 claude plugin marketplace add manykarim/robotframework-agentskills
 claude plugin install rf-agentskills@robotframework-agentskills
-
-# Or install skills directly to your project
-cp -r skills/robotframework-browser-skill .claude/skills/
 ```
 
-### VS Code Extension
+Or load the in-tree plugin directly without registering a marketplace:
 
 ```bash
-# Install from VSIX
-code --install-extension vscode-extension/robotframework-agentskills-1.0.0.vsix
-```
-
-### Standalone (Without Plugin System)
-
-```bash
-# Load the plugin directory directly
 claude --plugin-dir ./plugins/rf-agentskills
 ```
 
-Or copy individual skills from `skills/` to your project's `.claude/skills/` for standalone usage without the plugin system.
+### Alternative: VS Code Marketplace extension (`.vsix`)
+
+A standalone VS Code extension ships **chat skills only** (no subagents, hooks, or MCP server — for those, use the `rf-agentskills` installer above with `--agent copilot`):
+
+```bash
+# Latest .vsix is attached to the v* GitHub release
+code --install-extension robotframework-agentskills-1.2.0.vsix
+```
+
+### Manual: drop skill files into your project
+
+Each skill is a self-contained folder under `skills/`. Copy what you need:
+
+```bash
+cp -r skills/robotframework-browser-skill <your-project>/.claude/skills/
+```
+
+This works for any agent that reads SKILL.md files from a project-local directory (Claude Code, Codex via `.codex/skills/`, Copilot via `.github/skills/`, Cursor via `.cursor/skills/`, etc.).
+
+## Versioning
+
+This repo ships two release scopes — see **[`RELEASING.md`](RELEASING.md)** for the policy:
+
+- **Content** (Claude plugin / `.vsix` / skills tarballs) — currently `v1.2.0`, tagged `v*`.
+- **Tooling** (`rf-agentskills` Python installer) — currently `0.4.0`, tagged `rf-agentskills-v*`.
+
+The two channels are versioned independently. `rf-agentskills version` prints both:
+
+```console
+$ rf-agentskills version
+rf-agentskills 0.4.0
+bundled content: 1.2.0  (from rf-agentskills plugin manifest)
+```
 
 ## What You Get
 
@@ -204,13 +260,11 @@ claude --plugin-dir ./plugins/rf-agentskills
 
 ## Compatibility
 
-- Robot Framework 7+ (uses modern syntax: RETURN, IF/ELSE, TRY/EXCEPT)
-- Python 3.8+
-- Claude Code 1.0.33+
+- **Robot Framework** 7+ (uses modern syntax: RETURN, IF/ELSE, TRY/EXCEPT)
+- **Python** 3.10+ for the `rf-agentskills` installer; 3.8+ for running the skill scripts themselves
+- **Coding agents** (see install matrix above): Claude Code ≥ 2.1, GitHub Copilot in VS Code ≥ 1.108, OpenAI Codex, Cursor ≥ 2.4, OpenCode, Project Goose ≥ 1.25, Claude Desktop (MCP only)
 
-## Cross-Agent Compatibility
-
-Agent Skills are an open standard supported by multiple agent systems. The `skills/` directory at the repository root provides standalone skill access for systems that don't use the Claude Code plugin format (e.g., GitHub Copilot).
+Anthropic's SKILL.md format is an open standard supported by all seven agents listed above (Claude Code, Copilot, Codex, Cursor, OpenCode, and Goose all read it natively as of their respective recent releases). The `rf-agentskills` installer handles the path-routing per agent so you don't have to memorise where each one wants its skills.
 
 ## Running skill evaluations
 
