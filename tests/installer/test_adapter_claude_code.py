@@ -21,7 +21,9 @@ from rf_agentskills.adapters._base import InstallOptions
 
 def test_plan_writes_skills_agents_and_plugin_files(install_prefix: Path) -> None:
     plan = ClaudeCodeAdapter().plan(InstallOptions(prefix=install_prefix))
-    dst_paths = [str(t.dst) for t in plan.targets]
+    # Use ``.as_posix()`` so substring checks work the same on Windows
+    # (where ``str(WindowsPath)`` would use ``\``).
+    dst_paths = [t.dst.as_posix() for t in plan.targets]
     # Skills tree
     assert any("/skills/libdoc-search/SKILL.md" in p for p in dst_paths)
     assert any("/agents/rf-test-architect.md" in p for p in dst_paths)
@@ -32,7 +34,9 @@ def test_plan_writes_skills_agents_and_plugin_files(install_prefix: Path) -> Non
 
 def test_plan_substitutes_plugin_root_token(install_prefix: Path) -> None:
     plan = ClaudeCodeAdapter().plan(InstallOptions(prefix=install_prefix))
-    plugin_root_abs = str((install_prefix / "rf-agentskills-files").resolve())
+    # ``to_native_path_string`` renders Windows paths with forward
+    # slashes, so we compare against the posix form regardless of OS.
+    plugin_root_abs = (install_prefix / "rf-agentskills-files").resolve().as_posix()
     found_substituted_payload = False
     for t in plan.targets:
         if "${CLAUDE_PLUGIN_ROOT}" in t.payload.decode("utf-8", errors="replace"):
@@ -46,7 +50,7 @@ def test_plan_what_filter_excludes_skills(install_prefix: Path) -> None:
     plan = ClaudeCodeAdapter().plan(
         InstallOptions(prefix=install_prefix, what=frozenset({"agents"}))
     )
-    paths = [str(t.dst) for t in plan.targets]
+    paths = [t.dst.as_posix() for t in plan.targets]
     assert any("/agents/" in p for p in paths)
     # Skills not in the plan
     assert not any(p.endswith("SKILL.md") and "/skills/" in p for p in paths)

@@ -163,8 +163,8 @@ def test_cursor_skills_install_natively_to_skills_dir(
     assert cls is not None
     plan = cls().plan(InstallOptions(prefix=install_prefix))
     skill_targets = [t for t in plan.targets
-                     if str(t.dst).endswith("SKILL.md")
-                     and "/skills/" in str(t.dst)]
+                     if t.dst.name == "SKILL.md"
+                     and "/skills/" in t.dst.as_posix()]
     assert skill_targets, "expected SKILL.md targets under <root>/skills/<name>/"
     # The frontmatter should be unchanged from the source SKILL.md
     for t in skill_targets:
@@ -172,7 +172,7 @@ def test_cursor_skills_install_natively_to_skills_dir(
         assert "name" in doc.frontmatter
         assert "description" in doc.frontmatter
     # No MDC files anywhere (the transform was removed)
-    mdc_targets = [t for t in plan.targets if str(t.dst).endswith(".mdc")]
+    mdc_targets = [t for t in plan.targets if t.dst.suffix == ".mdc"]
     assert mdc_targets == []
 
 
@@ -182,7 +182,7 @@ def test_cursor_subagents_copy_natively(install_prefix: Path) -> None:
     assert cls is not None
     plan = cls().plan(InstallOptions(prefix=install_prefix))
     agent_targets = [t for t in plan.targets
-                     if str(t.dst).endswith(".md") and "/agents/" in str(t.dst)]
+                     if t.dst.suffix == ".md" and "/agents/" in t.dst.as_posix()]
     assert agent_targets, "expected agents/<name>.md targets"
 
 
@@ -234,7 +234,8 @@ def test_goose_skills_install_to_agents_dir(install_prefix: Path) -> None:
         prefix=install_prefix, what=frozenset({"skills"})
     ))
     skill_targets = [t for t in plan.targets
-                     if "/agents/skills/" in str(t.dst) and t.dst.name == "SKILL.md"]
+                     if "/agents/skills/" in t.dst.as_posix()
+                     and t.dst.name == "SKILL.md"]
     assert skill_targets, (
         "expected SKILL.md targets under <prefix>/agents/skills/<name>/"
     )
@@ -249,9 +250,9 @@ def test_goose_subagents_still_fold_into_goosehints(install_prefix: Path) -> Non
     ))
     # No <prefix>/agents/<name>.md targets (those would be Claude Code shape)
     agent_md_targets = [t for t in plan.targets
-                        if str(t.dst).endswith(".md")
-                        and "/agents/" in str(t.dst)
-                        and "/skills/" not in str(t.dst)]
+                        if t.dst.suffix == ".md"
+                        and "/agents/" in t.dst.as_posix()
+                        and "/skills/" not in t.dst.as_posix()]
     assert agent_md_targets == []
     # Goosehints should be written instead
     hints = [t for t in plan.targets if t.dst.name == ".goosehints"]
@@ -285,7 +286,7 @@ def test_opencode_subagents_copied_directly(install_prefix: Path) -> None:
     cls = by_name("opencode")
     assert cls is not None
     plan = cls().plan(InstallOptions(prefix=install_prefix))
-    agent_targets = [t for t in plan.targets if "/agents/" in str(t.dst)]
+    agent_targets = [t for t in plan.targets if "/agents/" in t.dst.as_posix()]
     assert agent_targets, "expected agents/<name>.md targets"
     # Direct copy: transform name reflects only substitution, not a reformat
     for t in agent_targets:
@@ -300,8 +301,8 @@ def test_opencode_skills_install_natively_to_skills_dir(
     assert cls is not None
     plan = cls().plan(InstallOptions(prefix=install_prefix))
     skill_targets = [t for t in plan.targets
-                     if str(t.dst).endswith("SKILL.md")
-                     and "/skills/" in str(t.dst)]
+                     if t.dst.name == "SKILL.md"
+                     and "/skills/" in t.dst.as_posix()]
     assert skill_targets, "expected SKILL.md targets under <root>/skills/<name>/"
     for t in skill_targets:
         doc = _x.parse_frontmatter(t.payload.decode("utf-8"))
@@ -309,7 +310,7 @@ def test_opencode_skills_install_natively_to_skills_dir(
         assert "name" in doc.frontmatter
         assert "description" in doc.frontmatter
     # No commands/<name>.md transforms anymore
-    cmd_targets = [t for t in plan.targets if "/commands/" in str(t.dst)]
+    cmd_targets = [t for t in plan.targets if "/commands/" in t.dst.as_posix()]
     assert cmd_targets == []
 
 
@@ -345,7 +346,7 @@ def test_claude_desktop_only_emits_mcp_and_scripts(install_prefix: Path) -> None
     assert cls is not None
     plan = cls().plan(InstallOptions(prefix=install_prefix))
     # No skills/agents/hooks files
-    targets_paths = [str(t.dst) for t in plan.targets]
+    targets_paths = [t.dst.as_posix() for t in plan.targets]
     assert not any("/skills/" in p for p in targets_paths)
     assert not any("/agents/" in p and p.endswith(".md") for p in targets_paths)
     # Has co-located scripts/servers (for MCP path resolution)
@@ -375,13 +376,16 @@ def test_claude_desktop_config_path_per_os(monkeypatch: pytest.MonkeyPatch) -> N
     from rf_agentskills.adapters.claude_desktop import ClaudeDesktopAdapter
     adapter = ClaudeDesktopAdapter()
 
+    # Use ``.as_posix()`` for the substring check so the assertion holds
+    # on Windows runners (where ``Path`` instantiates ``WindowsPath`` and
+    # ``str(p)`` uses backslashes regardless of monkeypatched ``sys.platform``).
     monkeypatch.setattr(sys, "platform", "darwin")
     p = adapter._config_path()
-    assert "Library/Application Support/Claude" in str(p)
+    assert "Library/Application Support/Claude" in p.as_posix()
 
     monkeypatch.setattr(sys, "platform", "linux")
     p = adapter._config_path()
-    assert ".config/Claude" in str(p)
+    assert ".config/Claude" in p.as_posix()
 
 
 def test_claude_desktop_config_path_windows(monkeypatch: pytest.MonkeyPatch,
@@ -390,7 +394,8 @@ def test_claude_desktop_config_path_windows(monkeypatch: pytest.MonkeyPatch,
     monkeypatch.setattr(sys, "platform", "win32")
     monkeypatch.setenv("APPDATA", str(tmp_path / "Roaming"))
     p = ClaudeDesktopAdapter()._config_path()
-    assert str(tmp_path / "Roaming" / "Claude" / "claude_desktop_config.json") == str(p)
+    expected = tmp_path / "Roaming" / "Claude" / "claude_desktop_config.json"
+    assert expected.as_posix() == p.as_posix()
 
 
 def test_claude_desktop_e2e_round_trip(
