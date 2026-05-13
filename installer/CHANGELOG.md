@@ -4,6 +4,59 @@ The `rf-agentskills` package is versioned independently from the
 content bundle (Claude Code plugin, VS Code extension, skills
 tarballs). See `RELEASING.md` at the repo root for the policy.
 
+## 0.4.1 — 2026-05-13
+
+### Bundled content
+- **rf-agentskills plugin manifest: 1.2.0** — unchanged.
+
+### Fixed
+- **Windows install crash**: `rf-agentskills install --agent claude-code`
+  on Windows / PowerShell terminated with
+  `json.decoder.JSONDecodeError: Invalid \escape: line 9 column 27`
+  during plan-build. Root cause: the installer substituted a
+  backslash-separator Windows path (e.g.
+  `C:\Users\x\.claude\rf-agentskills-files`) into JSON template
+  text, then called `json.loads()` — and `\U`, `\r`, `\.` are not
+  valid JSON escapes. Reported in
+  `docs/issues/rf-agentskills_install_issues_win_powershell.txt`;
+  analysis and fix design in
+  `docs/issues/win-powershell-install-fix-proposal.md`.
+- The same bug was latent in every adapter that consumes JSON or
+  TOML after substitution: Claude Code (hooks + MCP), Copilot,
+  Codex (MCP read), Cursor (hooks + MCP), OpenCode (MCP), Claude
+  Desktop (MCP). Files written under `<root>/rf-agentskills-files/`
+  on Windows would also have been invalid JSON on disk.
+
+### Internals
+- `transforms.to_native_path_string()` now returns **forward-slash
+  paths on Windows** (e.g. `C:/Users/x/.claude/rf-agentskills-files`).
+  Every supported Windows tool (Claude Code, Codex CLI, PowerShell,
+  Python `pathlib`, Node `child_process`) accepts forward slashes,
+  and forward slashes don't need escaping in JSON / TOML / YAML —
+  so the substitute-then-parse pattern in adapters becomes safe
+  regardless of OS.
+
+### Tests
+- New unit tests for `to_native_path_string`:
+  - posix returns `str(path)` unchanged
+  - on `sys.platform=='win32'` (monkeypatched), returns no
+    backslashes; result is round-trip safe through `json.loads`.
+- New per-adapter Windows-mock regression tests covering all seven
+  adapters (Claude Code, Copilot, Codex, Cursor, OpenCode, Goose,
+  Claude Desktop). Each test mocks the substitution target to a
+  Windows-style path and asserts plan-build completes without the
+  pre-fix JSON crash, and that no payload retains the unescaped
+  backslash form.
+- 117/117 tests pass (was 107; +10 new).
+
+### CI
+- Added `windows-latest` to the `Test (Python …)` matrix in
+  `.github/workflows/ci.yml`, so future Windows regressions are
+  caught automatically rather than waiting for user reports.
+
+### Compatibility
+- Drop-in upgrade from 0.4.0. No API change.
+
 ## 0.4.0 — 2026-05-13
 
 ### Bundled content

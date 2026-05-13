@@ -520,12 +520,30 @@ def remove_yaml_keys(path: Path, keys: list[str], parent_key: str | None = None)
 
 
 def to_native_path_string(path: Path) -> str:
-    """Return ``path`` rendered with the host's native separator.
+    """Return ``path`` as a string safe to embed in substituted text.
 
-    On POSIX this is the same as ``str(path)``. On Windows, ensures
-    backslashes for inclusion in JSON / TOML config snippets that will
-    be read by Windows-native tools.
+    On POSIX this is just ``str(path)``. On Windows the path is rendered
+    with **forward slashes** rather than backslashes — e.g.
+    ``C:/Users/x/.claude/rf-agentskills-files`` not
+    ``C:\\Users\\x\\.claude\\rf-agentskills-files``.
+
+    Why forward slashes on Windows:
+
+    * Every consumer of substituted ``${CLAUDE_PLUGIN_ROOT}`` values
+      runs the result through a JSON / TOML / YAML parser at some
+      point (Claude Code's ``settings.json`` hooks block, ``.mcp.json``,
+      Codex's ``config.toml``, Cursor's ``mcp.json``, OpenCode's
+      ``opencode.json``, Claude Desktop's ``claude_desktop_config.json``).
+      Backslashes in those formats need escaping (``\\\\``), and bare
+      Windows paths inserted via substitution produce ``Invalid \\escape``
+      decode errors. Forward slashes don't need escaping in any of
+      those formats.
+    * Every supported Windows tool (Claude Code, Codex CLI, PowerShell,
+      Python ``pathlib``, Node ``child_process``) accepts forward-slash
+      paths.
+
+    Regression history: docs/issues/win-powershell-install-fix-proposal.md.
     """
     if sys.platform == "win32":
-        return str(PureWindowsPath(path))
+        return PureWindowsPath(path).as_posix()
     return str(path)

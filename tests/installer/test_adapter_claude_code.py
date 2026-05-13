@@ -21,7 +21,9 @@ from rf_agentskills.adapters._base import InstallOptions
 
 def test_plan_writes_skills_agents_and_plugin_files(install_prefix: Path) -> None:
     plan = ClaudeCodeAdapter().plan(InstallOptions(prefix=install_prefix))
-    dst_paths = [str(t.dst) for t in plan.targets]
+    # Use ``.as_posix()`` so substring checks work the same on Windows
+    # (where ``str(WindowsPath)`` would use ``\``).
+    dst_paths = [t.dst.as_posix() for t in plan.targets]
     # Skills tree
     assert any("/skills/libdoc-search/SKILL.md" in p for p in dst_paths)
     assert any("/agents/rf-test-architect.md" in p for p in dst_paths)
@@ -32,7 +34,9 @@ def test_plan_writes_skills_agents_and_plugin_files(install_prefix: Path) -> Non
 
 def test_plan_substitutes_plugin_root_token(install_prefix: Path) -> None:
     plan = ClaudeCodeAdapter().plan(InstallOptions(prefix=install_prefix))
-    plugin_root_abs = str((install_prefix / "rf-agentskills-files").resolve())
+    # ``to_native_path_string`` renders Windows paths with forward
+    # slashes, so we compare against the posix form regardless of OS.
+    plugin_root_abs = (install_prefix / "rf-agentskills-files").resolve().as_posix()
     found_substituted_payload = False
     for t in plan.targets:
         if "${CLAUDE_PLUGIN_ROOT}" in t.payload.decode("utf-8", errors="replace"):
@@ -46,7 +50,7 @@ def test_plan_what_filter_excludes_skills(install_prefix: Path) -> None:
     plan = ClaudeCodeAdapter().plan(
         InstallOptions(prefix=install_prefix, what=frozenset({"agents"}))
     )
-    paths = [str(t.dst) for t in plan.targets]
+    paths = [t.dst.as_posix() for t in plan.targets]
     assert any("/agents/" in p for p in paths)
     # Skills not in the plan
     assert not any(p.endswith("SKILL.md") and "/skills/" in p for p in paths)
@@ -183,3 +187,64 @@ def test_install_force_overwrites_conflict(install_prefix: Path, fake_home: Path
     assert rc == 0
     # Replaced
     assert target.read_text() != "USER OWNED CONTENT"
+
+
+# ---- Windows-platform regression test -------------------------------------
+
+
+def test_plan_succeeds_with_windows_style_substitution_target(
+    install_prefix: Path, monkeypatch
+) -> None:
+    """Regression for docs/issues/win-powershell-install-fix-proposal.md.
+
+    The Claude Code adapter's ``_hooks_merge_op`` and ``_mcp_merge_op``
+    both call ``json.loads(substituted_text)`` during plan-build. On
+    Windows, ``to_native_path_string`` used to return a backslash-
+    separator path; substituted into the JSON template that produced
+    ``Invalid \\escape`` and crashed install entirely.
+
+    We mock the helper to return a Windows-style **forward-slash**
+    path (what the post-fix function returns on Windows) and verify
+    plan-build completes. If anyone reverts the fix and the helper
+    starts returning backslashes again, this test reproduces the
+    crash.
+    """
+    from rf_agentskills import transforms as _x
+
+    monkeypatch.setattr(
+        _x, "to_native_path_string",
+        lambda p: "C:/Users/x/.claude/rf-agentskills-files",
+    )
+    plan = ClaudeCodeAdapter().plan(InstallOptions(prefix=install_prefix))
+
+    # plan() called json.loads internally — would have crashed pre-fix.
+    assert plan.merges, "expected at least the hooks + mcp merges"
+    # The substituted Windows path should appear in payloads…
+    win_marker = b"C:/Users/x/.claude/rf-agentskills-files"
+    assert any(win_marker in t.payload for t in plan.targets), (
+        "expected the substituted Windows path to land in at least "
+        "one staged target"
+    )
+    # …and no payload contains the unescaped-backslash form.
+    bad_marker = b"C:\\Users\\x\\.claude\\rf-agentskills-files"
+    assert all(bad_marker not in t.payload for t in plan.targets)
+
+
+def test_copilot_plan_with_windows_style_substitution_target(
+    install_prefix: Path, monkeypatch
+) -> None:
+    """Same regression as the Claude Code test; Copilot inherits the
+    JSON merge paths from ClaudeCodeAdapter."""
+    from rf_agentskills import transforms as _x
+    from rf_agentskills.adapters.copilot import CopilotAdapter
+
+    monkeypatch.setattr(
+        _x, "to_native_path_string",
+        lambda p: "C:/Users/x/.claude/rf-agentskills-files",
+    )
+    plan = CopilotAdapter().plan(InstallOptions(prefix=install_prefix))
+    assert plan.merges
+    assert all(
+        b"C:\\Users\\x\\.claude\\rf-agentskills-files" not in t.payload
+        for t in plan.targets
+    )

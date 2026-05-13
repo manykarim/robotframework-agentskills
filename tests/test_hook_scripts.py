@@ -9,9 +9,21 @@ from __future__ import annotations
 
 import json
 import subprocess
+import sys
 from pathlib import Path
 
 import pytest
+
+# The hook scripts under test are bash (``#!/usr/bin/env bash``). On Windows
+# they're not natively executable — the corresponding ``.ps1`` ports run
+# there instead, and the Claude Code adapter switches to those at install
+# time (see ``transforms.rewrite_hooks_for_windows``). Skip the whole
+# module on Windows; the PowerShell variants don't have their own unit
+# tests yet.
+pytestmark = pytest.mark.skipif(
+    sys.platform == "win32",
+    reason="bash hook scripts run on POSIX only; .ps1 ports used on Windows",
+)
 
 PLUGIN_SCRIPTS = (
     Path(__file__).resolve().parent.parent
