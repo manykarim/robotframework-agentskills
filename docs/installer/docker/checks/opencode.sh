@@ -23,8 +23,9 @@ case "${1:-}" in
     need_json_key "$OPENCODE/opencode.json" 'mcp."rf-tools"'
     need_json_key "$OPENCODE/opencode.json" 'mcp."rf-tools".command'
     # Plugin scripts staged
-    need_file "$PLUGIN_FILES/scripts/validate_robot.sh"
-    need_no_substitution "$PLUGIN_FILES/scripts/validate_robot.sh"
+    need_file "$PLUGIN_FILES/scripts/validate_robot.mjs"
+    need_file "$PLUGIN_FILES/scripts/python_runtime.json"
+    need_no_substitution "$PLUGIN_FILES/scripts/validate_robot.mjs"
 
     # API-FREE introspection: opencode ships `opencode debug skill`
     # which walks every skill discovery path and emits JSON. No LLM call.

@@ -23,8 +23,9 @@ case "${1:-}" in
     # Persona text in goosehints
     need_file "$HOME/.goosehints" 'rf-test-architect' 'rf-agentskills'
     # Plugin scripts staged
-    need_file "$PLUGIN_FILES/scripts/validate_robot.sh"
-    need_no_substitution "$PLUGIN_FILES/scripts/validate_robot.sh"
+    need_file "$PLUGIN_FILES/scripts/validate_robot.mjs"
+    need_file "$PLUGIN_FILES/scripts/python_runtime.json"
+    need_no_substitution "$PLUGIN_FILES/scripts/validate_robot.mjs"
 
     # API-free agent introspection: try `goose info` for any
     # filesystem reflection. `goose info` doesn't list skills directly

@@ -77,6 +77,12 @@ class CursorAdapter(AdapterBase):
         plugin_dst = root / PLUGIN_FILES_SUBDIR
         plugin_root_abs = _x.to_native_path_string(plugin_dst.resolve())
 
+        # Cursor's hooks.json embeds the same `node "<…>.mjs"` commands
+        # as Claude Code's — see ``transforms.rewrite_hooks_for_cursor``
+        # which only adjusts the matcher namespacing, not the command
+        # shape. If Node isn't on PATH, skip hooks with a note.
+        register_hooks = "hooks" in opts.what and _x.node_available()
+
         with _assets.asset_root_path() as src_root:
             targets = list(self._collect_targets(
                 src_root=src_root,
@@ -90,9 +96,16 @@ class CursorAdapter(AdapterBase):
                 root=root,
                 plugin_root_abs=plugin_root_abs,
                 what=opts.what,
+                register_hooks=register_hooks,
             ))
 
-        return InstallPlan(targets=tuple(targets), merges=tuple(merges), notes=())
+        notes: list[str] = []
+        if "hooks" in opts.what and not register_hooks:
+            notes.append(
+                "Node.js was not found on PATH; Cursor hooks were NOT registered. "
+                "Install Node.js then re-run with `--agent cursor` to enable them."
+            )
+        return InstallPlan(targets=tuple(targets), merges=tuple(merges), notes=tuple(notes))
 
     def _collect_targets(
         self,
@@ -150,6 +163,14 @@ class CursorAdapter(AdapterBase):
                         transform_name="plugin_root_substitution",
                         executable=f.suffix in (".sh", ".ps1") or f.name.endswith(".bash"),
                     )
+            # Pin the install-time Python interpreter so hook .mjs scripts
+            # target the env that has robotframework. See claude_code.py
+            # for the rationale.
+            yield InstallTarget(
+                dst=plugin_dst / "scripts" / "python_runtime.json",
+                payload=_x.python_runtime_config_bytes(),
+                transform_name="python_runtime_pin",
+            )
 
     def _collect_merges(
         self,
@@ -158,9 +179,11 @@ class CursorAdapter(AdapterBase):
         root: Path,
         plugin_root_abs: str,
         what: frozenset[str],
+        register_hooks: bool = True,
     ) -> Iterable[ConfigMergeOp]:
         # 4. Hooks → <root>/hooks.json with cursor-namespaced events.
-        if "hooks" in what:
+        #    Skipped when Node isn't on PATH at install time.
+        if register_hooks:
             hooks_json_src = src_root / "hooks" / "hooks.json"
             if hooks_json_src.is_file():
                 yield self._hooks_merge_op(

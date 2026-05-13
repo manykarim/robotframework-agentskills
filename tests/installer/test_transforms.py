@@ -6,6 +6,7 @@ No filesystem I/O beyond ``tmp_path`` for the merge tests.
 from __future__ import annotations
 
 import json
+import sys
 from pathlib import Path
 
 import pytest
@@ -206,37 +207,18 @@ def test_rewrite_hooks_for_cursor_event_names_and_mcp_namespace() -> None:
     assert "MCP:rf-mcp" in matchers           # mcp__rf-mcp__.* → MCP:rf-mcp
 
 
-# ---- rewrite_hooks_for_windows -------------------------------------------
+# ---- python_runtime_config_bytes -----------------------------------------
 
 
-def test_rewrite_hooks_for_windows_swaps_sh_to_ps1() -> None:
-    hooks = {
-        "PostToolUse": [
-            {"matcher": "Write|Edit", "hooks": [
-                {"type": "command", "command": "/install/scripts/validate_robot.sh"}
-            ]}
-        ],
-        "SessionStart": [
-            {"matcher": "", "hooks": [
-                {"type": "command", "command": "/install/scripts/check_rf_environment.sh"}
-            ]}
-        ],
-    }
-    out = _x.rewrite_hooks_for_windows(hooks)
-    cmd = out["PostToolUse"][0]["hooks"][0]["command"]
-    assert ".ps1" in cmd
-    assert "powershell" in cmd
-    assert "ExecutionPolicy Bypass" in cmd
-
-
-def test_rewrite_hooks_for_windows_leaves_non_sh_alone() -> None:
-    hooks = {"X": [{"matcher": "", "hooks": [
-        {"type": "prompt", "prompt": "do thing"},
-        {"type": "command", "command": "/x/some.py"},
-    ]}]}
-    out = _x.rewrite_hooks_for_windows(hooks)
-    assert out["X"][0]["hooks"][0]["prompt"] == "do thing"
-    assert out["X"][0]["hooks"][1]["command"] == "/x/some.py"
+def test_python_runtime_config_pins_install_time_interpreter() -> None:
+    """The installer records ``sys.executable`` so hook .mjs scripts can
+    find the env that has robotframework — independent of whatever
+    ``python`` happens to be on PATH at hook-fire time."""
+    payload = _x.python_runtime_config_bytes()
+    data = json.loads(payload.decode("utf-8"))
+    assert data["interpreter"] == sys.executable
+    assert data["fallbacks"] == ["python3", "python"]
+    assert "captured_by" in data and "rf-agentskills" in data["captured_by"]
 
 
 # ---- merge_json_file / remove_json_keys ----------------------------------

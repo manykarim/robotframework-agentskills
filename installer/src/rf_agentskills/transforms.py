@@ -52,7 +52,49 @@ def substitute_plugin_root_bytes(data: bytes, plugin_root_abs: str) -> bytes:
 
 def is_substitution_candidate(path: Path) -> bool:
     """Whether to attempt substitution on a file based on its suffix."""
-    return path.suffix.lower() in {".md", ".sh", ".py", ".txt", ".json", ".ps1"}
+    return path.suffix.lower() in {
+        ".md", ".sh", ".py", ".txt", ".json", ".ps1", ".mjs", ".cjs", ".js",
+    }
+
+
+def node_available() -> bool:
+    """Whether the host has a ``node`` binary on PATH.
+
+    Hook commands shipped by rf-agentskills invoke
+    ``node "<path>/<name>.mjs"`` (per the cross-platform Node-hooks
+    recommendation at https://claudefa.st/blog/tools/hooks/cross-platform-hooks).
+    If Node isn't installed, the hooks merge would write a settings.json
+    that references unrunnable commands; adapters use this probe to
+    gracefully skip the merge instead and report the gap via post_install.
+    """
+    import shutil
+    return shutil.which("node") is not None
+
+
+def python_runtime_config_bytes() -> bytes:
+    """Pin the install-time Python interpreter for hook scripts to find.
+
+    Hook scripts that need to call into Robot Framework (``validate_robot.mjs``,
+    ``check_rf_environment.mjs``) read this JSON from
+    ``<plugin_dst>/scripts/python_runtime.json``. The recorded
+    ``interpreter`` is whatever ``sys.executable`` was when
+    ``rf-agentskills install`` ran — i.e. the venv / pipx env / system
+    Python that actually has ``robotframework`` available.
+
+    Without this pinning, a hook running on Windows would probe ``python``
+    on PATH (often a different Python than the one rf-agentskills was
+    installed into, especially under pipx / uv tool install) and falsely
+    report robotframework as not installed.
+
+    The ``fallbacks`` list is consumed when the recorded interpreter is
+    no longer reachable (user moved their venv, etc.).
+    """
+    config = {
+        "interpreter": sys.executable,
+        "fallbacks": ["python3", "python"],
+        "captured_by": "rf-agentskills",
+    }
+    return json.dumps(config, indent=2).encode("utf-8")
 
 
 # ---------------------------------------------------------------------------
@@ -242,36 +284,6 @@ def _namespace_matcher(matcher: str) -> str:
     if rest in ("", ".*"):
         return f"MCP:{server}"
     return f"MCP:{server}:{rest}"
-
-
-def rewrite_hooks_for_windows(hooks: dict[str, Any]) -> dict[str, Any]:
-    """Switch ``.sh`` hook commands to ``powershell -File <path>.ps1``.
-
-    Required when targeting a Windows host: bash hooks are useless
-    there. The corresponding ``.ps1`` script is expected to ship in
-    the same plugin tree alongside its ``.sh`` sibling.
-    """
-    out: dict[str, Any] = {}
-    for evt, entries in hooks.items():
-        new_entries = []
-        for entry in entries:
-            new_entry = dict(entry)
-            inner = []
-            for h in entry.get("hooks", []):
-                h2 = dict(h)
-                if h2.get("type") == "command":
-                    cmd = h2.get("command", "")
-                    if cmd.endswith(".sh"):
-                        ps_cmd = cmd[:-3] + ".ps1"
-                        h2["command"] = (
-                            f"powershell -ExecutionPolicy Bypass -NoProfile "
-                            f'-File "{ps_cmd}"'
-                        )
-                inner.append(h2)
-            new_entry["hooks"] = inner
-            new_entries.append(new_entry)
-        out[evt] = new_entries
-    return out
 
 
 # ---------------------------------------------------------------------------

@@ -1,0 +1,4 @@
+  Welcome to Opus 4.7 xhigh! · /effort to tune speed vs. intelligence
+  ⎿  SessionStart:startup hook error                                               ⎿  Failed with non-blocking status code: The argument 'C:/Users/MKASIRIH/.clau
+                                                                                      de/rf-agentskills-files/scripts/check_rf_environment.ps1' to the -File
+                                                                                      parameter does not exist. Provide the path to an exist…

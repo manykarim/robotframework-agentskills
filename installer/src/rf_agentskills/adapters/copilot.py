@@ -91,6 +91,7 @@ class CopilotAdapter(ClaudeCodeAdapter):
         plugin_root_abs: str,
         what: frozenset[str],
         opts: InstallOptions,
+        register_hooks: bool = True,
     ) -> Iterable[ConfigMergeOp]:
         yield from super()._collect_merges(
             src_root=src_root,
@@ -98,6 +99,7 @@ class CopilotAdapter(ClaudeCodeAdapter):
             plugin_root_abs=plugin_root_abs,
             what=what,
             opts=opts,
+            register_hooks=register_hooks,
         )
         # Project-only: also write .vscode/mcp.json so VS Code's own
         # MCP loader picks it up. User scope is already covered by the

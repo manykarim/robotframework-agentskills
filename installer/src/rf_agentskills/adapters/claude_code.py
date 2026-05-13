@@ -65,6 +65,12 @@ class ClaudeCodeAdapter(AdapterBase):
         plugin_dst = root / PLUGIN_FILES_SUBDIR  # holds scripts/, servers/, hooks/
         plugin_root_abs = _x.to_native_path_string(plugin_dst.resolve())
 
+        # Hooks invoke `node "<…>.mjs"` (cross-platform). If Node isn't
+        # on PATH at install time we skip the hooks merge and surface a
+        # post_install note rather than write a settings.json that
+        # references an unrunnable command.
+        register_hooks = "hooks" in opts.what and _x.node_available()
+
         with _assets.asset_root_path() as src_root:
             targets = list(self._collect_targets(
                 src_root=src_root,
@@ -79,9 +85,19 @@ class ClaudeCodeAdapter(AdapterBase):
                 plugin_root_abs=plugin_root_abs,
                 what=opts.what,
                 opts=opts,
+                register_hooks=register_hooks,
             ))
 
         notes: list[str] = []
+        if "hooks" in opts.what and not register_hooks:
+            notes.append(
+                "Node.js was not found on PATH; the hooks block was NOT written. "
+                "Install Node.js (e.g. `winget install OpenJS.NodeJS` on Windows, "
+                "`brew install node` on macOS, your distro's package manager on "
+                "Linux), then re-run `rf-agentskills install --agent claude-code` "
+                "to enable the SessionStart / UserPromptSubmit / PostToolUse / Stop "
+                "hooks. Skills, subagents, and MCP server are installed normally."
+            )
         return InstallPlan(targets=tuple(targets), merges=tuple(merges), notes=tuple(notes))
 
     def _collect_targets(
@@ -143,6 +159,14 @@ class ClaudeCodeAdapter(AdapterBase):
                         transform_name="plugin_root_substitution",
                         executable=f.suffix in (".sh", ".ps1") or f.name.endswith(".bash"),
                     )
+            # Pin the install-time Python interpreter so hook .mjs scripts
+            # use the env that has robotframework, not whatever `python` is
+            # on PATH (matters for pipx / uv tool install / venv installs).
+            yield InstallTarget(
+                dst=plugin_dst / "scripts" / "python_runtime.json",
+                payload=_x.python_runtime_config_bytes(),
+                transform_name="python_runtime_pin",
+            )
 
     def _collect_merges(
         self,
@@ -152,9 +176,11 @@ class ClaudeCodeAdapter(AdapterBase):
         plugin_root_abs: str,
         what: frozenset[str],
         opts: InstallOptions,
+        register_hooks: bool = True,
     ) -> Iterable[ConfigMergeOp]:
-        # 4. Hooks → settings.json hooks block
-        if "hooks" in what:
+        # 4. Hooks → settings.json hooks block. Skipped when Node isn't
+        #    on PATH at install time (caller passes register_hooks=False).
+        if register_hooks:
             hooks_json_src = src_root / "hooks" / "hooks.json"
             if hooks_json_src.is_file():
                 yield self._hooks_merge_op(
@@ -187,12 +213,6 @@ class ClaudeCodeAdapter(AdapterBase):
             notes.append(
                 "First time you run a tool from rf-mcp / rf-tools you may see a "
                 "trust prompt — accept it once."
-            )
-        if sys.platform == "win32":
-            notes.append(
-                "On Windows, hook scripts will use the .ps1 variants. "
-                "Ensure PowerShell execution policy allows them "
-                "(`Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser`)."
             )
         return notes
 
@@ -233,9 +253,10 @@ class ClaudeCodeAdapter(AdapterBase):
         )
         hooks_obj = json.loads(raw)
         hooks_value = hooks_obj.get(HOOKS_KEY, hooks_obj)
-
-        if sys.platform == "win32":
-            hooks_value = _x.rewrite_hooks_for_windows(hooks_value)
+        # No per-OS rewrite needed: every hook command invokes Node
+        # (e.g. ``node "<…>.mjs"``), and Node is cross-platform. The
+        # previous v0.4.1 ``.sh→.ps1`` rewrite was the source of the
+        # broken Windows install — see docs/issues/.
 
         def apply() -> list[str]:
             return _x.merge_json_file(settings_path, HOOKS_KEY, hooks_value)

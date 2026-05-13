@@ -146,6 +146,14 @@ class OpenCodeAdapter(AdapterBase):
                         transform_name="plugin_root_substitution",
                         executable=f.suffix in (".sh", ".ps1"),
                     )
+            # Pin install-time Python interpreter alongside the scripts
+            # (see claude_code.py). OpenCode doesn't register hooks, but
+            # the runtime config is shipped uniformly with the scripts.
+            yield InstallTarget(
+                dst=plugin_dst / "scripts" / "python_runtime.json",
+                payload=_x.python_runtime_config_bytes(),
+                transform_name="python_runtime_pin",
+            )
 
     def _collect_merges(
         self,

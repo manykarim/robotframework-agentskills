@@ -35,8 +35,9 @@ case "${1:-}" in
         exit 1
     fi
     # Plugin scripts staged
-    need_file "$PLUGIN_FILES/scripts/validate_robot.sh"
-    need_no_substitution "$PLUGIN_FILES/scripts/validate_robot.sh"
+    need_file "$PLUGIN_FILES/scripts/validate_robot.mjs"
+    need_file "$PLUGIN_FILES/scripts/python_runtime.json"
+    need_no_substitution "$PLUGIN_FILES/scripts/validate_robot.mjs"
     ;;
 
 --post-uninstall)

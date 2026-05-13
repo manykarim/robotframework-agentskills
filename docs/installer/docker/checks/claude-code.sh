@@ -33,12 +33,40 @@ case "${1:-}" in
     need_file "$HOME/.mcp.json"
     need_json_key "$HOME/.mcp.json" 'mcpServers."rf-tools"'
     # Plugin co-located scripts staged
-    need_file "$PLUGIN_FILES/scripts/validate_robot.sh"
-    need_file "$PLUGIN_FILES/scripts/maybe_inject_rf_context.sh"
+    need_file "$PLUGIN_FILES/scripts/validate_robot.mjs"
+    need_file "$PLUGIN_FILES/scripts/maybe_inject_rf_context.mjs"
+    need_file "$PLUGIN_FILES/scripts/check_rf_environment.mjs"
+    need_file "$PLUGIN_FILES/scripts/maybe_remind_robot_tests.mjs"
+    need_file "$PLUGIN_FILES/scripts/python_runtime.json"
     need_file "$PLUGIN_FILES/.claude-plugin/plugin.json"
     # Substitution actually happened (no literal ${CLAUDE_PLUGIN_ROOT} left)
-    need_no_substitution "$PLUGIN_FILES/scripts/validate_robot.sh"
+    need_no_substitution "$PLUGIN_FILES/scripts/validate_robot.mjs"
     need_no_substitution "$ROOT/settings.json"
+
+    # Every hook command in settings.json must resolve to an existing
+    # file. This is the regression check for v0.4.1's broken .ps1
+    # rewrite: that release wrote hooks pointing to nonexistent files
+    # and SessionStart errored on every Windows session start.
+    python3 - "$ROOT/settings.json" <<'PY'
+import json, re, sys, pathlib
+blob = json.loads(pathlib.Path(sys.argv[1]).read_text())
+cmds = []
+def walk(v):
+    if isinstance(v, dict):
+        if v.get("type") == "command" and isinstance(v.get("command"), str):
+            cmds.append(v["command"])
+        for x in v.values(): walk(x)
+    elif isinstance(v, list):
+        for x in v: walk(x)
+walk(blob.get("hooks", {}))
+assert cmds, "no hook commands in settings.json"
+for c in cmds:
+    m = re.search(r'"([^"]+\.(?:mjs|cjs|js|py|sh|ps1))"', c)
+    assert m, f"hook command did not name a script file: {c!r}"
+    p = pathlib.Path(m.group(1))
+    assert p.is_file(), f"hook command references missing file: {p}"
+print(f"  [check] {len(cmds)} hook commands all resolve to existing files")
+PY
 
     # Agent-side validation: `claude plugin validate` parses the plugin
     # manifest and reports schema errors. This is API-free.
