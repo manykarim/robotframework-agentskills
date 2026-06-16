@@ -51,6 +51,16 @@ dependencies = [
 [project.optional-dependencies]
 # Kept only for PEP 621 tools that don't understand `dependency-groups`.
 # Canonical dev deps live under `[dependency-groups.dev]` below.
+#
+# `validation` powers the optional static/semantic validation hooks
+# (see plugins/rf-agentskills/hooks/README.md). These are NOT hard
+# runtime dependencies: the hooks degrade to a silent no-op when the
+# tools are absent. Users who want the validation feedback loop install
+# the extra; everyone else is unaffected.
+validation = [
+    "robotframework-robocop>=8",
+    "robotframework-find-unused>=0.9",
+]
 
 [dependency-groups]
 dev = [
@@ -60,6 +70,9 @@ dev = [
     "ruff>=0.5",
     "mypy>=1.11",
     "types-PyYAML>=6.0",
+    # Validation tooling exercised by tests/test_validation_hooks.py.
+    "robotframework-robocop>=8",
+    "robotframework-find-unused>=0.9",
 ]
 
 [project.scripts]

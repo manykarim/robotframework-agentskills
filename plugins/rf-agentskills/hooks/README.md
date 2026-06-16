@@ -1,11 +1,11 @@
 # rf-agentskills hooks
 
-This plugin defines four Claude Code lifecycle hooks. Two of them
-(`SessionStart`, `PostToolUse`) run unconditionally; two of them
-(`UserPromptSubmit`, `Stop`) consult the session before deciding to
-do anything.
+This plugin defines five Claude Code lifecycle hook scripts across four
+events. Two (`SessionStart`, `PostToolUse`) run unconditionally; three
+(`UserPromptSubmit`, and two on `Stop`) consult the session or an
+environment flag before deciding to do anything.
 
-All four are **cross-platform Node.js** scripts (`.mjs`). They run
+All are **cross-platform Node.js** scripts (`.mjs`). They run
 identically on Linux, macOS, and Windows — no `.sh`/`.ps1` parity to
 maintain. This follows the cross-platform-hooks guidance at
 <https://claudefa.st/blog/tools/hooks/cross-platform-hooks>:
@@ -24,22 +24,96 @@ rather than written-and-broken.
 | `PostToolUse` (matcher: `Write\|Edit`) | `scripts/validate_robot.mjs` | only on Write/Edit | ~30ms (file extension check) |
 | `UserPromptSubmit` | `scripts/maybe_inject_rf_context.mjs` | always invoked, conditional injection | ~30ms (regex over prompt) |
 | `Stop` | `scripts/maybe_remind_robot_tests.mjs` | always invoked, conditional reminder | ~30ms (chunked grep over transcript) |
+| `Stop` | `scripts/validate_robot_project.mjs` | only when `RF_AGENTSKILLS_PROJECT_VALIDATION` is set | ~0ms (env-flag check) |
+
+## Validation hooks (what catches broken Robot Framework code)
+
+Two scripts validate the Robot Framework files the agent writes, at two
+different points in the lifecycle. Both are **optional** — they degrade
+to a silent no-op when their underlying tools aren't installed. Install
+the tooling with the `validation` extra:
+
+```bash
+pip install "rf-agentskills[validation]"   # robotframework-robocop + robotframework-find-unused
+```
+
+### Tier 1 + 2 — per file, on every write (`validate_robot.mjs`)
+
+Fires from `PostToolUse` after a Write/Edit of a `.robot`/`.resource` file.
+
+- **Tier 1 — structural errors:** runs `robocop check --threshold E`. The
+  `--threshold E` is deliberate: Robocop has 167 rules and the default set
+  flags style nits (e.g. `DOC03 Missing documentation`) on *every* file,
+  including perfectly valid ones — that noise would bury real problems and
+  get the hook disabled. Error severity scopes to genuine problems:
+  invalid `FOR`/`IF`/`TRY` syntax, argument errors, duplicate definitions,
+  and imports Robocop can statically see are broken. On a finding the hook
+  writes the diagnostic to **stderr and exits 2**, which feeds it back to
+  the agent so it can self-correct (see "the exit-2 exception" below).
+- **Tier 2 — formatting drift:** runs `robocop format --check --diff`. Purely
+  informational — surfaces the proposed reformat as `additionalContext`
+  (exit 0). Formatting differences **never** cause exit 2.
+
+This replaced an earlier `robot.api.get_model` check that was effectively a
+no-op: `get_model` is a lenient tokenizer that returns "OK" for unterminated
+`FOR` loops, undefined keywords, missing imports — even for a file of random
+prose. It never raised, so it never caught anything. (It also read the
+edited path from a `TOOL_INPUT` env var; the documented contract delivers it
+as `tool_input.file_path` on stdin, so the new script reads stdin first and
+treats `TOOL_INPUT` only as a legacy fallback.)
+
+### Tier 3 — whole project, end of task, opt-in (`validate_robot_project.mjs`)
+
+Fires from `Stop`, **only when `RF_AGENTSKILLS_PROJECT_VALIDATION` is set**
+to a truthy value (`1`/`true`/`yes`/`on`). Runs two cross-file checks that
+only make sense once the whole project is on disk:
+
+- `robot --dryrun` over the project — resolves imports and keyword references
+  without executing keyword bodies. Catches undefined keywords, argument
+  errors, and broken imports. **Note:** dryrun's exit code does *not* reflect
+  an import error when the broken import is never used by an executed keyword
+  — those surface only as `[ ERROR ]` console lines, so the hook inspects
+  both the exit code and the output.
+- `robotframework-find-unused keywords` — reports dead (never-called)
+  keywords across the project.
+
+It is **off by default** for two reasons: (1) `robot --dryrun` *imports
+libraries*, which runs their import-time code (a library import could open a
+browser or connect to a database — a real side effect); and (2) both checks
+scale with project size. Running them per-save would also false-alarm
+constantly — a keyword you just wrote looks "unused" until something calls
+it; a call into a not-yet-written resource looks "undefined". Deferring to
+`Stop` (end of turn) avoids that. When findings exist the hook exits 2 so the
+agent gets one more turn to fix before the turn ends.
+
+### The exit-2 exception
+
+These two validation scripts are the **deliberate exception** to authoring
+guideline #2 below ("hook scripts must always exit 0"). The Claude Code
+`PostToolUse`/`Stop` contract feeds a hook's stderr back to the agent only on
+**exit 2** (exit 1 / other is shown to the user, not the model). Returning a
+real error to the model is the entire point of validation — the
+edit→validate→feed-back→self-correct loop. So they exit 2 *specifically and
+only* on a confirmed Robot Framework error, and exit 0 in every other case
+(tool missing, non-Robot file, no findings, formatting-only difference).
 
 ## Python interpreter resolution
 
-`validate_robot.mjs` and `check_rf_environment.mjs` shell out to Python
-for the parts that need Robot Framework (`from robot.api import
-get_model` for parsing, `import robot` for the version probe). They
-read `scripts/python_runtime.json` — written by the installer from
-`sys.executable` — to find the interpreter that has `robotframework`
-installed. This is necessary for pipx, uv tool install, and venv
-installs where `python` on PATH is NOT the same Python rf-agentskills
-was installed into.
+`validate_robot.mjs`, `validate_robot_project.mjs`, and
+`check_rf_environment.mjs` shell out to Python for the parts that need
+Robot Framework tooling (`robocop` / `robot --dryrun` /
+`robotframework_find_unused` for validation, `import robot` for the
+version probe). They read `scripts/python_runtime.json` — written by the
+installer from `sys.executable` — to find the interpreter that has
+`robotframework` installed. This is necessary for pipx, uv tool install,
+and venv installs where `python` on PATH is NOT the same Python
+rf-agentskills was installed into.
 
 If the recorded interpreter is unreachable (user moved their venv),
-the hooks fall back to `python3` → `python` on PATH. If neither has
-`robotframework`, the hooks exit silently — they're non-blocking by
-design.
+the hooks fall back to `python3` → `python` on PATH. If no candidate
+interpreter has the required tool (`robotframework`, `robocop`,
+`robotframework_find_unused`), the hooks exit silently — they're
+non-blocking by design.
 
 ## Why two of these are conditional
 
@@ -163,9 +237,14 @@ uv run rf-skill-eval run \
    hooks bias the model on every turn — fine for project-specific
    plugins where the user opted in, lethal for general-purpose
    plugins like this one.
-2. **Hook scripts must always exit 0.** A non-zero exit is
-   interpreted as a hook error and surfaced to the user. Wrap risky
-   work in `try { … } catch { process.exit(0) }`.
+2. **Hook scripts must always exit 0** — *unless* they are intentional
+   validation hooks. A stray non-zero exit is interpreted as a hook
+   error and surfaced to the user, so wrap risky work in
+   `try { … } catch { process.exit(0) }`. The sole deliberate exception
+   is the validation tier (`validate_robot.mjs`,
+   `validate_robot_project.mjs`), which exits **2** on a confirmed Robot
+   Framework error to feed the diagnostic back to the agent — and still
+   exits 0 in every non-error path (see "the exit-2 exception" above).
 3. **Stay Node-only when possible.** Shelling out to other runtimes
    (Python, bash) reintroduces the install-time dependency surface
    the Node migration eliminated. If a hook genuinely needs Python
