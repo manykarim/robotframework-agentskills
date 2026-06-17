@@ -42,6 +42,18 @@ function isTruthy(v) {
 }
 if (!isTruthy(process.env.RF_AGENTSKILLS_PROJECT_VALIDATION)) process.exit(0);
 
+// Read the Stop event once (stdin can only be consumed once). Break the
+// Stop-hook loop: when firing as a continuation of a previous Stop block
+// (`stop_hook_active`), exit 2 here would re-block on the same persistent
+// finding forever — so no-op in that state.
+let stopEvent = null;
+try {
+  stopEvent = JSON.parse(readFileSync(0, "utf-8"));
+} catch {
+  // No / unparsable stdin — proceed with process cwd.
+}
+if (stopEvent?.stop_hook_active) process.exit(0);
+
 function loadPythonInterpreters() {
   const candidates = [];
   try {
@@ -65,15 +77,10 @@ function loadPythonInterpreters() {
   return candidates;
 }
 
-// Resolve the project root from the Stop event JSON (cwd), falling back
-// to the process cwd.
+// Resolve the project root from the (already-parsed) Stop event JSON (cwd),
+// falling back to the process cwd.
 function resolveProjectRoot() {
-  try {
-    const event = JSON.parse(readFileSync(0, "utf-8"));
-    if (event?.cwd) return event.cwd.toString();
-  } catch {
-    // No / unparsable stdin — use process cwd.
-  }
+  if (stopEvent?.cwd) return stopEvent.cwd.toString();
   return process.cwd();
 }
 

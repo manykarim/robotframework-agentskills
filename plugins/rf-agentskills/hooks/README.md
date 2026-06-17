@@ -245,12 +245,24 @@ uv run rf-skill-eval run \
    `validate_robot_project.mjs`), which exits **2** on a confirmed Robot
    Framework error to feed the diagnostic back to the agent — and still
    exits 0 in every non-error path (see "the exit-2 exception" above).
-3. **Stay Node-only when possible.** Shelling out to other runtimes
+3. **Stop/SubagentStop hooks MUST short-circuit on `stop_hook_active`.**
+   Add `if (event?.stop_hook_active) process.exit(0)` immediately after
+   parsing the event. Claude Code sets this flag when a Stop fires as a
+   continuation of a previous Stop-hook block; without the guard a hook
+   that emits any model-facing output re-fires every time and traps the
+   session until `CLAUDE_CODE_STOP_HOOK_BLOCK_CAP` (default 9) overrides.
+   **Note the trap in guideline #2:** for Stop hooks, *exit 0 is not
+   sufficient to be non-blocking* — model-facing output (`additionalContext`
+   **or** exit 2) re-invokes the model. `maybe_remind_robot_tests.mjs` once
+   looped exactly this way (exit 0 + `additionalContext`, no guard); it now
+   short-circuits on `stop_hook_active` and additionally reminds at most once
+   per `session_id`.
+4. **Stay Node-only when possible.** Shelling out to other runtimes
    (Python, bash) reintroduces the install-time dependency surface
    the Node migration eliminated. If a hook genuinely needs Python
    (Robot Framework parsing), use `scripts/python_runtime.json` to
    target the install-time interpreter, not bare `python` on PATH.
-4. **Keep the regex tight.** Adding a trigger that looks ergonomic
+5. **Keep the regex tight.** Adding a trigger that looks ergonomic
    ("test", "library") is a fast way to revive the
    `narrow-non-rf-control-01` regression. The unit-test parameter
    list is the canonical specification of what does and doesn't

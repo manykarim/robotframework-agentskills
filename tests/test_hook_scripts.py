@@ -293,6 +293,76 @@ def test_remind_does_not_match_substring_in_unrelated_path(tmp_path: Path) -> No
     _expect_no_injection(out)
 
 
+# --- Stop-hook loop safety (stop_hook_active) -----------------------------
+
+
+def _robot_transcript(tmp_path: Path) -> Path:
+    return _write_transcript(
+        tmp_path,
+        [json.dumps({"type": "tool_use", "input": {"file_path": "/w/tests/login.robot"}})],
+    )
+
+
+def test_remind_silent_when_stop_hook_active(tmp_path: Path) -> None:
+    """The loop fix: on a continuation (stop_hook_active=true) the reminder
+    must stay silent so it cannot re-invoke the model and loop."""
+    transcript = _robot_transcript(tmp_path)
+    out, _err, rc = _run(
+        REMIND_SCRIPT,
+        {"transcript_path": str(transcript), "stop_hook_active": True},
+    )
+    assert rc == 0
+    assert out == ""
+
+
+def test_remind_fires_when_not_stop_hook_active(tmp_path: Path) -> None:
+    """Explicit stop_hook_active=false still emits the reminder."""
+    transcript = _robot_transcript(tmp_path)
+    out, _err, rc = _run(
+        REMIND_SCRIPT,
+        {"transcript_path": str(transcript), "stop_hook_active": False},
+    )
+    assert rc == 0
+    assert "additionalContext" in out
+
+
+def test_remind_fires_at_most_once_per_session(tmp_path: Path) -> None:
+    """Same session_id → first invocation emits, second is deduped silent."""
+    import tempfile
+    import os
+
+    transcript = _robot_transcript(tmp_path)
+    session_id = "pytest-session-loopfix-001"
+    marker = os.path.join(tempfile.gettempdir(), f"rf-agentskills-reminded-{session_id}")
+    try:
+        os.path.exists(marker) and os.remove(marker)
+        payload = {"transcript_path": str(transcript), "session_id": session_id}
+        out1, _e1, rc1 = _run(REMIND_SCRIPT, payload)
+        out2, _e2, rc2 = _run(REMIND_SCRIPT, payload)
+        assert rc1 == 0 and rc2 == 0
+        assert "additionalContext" in out1, "first invocation should remind"
+        assert out2 == "", "second invocation in same session should be deduped"
+    finally:
+        if os.path.exists(marker):
+            os.remove(marker)
+
+
+def test_validate_project_silent_when_stop_hook_active() -> None:
+    """The opt-in project validator must not re-block on a continuation,
+    even with the flag enabled and a persistent finding."""
+    import os
+
+    env = os.environ.copy()
+    env["RF_AGENTSKILLS_PROJECT_VALIDATION"] = "1"
+    out, err, rc = _run(
+        VALIDATE_PROJECT_SCRIPT,
+        {"cwd": str(Path.cwd()), "stop_hook_active": True},
+        env=env,
+    )
+    assert rc == 0
+    assert out == "" and err == ""
+
+
 # --- validate_robot.mjs ---------------------------------------------------
 
 

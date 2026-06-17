@@ -4,6 +4,42 @@ The `rf-agentskills` package is versioned independently from the
 content bundle (Claude Code plugin, VS Code extension, skills
 tarballs). See `RELEASING.md` at the repo root for the policy.
 
+## Unreleased
+
+### Fixed
+- **Stop-hook infinite loop (High; blocker for promoting any `0.5.0rc*` to
+  stable).** `maybe_remind_robot_tests.mjs` emitted its "run the suite"
+  reminder on every `Stop` — including continuations — with no
+  `stop_hook_active` guard, so once a session wrote a `.robot`/`.resource`
+  file the reminder re-fired until Claude Code force-overrode the turn (9
+  blocks). Both Stop hooks (`maybe_remind_robot_tests.mjs`,
+  `validate_robot_project.mjs`) now short-circuit on `stop_hook_active`, and
+  the reminder fires at most once per session. (Lesson documented in the hook
+  README: on Stop hooks, model-facing output — `additionalContext` or exit 2
+  — re-invokes the model, so "exit 0" alone is not non-blocking.)
+
+### Changed
+- **BREAKING (script output contract):** `rf_libdoc.py` (and the `rf-tools`
+  MCP `libdoc_search`/`libdoc_explain` tools) now return a single stable shape
+  — `{schema_version, mode, libraries, results, ...}` with `mode ∈
+  explain|search|fallback|list` and one uniform `results` array — instead of
+  the old, outcome-dependent `matches`/`keyword_matches`/`keywords` keys.
+- **Bounded payloads:** a library's full prose `doc` is **no longer embedded
+  by default** (it dominated 56–96% of responses); pass `--include-library-doc`
+  to restore it. Per-result `library` is now a minimal `{name,type,version}`
+  reference. Typical explain responses drop from ~80 KB to ~3 KB.
+- **Cleaner `usage`:** arguments are exposed as `params: [{name, type, default,
+  kind}]` (`kind ∈ required|optional|vararg|kwarg|named_only`); names are bare
+  (no `: type`), and `defaults` is keyed by bare name.
+
+### Added
+- `rf_libdoc.py --include-library-doc` flag.
+- `testcase_builder.py --full-suite` flag — wraps output in a `*** Test Cases
+  ***` section so the artifact is a directly runnable suite (default remains a
+  composable fragment).
+- Installer README: pre-release install guidance + a troubleshooting note for
+  the stale-uv-cache "no version of rf-agentskills==<rc>" failure.
+
 ## 0.5.0rc2 — 2026-06-17 (pre-release)
 
 Second pre-release toward 0.5.0. Adds the PlatynUI skill on top of 0.5.0rc1's
