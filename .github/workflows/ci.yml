@@ -31,7 +31,11 @@ jobs:
         # mirrors plugins/rf-agentskills/ into the package's _assets/
         # tree — that's what the runtime asset-loader reads.
         run: |
-          pip install robotframework pytest
+          # pytest-asyncio is required by `asyncio_mode = "auto"` in
+          # pyproject; pytest 9+ treats the unknown config option as a
+          # fatal error otherwise. robocop + find-unused let the
+          # validation-hook tests run for real here instead of skipping.
+          pip install robotframework pytest pytest-asyncio robotframework-robocop robotframework-find-unused
           pip install -e ./installer
         shell: bash
       - name: Run tests
@@ -71,7 +75,9 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - run: pip install pytest
+      # pytest-asyncio satisfies `asyncio_mode = "auto"` in pyproject
+      # (pytest 9+ errors on the unknown config option without it).
+      - run: pip install pytest pytest-asyncio
       - name: Validate manifests and SKILL.md frontmatter
         run: python -m pytest tests/test_marketplace_validation.py -v
 
