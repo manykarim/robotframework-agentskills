@@ -4,6 +4,27 @@ The `rf-agentskills` package is versioned independently from the
 content bundle (Claude Code plugin, VS Code extension, skills
 tarballs). See `RELEASING.md` at the repo root for the policy.
 
+## 0.5.0rc2 — 2026-06-17 (pre-release)
+
+Second pre-release toward 0.5.0. Adds the PlatynUI skill on top of 0.5.0rc1's
+validation hooks. Install with `pip install --pre rf-agentskills` or the wheel.
+
+### Bundled content
+- **rf-agentskills plugin manifest: 1.2.0** — now also bundles the new
+  `rf-platynui` native-desktop skill (PlatynUI.BareMetal, new_core).
+
+### Added
+- **PlatynUI library skill** (`/rf-agentskills:platynui`) — native desktop UI
+  testing (Windows UIA, Linux AT-SPI2) for the `new_core` `PlatynUI.BareMetal`
+  surface: install guidance (pinned pre-release wheel; the `0.9.2` footgun),
+  the XPath/namespace locator model, full 24-keyword reference, CLI/inspector
+  loop, and platform setup. The context-injection hook now triggers on
+  `platynui`.
+
+### Fixed
+- Marketplace SKILL.md validation reads files as UTF-8 (was failing on Windows
+  for skills containing non-ASCII characters).
+
 ## 0.5.0rc1 — 2026-06-17 (pre-release)
 
 Pre-release for testing the new Robot Framework validation hooks before
