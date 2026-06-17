@@ -4,6 +4,28 @@ The `rf-agentskills` package is versioned independently from the
 content bundle (Claude Code plugin, VS Code extension, skills
 tarballs). See `RELEASING.md` at the repo root for the policy.
 
+## 0.5.0rc1 — 2026-06-17 (pre-release)
+
+Pre-release for testing the new Robot Framework validation hooks before
+a stable 0.5.0. Install with `pip install --pre rf-agentskills` or from
+the attached wheel.
+
+### Bundled content
+- **rf-agentskills plugin manifest: 1.2.0** — bundles the new
+  validation hook scripts (`validate_robot.mjs` rewrite +
+  `validate_robot_project.mjs`).
+
+### Added
+- **Real static + semantic validation hooks** for `.robot`/`.resource`
+  files (replaces the previous no-op `get_model` check):
+  - `PostToolUse` — `robocop check --threshold E` (structural errors,
+    no style noise) feeds errors back to the agent via exit 2;
+    `robocop format --check` surfaces formatting drift as a suggestion.
+  - `Stop` (opt-in via `RF_AGENTSKILLS_PROJECT_VALIDATION`) —
+    `robot --dryrun` + `robotframework-find-unused` over the project.
+  - All tiers degrade to a silent no-op when their (optional) tooling
+    is absent. Install the tooling with the `validation` extra.
+
 ## 0.4.2 — 2026-05-13
 
 ### Bundled content

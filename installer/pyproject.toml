@@ -13,7 +13,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "rf-agentskills"
-version = "0.4.2"
+version = "0.5.0rc1"
 description = "Cross-agent installer for Robot Framework agent skills (Claude Code, Copilot, Codex, Cursor, Goose, OpenCode, Claude Desktop)"
 readme = "README.md"
 license = { text = "Apache-2.0" }
