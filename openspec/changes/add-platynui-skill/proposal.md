@@ -1,0 +1,35 @@
+## Why
+
+The repo ships library skills for Browser, Selenium, Appium, Requests, and RESTinstance, but nothing for **native desktop UI automation**. PlatynUI (imbus) fills that gap — cross-platform desktop automation (Windows UIA, Linux AT-SPI2, planned macOS AX) for Robot Framework. A hands-on assessment with `rf-libdoc-search` against the PyPI build showed the library is **badly under-documented** (1 of 19 keywords had a docstring), so an agent gets almost no help authoring tests. A skill that supplies the missing keyword docs, the XPath locator model, and the CLI tooling loop is exactly the kind of value these library skills provide.
+
+Per the request, this targets the **`new_core` branch**, which is a ground-up rewrite (a shared Rust UI model + XPath-2.0 query engine). The decisive finding from studying that branch: the only usable Robot Framework keyword surface today is **`Library    PlatynUI.BareMetal`** — the high-level `PlatynUI` library is a placeholder (a single `Dummy Keyword` plus a "not implemented yet" warning). So the skill documents BareMetal, frames the high-level API as the intended direction, and flags the preview/unreleased status.
+
+## What Changes
+
+- Add a new library skill **`robotframework-platynui-skill`** (`name: rf-platynui`) matching the house structure of the Browser/Selenium/Appium skills: `SKILL.md` + `references/*.md` deep-dives + `assets/examples/*.robot`.
+  - **SKILL.md**: Quick Reference, Installation — the new_core RF library is **published on PyPI as a prebuilt prerelease wheel** (`robotframework-PlatynUI==0.12.0.dev330`, verified), so the normal path is `pip install --pre robotframework-PlatynUI` or an exact pin; **no git branch and no Rust toolchain** (the wheel bundles the compiled `platynui-native` runtime, Python 3.12+). A Rust source build is only needed for the optional mock provider. Library Import (`PlatynUI.BareMetal`, `use_mock`, `auto_activate`, profile args), Essential Concepts (the normalized desktop UI model, the four query namespaces `control`/`item`/`app`/`native`, the XPath query language, lazy 30 s element resolution, coordinate semantics, window patterns), a grouped Core Keywords reference, a Locator Strategy section, Common Patterns, a CLI-tooling section (`platynui-cli` query/snapshot/highlight + the inspector — the locator-development loop), Troubleshooting (AT-SPI, X11-vs-Wayland, mock), and the standard "load references" + "companion skills" tables.
+  - **references/**: `keywords-reference.md` (full BareMetal keyword inventory with real signatures — supplies the docs the library lacks), `locators-and-queries.md` (UI model, namespaces, XPath syntax/axes/functions, role vocabulary, best practices), `cli-and-inspector.md` (`platynui-cli` subcommands + inspector), `platform-setup.md` (Linux AT-SPI2 + X11/Wayland, mock provider, Docker/headless), `status-and-migration.md` (BareMetal vs the placeholder high-level lib; preview caveat; difference from the older PyPI `PlatynUI` surface).
+  - **assets/examples/**: a live-desktop example adapted from the repo's `calc.robot`/`anv.robot` patterns, plus a `use_mock=${True}` example **explicitly labelled as requiring a `--features mock-provider` source build** — verified that the published wheel's `platynui-native` raises `ProviderError` on `Runtime.new_with_mock()`, so the mock example is a teaching artifact, not a pip-runnable one.
+- Wire the skill into the distribution channels: add the short-name mapping (`robotframework-platynui-skill` → `platynui`) in `scripts/sync-skills.sh`, run sync so the plugin + VS Code channels pick it up, and confirm `scripts/check-drift.sh` stays green.
+- Add the `platynui` signal to the `UserPromptSubmit` context-injection hook regex (`maybe_inject_rf_context.mjs`) and its negative/positive test lists, so PlatynUI prompts trigger the skill hints.
+- Add **tests**: structural/frontmatter validation for the new skill (folds into the existing marketplace validation), and a keyword-fidelity test that checks the keyword names the skill documents actually exist in `PlatynUI.BareMetal` (via libdoc). Verified that libdoc on `PlatynUI.BareMetal` works **fully headless** (the native Runtime is lazy — created on first keyword use, not at import/libdoc), so installing `robotframework-PlatynUI==0.12.0.dev330` in CI lets this test run **for real with no desktop and no skip**; the `skipif` guard remains only as a safety net when the optional dependency is absent.
+- Cross-reference the new skill from companion skills (`rf-libdoc-search`, `rf-keyword-builder`, etc.) where the existing library skills are listed.
+
+## Capabilities
+
+### New Capabilities
+- `platynui-skill`: An Agent Skill that teaches an LLM to author Robot Framework native-desktop UI tests with PlatynUI's `new_core` `BareMetal` library — covering installation/tooling, the XPath query/locator model, the full keyword surface (with the docs the library itself omits), idiomatic patterns, and platform setup — plus its integration into the repo's distribution channels and validation.
+
+### Modified Capabilities
+<!-- No existing OpenSpec specs to modify (openspec/specs/ contains only rf-validation-hooks). -->
+
+## Impact
+
+- **New skill tree** (single source of truth): `skills/robotframework-platynui-skill/{SKILL.md,references/*.md,assets/examples/*.robot}`.
+- **Sync tooling**: `scripts/sync-skills.sh` (add `SHORT_NAMES["robotframework-platynui-skill"]="platynui"`); regenerated copies under `plugins/rf-agentskills/skills/platynui/` and `vscode-extension/skills/rf-platynui/` (auto-generated, not hand-edited). `vscode-extension/package.json` `chatSkills` list updates via the sync script.
+- **Hook**: `plugins/rf-agentskills/scripts/maybe_inject_rf_context.mjs` (+ installer mirror via the build hook) — add `platynui` to the trigger regex; update `tests/test_hook_scripts.py` trigger/miss lists.
+- **Tests**: `tests/` gains a PlatynUI skill validation/keyword-fidelity test; existing marketplace validation auto-covers the new SKILL.md.
+- **Docs**: README skill list / counts; companion-skill cross-references in sibling skills.
+- **No application code or library bundling** — PlatynUI stays an external, user-installed dependency (preview, install via `--pre` / exact pin); the skill never vendors it.
+- **Dependencies**: none added to the shipped package. The keyword-fidelity test installs `robotframework-PlatynUI==0.12.0.dev330` as an optional CI test input (prebuilt wheel, fast, no Rust); when absent it skips.
+- **Known risk — the version footgun (experimentally confirmed)**: `new_core` IS published on PyPI, but only as a **prerelease** (`0.12.0.dev330`). A naive `pip install robotframework-PlatynUI` (unpinned, no `--pre`) silently installs the old stable **`0.9.2`**, which exposes a *completely different, near-undocumented* surface (the 19-keyword `PlatynUI` library, **no `BareMetal`**). You only get new_core via `--pre` (unpinned) or an exact prerelease pin (`==0.12.0.dev330`, which uv/pip accept without `--pre`). The skill must make this opt-in explicit and pin guidance to `new_core`/`BareMetal` — preventing this dead-end is a core reason the skill exists.

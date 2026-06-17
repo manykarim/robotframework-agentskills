@@ -38,6 +38,13 @@ jobs:
           pip install robotframework pytest pytest-asyncio robotframework-robocop robotframework-find-unused
           pip install -e ./installer
         shell: bash
+      - name: Install PlatynUI (optional — rf-platynui keyword-fidelity test)
+        # PlatynUI new_core requires Python 3.12+; the fidelity test skips when
+        # it's absent, so this install is fail-soft (no-op on the 3.10 matrix
+        # leg or if the pre-release is unavailable). Pinned to the verified
+        # pre-release; prebuilt wheel, no Rust.
+        run: pip install "robotframework-PlatynUI==0.12.0.dev330" || echo "PlatynUI unavailable on this interpreter — rf-platynui fidelity test will skip"
+        shell: bash
       - name: Run tests
         # tests/eval/ is the rf-skill-eval harness suite — an INTERNAL
         # workspace package (root pyproject; "Private :: Do Not Upload")

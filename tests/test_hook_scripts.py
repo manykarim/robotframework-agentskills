@@ -126,6 +126,7 @@ def _expect_injection(stdout: str) -> dict:
         "robotidy says this file has formatting issues",
         "rfbrowser init failed — what now?",
         "Rewrite this test using RESTinstance",
+        "Automate the desktop calculator with PlatynUI",
     ],
 )
 def test_inject_fires_on_rf_signals(prompt: str) -> None:

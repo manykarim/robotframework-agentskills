@@ -1,6 +1,6 @@
 # Robot Framework Agent Skills
 
-AI agent skills for Robot Framework test automation, distributed for **seven coding agents**: Claude Code, GitHub Copilot (VS Code), OpenAI Codex, Cursor, OpenCode, Project Goose, Claude Desktop. Includes skills for web testing (Browser/Selenium), API testing (Requests/RESTinstance), mobile testing (Appium), asset generation, and RF analysis tools — plus 4 specialised subagents, 4 hooks, and an MCP server.
+AI agent skills for Robot Framework test automation, distributed for **seven coding agents**: Claude Code, GitHub Copilot (VS Code), OpenAI Codex, Cursor, OpenCode, Project Goose, Claude Desktop. Includes skills for web testing (Browser/Selenium), API testing (Requests/RESTinstance), mobile testing (Appium), native desktop testing (PlatynUI, preview), asset generation, and RF analysis tools — plus 4 specialised subagents, 4 hooks, and an MCP server.
 
 ## Install
 
@@ -89,7 +89,7 @@ bundled content: 1.2.0  (from rf-agentskills plugin manifest)
 
 ## What You Get
 
-### 11 Skills
+### 12 Skills
 
 | Skill | Type | Command | Description |
 |-------|------|---------|-------------|
@@ -98,6 +98,7 @@ bundled content: 1.2.0  (from rf-agentskills plugin manifest)
 | AppiumLibrary | library-reference | `/rf-agentskills:appium` | Mobile testing for iOS and Android |
 | RequestsLibrary | library-reference | `/rf-agentskills:requests` | REST API testing with HTTP methods |
 | RESTinstance | library-reference | `/rf-agentskills:restinstance` | REST API testing with JSON Schema validation |
+| PlatynUI (preview) | library-reference | `/rf-agentskills:platynui` | Native desktop UI testing (Windows UIA, Linux AT-SPI2) via PlatynUI.BareMetal |
 | Keyword Builder | script-based | `/rf-agentskills:keyword-builder` | Generate RF user keywords from structured input |
 | Test Case Builder | script-based | `/rf-agentskills:testcase-builder` | Generate RF test cases from structured input |
 | Resource Architect | script-based | `/rf-agentskills:resource-architect` | Design resource/variable file layouts |
@@ -142,6 +143,7 @@ pip install robotframework-seleniumlibrary  # Selenium skill
 pip install robotframework-appiumlibrary    # Appium skill
 pip install robotframework-requests   # Requests skill
 pip install RESTinstance              # RESTinstance skill
+pip install --pre robotframework-PlatynUI   # PlatynUI skill (preview; Python 3.12+; NOT plain install — see skill)
 ```
 
 ## Team Distribution
@@ -172,7 +174,7 @@ Agent Skills are modular, self-contained packages that include a `SKILL.md` file
 ## Project Structure
 
 ```
-skills/                        # Canonical source of truth (11 skills)
+skills/                        # Canonical source of truth (12 skills)
 ├── robotframework-*/          # Each skill is a self-contained folder
 │   ├── SKILL.md               # Skill definition (loaded by agent)
 │   ├── scripts/               # Python scripts (executed, not loaded)
