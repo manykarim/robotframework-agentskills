@@ -28,6 +28,19 @@ Or for every detected agent in one shot:
 rf-agentskills install --all
 ```
 
+### Installing a pre-release
+
+Pre-releases (e.g. `0.5.0rc2`) need an opt-in: `pipx install --pip-args=--pre rf-agentskills`, or with uv `uv tool install --prerelease allow rf-agentskills` / an exact pin `rf-agentskills==0.5.0rc2`.
+
+**Troubleshooting — "no version of rf-agentskills==<rc>":** if `uv add`/`uv pip`/`pip` reports it can't find a pre-release you know was just published, your index cache is stale (common the same day a release lands). Refresh it:
+
+```bash
+uv cache clean rf-agentskills      # or: uv add --refresh …
+pip install --no-cache-dir --pre rf-agentskills
+```
+
+To make pre-release intent self-documenting in a project, add `[tool.uv]\nprerelease = "allow"` to its `pyproject.toml`.
+
 ## Subcommands
 
 ```

@@ -24,6 +24,8 @@ python scripts/rf_libdoc.py --library SeleniumLibrary --resource resources/commo
 ## Notes
 - Use `--library`, `--resource`, `--suite`, or `--spec` (repeatable). Inputs are aggregated.
 - Search considers keyword name, `short_doc`, and full `doc`.
+- **Output contract (stable):** returns `{schema_version, mode, libraries, results, query, ...}` with `mode="search"`. `results` is a single array of `{library, keyword, usage, score, reasons}` (search items carry `score`/`reasons`; `usage` is `null`). Read `results` without branching on top-level keys.
+- **Payload is bounded:** library prose `doc` is **not** included by default — only `{name, type, version, scope, doc_format, short_doc}` per library. Pass `--include-library-doc` to add the full `doc`.
 - Use `--tag` to filter keywords by tag.
 - Use `--include-private` to include private keywords.
 - Use `--exclude-deprecated` to drop deprecated keywords.

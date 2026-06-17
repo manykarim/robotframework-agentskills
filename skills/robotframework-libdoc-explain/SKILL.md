@@ -29,6 +29,9 @@ python scripts/rf_libdoc.py --library SeleniumLibrary --keyword "Open Brows" --s
 
 ## Notes
 - Use `--library`, `--resource`, `--suite`, or `--spec` (repeatable). Inputs are aggregated.
-- Exact keyword matches return `keyword_matches` with argument breakdown.
-- If no exact match, the script returns `matches` using name + `short_doc` + `doc` search.
+- **Output contract (stable):** every call returns `{schema_version, mode, libraries, results, ...}`.
+  - `mode` is `"explain"` (exact keyword found), `"fallback"` (no exact match → search suggestions), `"search"`, or `"list"`.
+  - `results` is a single array; read it without branching on top-level keys. Each item is `{library, keyword, usage, score, reasons}` — `usage` is populated on explain/fallback, `score`/`reasons` on search; non-applicable fields are `null`.
+  - `usage.params` is `[{name, type, default, kind}]` with `kind ∈ required|optional|vararg|kwarg|named_only` (`name` is the bare param, no `: type`); `usage.defaults` is keyed by bare name.
+- **Payload is bounded:** library prose `doc` is **not** included by default. Pass `--include-library-doc` to add each library's full `doc`/`source` to `libraries[]`.
 - Use `--tag`, `--include-private`, `--exclude-deprecated` as filters.

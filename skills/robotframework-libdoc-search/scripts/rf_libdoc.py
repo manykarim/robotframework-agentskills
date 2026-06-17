@@ -53,31 +53,81 @@ def _stringify_args(arg_list: List[Any]) -> List[str]:
     return [str(arg) for arg in (arg_list or [])]
 
 
+def _split_arg(arg: str) -> Tuple[str, str | None, str | None]:
+    """Split a raw libdoc arg string into (name, type, default).
+
+    Handles ``name``, ``name: Type``, ``name=default``, and
+    ``name: Type = default``. The ``name`` is returned without any leading
+    ``*``/``**`` sigil; ``type`` and ``default`` are ``None`` when absent.
+    """
+    body = arg
+    default: str | None = None
+    if "=" in body:
+        body, default = body.split("=", 1)
+        body = body.strip()
+        default = default.strip()
+    name = body
+    typ: str | None = None
+    if ":" in body:
+        name, typ = body.split(":", 1)
+        name = name.strip()
+        typ = typ.strip()
+    return name.strip(), typ, default
+
+
 def _parse_keyword_args(arg_list: List[str]) -> Dict[str, Any]:
-    required = []
-    optional = []
-    varargs = []
-    kwargs = []
+    """Structured argument breakdown.
+
+    Each entry in ``params`` is ``{name, type, default, kind}`` with a bare
+    parameter name (no ``: type`` annotation). ``kind`` is one of
+    ``required``, ``optional``, ``vararg``, ``kwarg``, ``named_only``.
+    Arguments that appear after a ``*``/vararg sentinel are keyword-only and
+    are tagged ``named_only`` (distinct from ordinary ``optional``).
+
+    ``required``/``optional`` (clean names) and ``defaults`` (keyed by bare
+    name) are kept for convenience/back-reference; ``raw`` preserves the
+    verbatim libdoc strings.
+    """
+    params: List[Dict[str, Any]] = []
+    required: List[str] = []
+    optional: List[str] = []
+    varargs: List[str] = []
+    kwargs: List[str] = []
     defaults: Dict[str, str] = {}
+    seen_star = False  # any *args / bare * → following positionals are keyword-only
 
     for arg in arg_list:
         if arg.startswith("**"):
-            kwargs.append(arg[2:])
+            name, typ, _ = _split_arg(arg[2:])
+            kwargs.append(name)
+            params.append({"name": name, "type": typ, "default": None, "kind": "kwarg"})
+            seen_star = True
             continue
         if arg.startswith("*"):
-            varargs.append(arg[1:])
+            inner = arg[1:]
+            seen_star = True
+            if not inner.strip():
+                # bare ``*`` sentinel: marks the start of keyword-only args,
+                # not a parameter of its own.
+                continue
+            name, typ, _ = _split_arg(inner)
+            varargs.append(name)
+            params.append({"name": name, "type": typ, "default": None, "kind": "vararg"})
             continue
-        if "=" in arg:
-            name, default = arg.split("=", 1)
-            name = name.strip()
-            default = default.strip()
+
+        name, typ, default = _split_arg(arg)
+        if default is not None:
+            kind = "named_only" if seen_star else "optional"
             optional.append(name)
             defaults[name] = default
-            continue
-        required.append(arg.strip())
+        else:
+            kind = "named_only" if seen_star else "required"
+            (optional if seen_star else required).append(name)
+        params.append({"name": name, "type": typ, "default": default, "kind": kind})
 
     return {
         "raw": arg_list,
+        "params": params,
         "required": required,
         "optional": optional,
         "varargs": varargs,
@@ -101,15 +151,44 @@ def _keyword_to_dict(keyword: Any) -> Dict[str, Any]:
     }
 
 
-def _library_meta(lib: Any) -> Dict[str, Any]:
-    return {
+def _library_meta(lib: Any, include_doc: bool = False) -> Dict[str, Any]:
+    """Top-level library metadata.
+
+    The full prose ``doc`` (tens of KB for libraries like Browser) and
+    ``source`` are omitted by default — a search/explain response should be
+    bounded by the matched keywords, not fixed library overhead. Pass
+    ``include_doc=True`` (CLI ``--include-library-doc``) to restore them.
+    """
+    meta: Dict[str, Any] = {
         "name": lib.name,
         "type": lib.type,
         "version": lib.version,
-        "doc": lib.doc,
-        "source": str(lib.source) if lib.source is not None else None,
         "scope": getattr(lib, "scope", None),
         "doc_format": getattr(lib, "doc_format", None),
+        "short_doc": getattr(lib, "short_doc", None),
+    }
+    if include_doc:
+        meta["doc"] = lib.doc
+        meta["source"] = str(lib.source) if lib.source is not None else None
+    return meta
+
+
+def _library_ref(lib: Any) -> Dict[str, Any]:
+    """Minimal per-result library reference — never carries prose ``doc``."""
+    return {"name": lib.name, "type": lib.type, "version": lib.version}
+
+
+def _make_result(lib: Any, keyword: Any, *, usage: Any = None,
+                 score: Any = None, reasons: Any = None) -> Dict[str, Any]:
+    """One uniform result item. Fields that don't apply to the mode are
+    ``None`` (or empty) rather than absent, so consumers never branch on
+    shape."""
+    return {
+        "library": _library_ref(lib),
+        "keyword": _keyword_to_dict(keyword),
+        "usage": usage,
+        "score": score,
+        "reasons": reasons,
     }
 
 
@@ -206,14 +285,7 @@ def _search_keywords(libs: List[Any], query: str, weights: Dict[str, float], lim
             score, reasons = _score_keyword(query, kw, weights)
             if score <= 0:
                 continue
-            matches.append(
-                {
-                    "library": {"name": lib.name, "type": lib.type},
-                    "keyword": _keyword_to_dict(kw),
-                    "score": round(score, 4),
-                    "reasons": reasons,
-                }
-            )
+            matches.append(_make_result(lib, kw, score=round(score, 4), reasons=reasons))
     matches.sort(key=lambda m: m["score"], reverse=True)
     return matches[:limit]
 
@@ -226,11 +298,8 @@ def _find_keyword(libs: List[Any], keyword_name: str, include_private: bool,
         keywords = _filter_keywords(list(lib.keywords or []), include_private, exclude_deprecated, tags)
         for kw in keywords:
             if _normalize(kw.name) == normalized:
-                matches.append({
-                    "library": _library_meta(lib),
-                    "keyword": _keyword_to_dict(kw),
-                    "usage": _parse_keyword_args(_stringify_args(list(kw.args or []))),
-                })
+                usage = _parse_keyword_args(_stringify_args(list(kw.args or [])))
+                matches.append(_make_result(lib, kw, usage=usage))
     return matches
 
 
@@ -251,8 +320,68 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--name", default="", help="Override library name")
     parser.add_argument("--version", default="", help="Override library version")
     parser.add_argument("--doc-format", default=None, help="Doc format (ROBOT/HTML/TEXT)")
+    parser.add_argument(
+        "--include-library-doc",
+        action="store_true",
+        help="Include each library's full prose doc/source in libraries[] (off by default).",
+    )
     parser.add_argument("--pretty", action="store_true")
     return parser.parse_args()
+
+
+SCHEMA_VERSION = 1
+
+
+def build_response(libs: List[Any], *, keyword: str | None = None, search: str | None = None,
+                   weights: Dict[str, float], limit: int = 20,
+                   include_private: bool = False, exclude_deprecated: bool = False,
+                   tags: List[str] | None = None, include_library_doc: bool = False,
+                   load_errors: List[Dict[str, str]] | None = None) -> Dict[str, Any]:
+    """Build the unified response: ``{schema_version, mode, libraries, results, ...}``.
+
+    Shared by the CLI and the rf-tools MCP server so both emit one identical
+    shape. ``mode`` ∈ ``explain`` | ``fallback`` | ``search`` | ``list``;
+    ``results`` is a single array of uniform items.
+    """
+    tags = tags or []
+    data: Dict[str, Any] = {
+        "schema_version": SCHEMA_VERSION,
+        "mode": "list",
+        "libraries": [_library_meta(lib, include_doc=include_library_doc) for lib in libs],
+        "results": [],
+    }
+    if load_errors:
+        data["errors"] = load_errors
+
+    if keyword:
+        results = _find_keyword(libs, keyword, include_private, exclude_deprecated, tags)
+        if results:
+            data["mode"] = "explain"
+            data["results"] = results
+        else:
+            data["mode"] = "fallback"
+            data["query"] = search or keyword
+            data["results"] = _search_keywords(
+                libs, data["query"], weights, limit, include_private, exclude_deprecated, tags
+            )
+            if not data["results"]:
+                data["hint"] = "No keyword matches found. Try a broader search or adjust weights."
+    elif search:
+        data["mode"] = "search"
+        data["query"] = search
+        data["results"] = _search_keywords(
+            libs, search, weights, limit, include_private, exclude_deprecated, tags
+        )
+        if not data["results"]:
+            data["hint"] = "No keyword matches found. Try a broader search or adjust weights."
+    else:
+        data["mode"] = "list"
+        data["results"] = [
+            _make_result(lib, kw)
+            for lib in libs
+            for kw in _filter_keywords(list(lib.keywords or []), include_private, exclude_deprecated, tags)
+        ]
+    return data
 
 
 def main() -> None:
@@ -269,48 +398,18 @@ def main() -> None:
     libs = _load_docs(args.library, args.resource, args.suite, args.spec, args.name, args.version, args.doc_format, errors=load_errors)
     weights = _parse_weights(args.weights)
 
-    data: Dict[str, Any] = {
-        "libraries": [_library_meta(lib) for lib in libs],
-    }
-    if load_errors:
-        data["errors"] = load_errors
-
-    if args.keyword:
-        matches = _find_keyword(libs, args.keyword, args.include_private, args.exclude_deprecated, args.tag)
-        if matches:
-            data["keyword_matches"] = matches
-        else:
-            query = args.search or args.keyword
-            data["matches"] = _search_keywords(
-                libs,
-                query,
-                weights,
-                args.limit,
-                args.include_private,
-                args.exclude_deprecated,
-                args.tag,
-            )
-            if not data["matches"]:
-                data["hint"] = "No keyword matches found. Try a broader search or adjust weights."
-    elif args.search:
-        data["query"] = args.search
-        data["matches"] = _search_keywords(
-            libs,
-            args.search,
-            weights,
-            args.limit,
-            args.include_private,
-            args.exclude_deprecated,
-            args.tag,
-        )
-        if not data["matches"]:
-            data["hint"] = "No keyword matches found. Try a broader search or adjust weights."
-    else:
-        data["keywords"] = [
-            _keyword_to_dict(kw)
-            for lib in libs
-            for kw in _filter_keywords(list(lib.keywords or []), args.include_private, args.exclude_deprecated, args.tag)
-        ]
+    data = build_response(
+        libs,
+        keyword=args.keyword,
+        search=args.search,
+        weights=weights,
+        limit=args.limit,
+        include_private=args.include_private,
+        exclude_deprecated=args.exclude_deprecated,
+        tags=args.tag,
+        include_library_doc=args.include_library_doc,
+        load_errors=load_errors,
+    )
 
     if args.pretty:
         print(json.dumps(data, indent=2))

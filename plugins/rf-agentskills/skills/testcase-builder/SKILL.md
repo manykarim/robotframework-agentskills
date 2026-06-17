@@ -62,6 +62,11 @@ python3 "${CLAUDE_PLUGIN_ROOT}/scripts/testcase_builder.py" --input tests.json
   emits a warning for each control keyword found, encouraging you to move
   control logic into user keywords.
 - `--input FILE` -- Path to the JSON input file (alternative to stdin).
+- `--full-suite` -- Wrap the output in a `*** Test Cases ***` section so the
+  `artifact` is a directly saveable, runnable `.robot` file. Without it (the
+  default) the `artifact` is a **section fragment** — the test case block(s)
+  only, no header — meant to be embedded into an existing suite (e.g. one that
+  already has `*** Settings ***`/`*** Keywords ***`).
 
 ## Timeout support
 
@@ -76,5 +81,7 @@ Add `"timeout"` to a test object to render a `[Timeout]` setting:
 ```
 
 ## Output (JSON)
-- `artifact`: test case block(s)
+- `artifact`: test case block(s). A `*** Test Cases ***` section fragment by
+  default; a full saveable suite when `--full-suite` is passed.
+- `full_suite`: whether the artifact includes the section header.
 - `warnings` and `suggestions`

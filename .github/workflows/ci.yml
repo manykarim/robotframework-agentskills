@@ -45,6 +45,12 @@ jobs:
         # pre-release; prebuilt wheel, no Rust.
         run: pip install "robotframework-PlatynUI==0.12.0.dev330" || echo "PlatynUI unavailable on this interpreter — rf-platynui fidelity test will skip"
         shell: bash
+      - name: Install Browser Library (optional — libdoc output regression tests)
+        # Lets the Browser-specific rf_libdoc tests (named-only args, payload
+        # bounds) run for real; skip-if-absent otherwise. No `rfbrowser init`
+        # needed — libdoc only introspects the Python library.
+        run: pip install robotframework-browser || echo "Browser unavailable — those libdoc tests will skip"
+        shell: bash
       - name: Run tests
         # tests/eval/ is the rf-skill-eval harness suite — an INTERNAL
         # workspace package (root pyproject; "Private :: Do Not Upload")
