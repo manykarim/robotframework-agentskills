@@ -2042,7 +2042,7 @@ wheels = [
 
 [[package]]
 name = "rf-agentskills"
-version = "0.5.0rc1"
+version = "0.5.0rc2"
 source = { editable = "installer" }
 dependencies = [
     { name = "pyyaml" },

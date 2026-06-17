@@ -4,7 +4,15 @@ The `rf-agentskills` package is versioned independently from the
 content bundle (Claude Code plugin, VS Code extension, skills
 tarballs). See `RELEASING.md` at the repo root for the policy.
 
-## Unreleased
+## 0.5.0rc3 — 2026-06-17 (pre-release)
+
+Third pre-release toward 0.5.0. Fixes the Stop-hook loop and overhauls the
+libdoc script output. Install with `pip install --pre rf-agentskills` or the
+attached wheel.
+
+### Bundled content
+- **rf-agentskills plugin manifest: 1.2.0** — Stop-hook scripts and the
+  libdoc/testcase scripts updated (see below).
 
 ### Fixed
 - **Stop-hook infinite loop (High; blocker for promoting any `0.5.0rc*` to
