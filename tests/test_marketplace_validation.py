@@ -12,7 +12,7 @@ def test_marketplace_json_exists():
 
 
 def test_marketplace_json_valid():
-    with open(ROOT / ".claude-plugin" / "marketplace.json") as f:
+    with open(ROOT / ".claude-plugin" / "marketplace.json", encoding="utf-8") as f:
         data = json.load(f)
     assert "name" in data
     assert "owner" in data
@@ -26,14 +26,14 @@ def test_plugin_json_exists():
 
 
 def test_plugin_json_valid():
-    with open(PLUGIN_ROOT / ".claude-plugin" / "plugin.json") as f:
+    with open(PLUGIN_ROOT / ".claude-plugin" / "plugin.json", encoding="utf-8") as f:
         data = json.load(f)
     assert "name" in data
     assert "version" in data
 
 
 def test_all_plugin_sources_exist():
-    with open(ROOT / ".claude-plugin" / "marketplace.json") as f:
+    with open(ROOT / ".claude-plugin" / "marketplace.json", encoding="utf-8") as f:
         data = json.load(f)
     for plugin in data["plugins"]:
         source = plugin["source"]
@@ -50,7 +50,7 @@ def test_all_skills_have_skill_md():
 
 
 def test_plugin_names_unique():
-    with open(ROOT / ".claude-plugin" / "marketplace.json") as f:
+    with open(ROOT / ".claude-plugin" / "marketplace.json", encoding="utf-8") as f:
         data = json.load(f)
     names = [p["name"] for p in data["plugins"]]
     assert len(names) == len(set(names)), "Duplicate plugin names found"
@@ -64,7 +64,7 @@ def test_skill_md_frontmatter():
         skill_md = entry / "SKILL.md"
         if not skill_md.exists():
             continue
-        content = skill_md.read_text()
+        content = skill_md.read_text(encoding="utf-8")
         assert content.startswith("---"), f"{entry.name}/SKILL.md missing frontmatter"
         end = content.find("---", 3)
         assert end != -1, f"{entry.name}/SKILL.md unclosed frontmatter"
