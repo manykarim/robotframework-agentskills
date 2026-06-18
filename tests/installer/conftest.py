@@ -29,6 +29,9 @@ def fake_home(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
     monkeypatch.setenv("USERPROFILE", str(tmp_path))   # Windows
     monkeypatch.setenv("APPDATA", str(tmp_path / "AppData" / "Roaming"))
     monkeypatch.setenv("LOCALAPPDATA", str(tmp_path / "AppData" / "Local"))
+    # Project scope is the default and targets the CWD — chdir into the
+    # sandbox so a default-scope install never writes into the real repo.
+    monkeypatch.chdir(tmp_path)
     return tmp_path
 
 

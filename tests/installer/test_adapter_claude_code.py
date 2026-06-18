@@ -84,7 +84,9 @@ def test_plan_includes_hooks_and_mcp_merges(install_prefix: Path) -> None:
 def test_plan_merge_kinds(install_prefix: Path) -> None:
     plan = ClaudeCodeAdapter().plan(InstallOptions(prefix=install_prefix))
     by_kind = {m.kind: m for m in plan.merges}
-    assert "json_top" in by_kind   # hooks block
+    assert "json_hooks" in by_kind   # hooks block (granular, ownership-aware)
+    assert by_kind["json_hooks"].key_path == ("hooks",)
+    assert by_kind["json_hooks"].marker  # install-dir ownership marker recorded
     assert "json_nested" in by_kind  # MCP servers under mcpServers
     assert by_kind["json_nested"].key_path == ("mcpServers",)
 
@@ -136,7 +138,8 @@ def test_end_to_end_install_and_uninstall(install_prefix: Path, fake_home: Path)
     mcp = json.loads((install_prefix / ".mcp.json").read_text())
     assert "mcpServers" in mcp
 
-    # Now uninstall
+    # Now uninstall — manifest is CWD/project-scoped (fake_home chdir), so
+    # the absolute paths recorded at install are removed from the prefix.
     rc = main(["uninstall", "--agent", "claude-code"])
     assert rc == 0
 

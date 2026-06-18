@@ -4,6 +4,41 @@ The `rf-agentskills` package is versioned independently from the
 content bundle (Claude Code plugin, VS Code extension, skills
 tarballs). See `RELEASING.md` at the repo root for the policy.
 
+## 0.6.0 — 2026-06-18
+
+Installer onboarding + uninstall-safety overhaul. No content-bundle change
+(plugin tree untouched), so this is a tooling-only release.
+
+### Added
+- **Interactive install wizard.** Bare `rf-agentskills install` in a terminal
+  now shows a multi-select of known agents (detected ones pre-checked) instead
+  of erroring. Built on `questionary` (optional `[interactive]` extra) with a
+  dependency-free stdlib numbered-selector fallback.
+- **Headless selectors.** `--agents all|none|detected|<csv>` plus `--yes` and
+  `--no-input`; non-TTY stdin is treated as non-interactive automatically.
+  Nothing detected + no selection in a non-interactive context exits non-zero
+  with the valid-agent list. `--agent`/`--all` kept as back-compat.
+- **Zero-install entry point** via PyPI: `uvx rf-agentskills install` /
+  `pipx run rf-agentskills install`.
+
+### Changed
+- **Project scope is now the default** (was user). Bare installs write into the
+  current directory (`./.claude/` etc.); `--scope user` opts into a global
+  home-directory install. `--project` defaults to CWD.
+- **Uninstall manifest follows scope** — project installs keep it in
+  `<project>/.rf-agentskills/`, user installs in the global data dir — so two
+  projects no longer collide on the `(agent, scope)` key.
+
+### Fixed
+- **Hooks merge no longer clobbers other tools' or the user's hooks.** The
+  previous merge replaced the entire `settings.json` `hooks` key on install
+  (wiping foreign/user hooks) and dropped the whole key on uninstall (or
+  stranded our own when `hooks` pre-existed). Hooks are now merged granularly
+  per event and removed by an install-dir ownership marker — foreign and
+  user-authored hooks are preserved on both install and uninstall, re-install
+  is idempotent, and no orphaned commands are left behind. (The MCP per-server
+  merge was already granular.) Cursor's `hooks.json` merge gets the same fix.
+
 ## 0.5.0 — 2026-06-18
 
 Stable 0.5.0, consolidating pre-releases rc1–rc3. Install with

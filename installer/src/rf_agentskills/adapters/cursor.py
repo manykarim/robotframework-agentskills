@@ -253,19 +253,27 @@ class CursorAdapter(AdapterBase):
         events = hooks_obj.get("hooks", hooks_obj)
         cursor_events = _x.rewrite_hooks_for_cursor(events)
 
+        # Ownership marker: rf-agentskills hook commands reference this
+        # install dir. Granular merge preserves any user/other-tool hooks
+        # already present in hooks.json.
+        marker = plugin_root_abs
+
         def apply() -> list[str]:
-            return _x.merge_json_file(hooks_path, "hooks", cursor_events)
+            return _x.merge_hooks_block(hooks_path, cursor_events, marker=marker)
 
         def revert() -> None:
-            _x.remove_json_keys(hooks_path, ["hooks"])
+            _x.remove_owned_hook_entries(
+                hooks_path, marker=marker, events=list(cursor_events)
+            )
 
         return ConfigMergeOp(
             path=hooks_path,
             description=f"merge hooks block into {hooks_path}",
             apply=apply,
             revert=revert,
-            kind="json_top",
-            key_path=(),
+            kind="json_hooks",
+            key_path=("hooks",),
+            marker=marker,
         )
 
     def _mcp_merge_op(

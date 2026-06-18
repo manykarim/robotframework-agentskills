@@ -399,6 +399,121 @@ def merge_json_at_path(
     return added
 
 
+def _load_json_object(path: Path) -> dict[str, Any]:
+    """Read ``path`` as a JSON object, returning ``{}`` on any problem."""
+    if path.is_file():
+        try:
+            data = json.loads(path.read_text(encoding="utf-8"))
+            if not isinstance(data, dict):
+                return {}
+            return data
+        except (OSError, json.JSONDecodeError):
+            return {}
+    return {}
+
+
+def _hook_group_owned(group: Any, marker: str) -> bool:
+    """True if a hook matcher-group was installed by rf-agentskills.
+
+    Ownership is identified by the install-dir ``marker`` appearing in any
+    of the group's hook commands (every rf-agentskills hook command
+    references its ``rf-agentskills-files`` install dir). This avoids
+    polluting the hook schema with a sentinel field and reuses the exact
+    path already recorded in the manifest.
+    """
+    if not isinstance(group, dict):
+        return False
+    for h in group.get("hooks", []) or []:
+        if isinstance(h, dict) and marker and marker in str(h.get("command", "")):
+            return True
+    return False
+
+
+def merge_hooks_block(
+    path: Path,
+    events_value: dict[str, Any],
+    *,
+    marker: str,
+    top_key: str = "hooks",
+) -> list[str]:
+    """Granularly merge rf-agentskills hook entries into ``path``.
+
+    Claude Code ``settings.json`` (and Cursor ``hooks.json``) store hooks
+    as ``{top_key: {<Event>: [ {matcher, hooks:[...]} , ... ]}}``. Unlike a
+    whole-key replace, this:
+
+    * appends rf-agentskills' matcher-groups to each event **without
+      touching** groups owned by the user or other tools, and
+    * is **idempotent / update-safe**: any previously rf-agentskills-owned
+      group (identified by ``marker``) is dropped first, then the current
+      groups are appended — so a re-install never duplicates or strands
+      stale entries.
+
+    Returns the list of event names rf-agentskills contributed to (recorded
+    in the manifest so uninstall knows which events to clean).
+    """
+    data = _load_json_object(path)
+    block = data.get(top_key)
+    if not isinstance(block, dict):
+        block = {}
+
+    touched: list[str] = []
+    for event, groups in events_value.items():
+        existing = block.get(event)
+        if not isinstance(existing, list):
+            existing = []
+        kept = [g for g in existing if not _hook_group_owned(g, marker)]
+        kept.extend(groups)
+        block[event] = kept
+        touched.append(event)
+
+    data[top_key] = block
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(data, indent=2), encoding="utf-8")
+    return touched
+
+
+def remove_owned_hook_entries(
+    path: Path,
+    *,
+    marker: str,
+    events: list[str],
+    top_key: str = "hooks",
+) -> None:
+    """Inverse of :func:`merge_hooks_block` — remove only our hook groups.
+
+    For each recorded event, drops only matcher-groups owned by ``marker``;
+    foreign and user-authored groups are preserved. Prunes an event list
+    that becomes empty, prunes ``top_key`` if it becomes empty, and deletes
+    the file only if the whole document becomes ``{}`` (so a shared file
+    with other top-level keys or foreign hooks is retained).
+    """
+    if not path.is_file():
+        return
+    data = _load_json_object(path)
+    block = data.get(top_key)
+    if not isinstance(block, dict):
+        return
+    for event in events:
+        groups = block.get(event)
+        if not isinstance(groups, list):
+            continue
+        kept = [g for g in groups if not _hook_group_owned(g, marker)]
+        if kept:
+            block[event] = kept
+        else:
+            block.pop(event, None)
+    if not block:
+        data.pop(top_key, None)
+    if data:
+        path.write_text(json.dumps(data, indent=2), encoding="utf-8")
+    else:
+        try:
+            path.unlink()
+        except OSError:
+            pass
+
+
 def merge_toml_table(path: Path, table_path: list[str], value: Any) -> list[str]:
     """Set ``[a.b.c]`` to ``value`` in the TOML at ``path`` (round-trip).
 

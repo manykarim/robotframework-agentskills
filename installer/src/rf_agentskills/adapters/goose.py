@@ -90,8 +90,7 @@ class GooseAdapter(AdapterBase):
         if opts.prefix is not None:
             return opts.prefix / GOOSEHINTS_FILENAME
         if opts.scope == "project":
-            project = opts.project_dir
-            assert project is not None
+            project = opts.project_dir if opts.project_dir is not None else Path.cwd()
             return project / GOOSEHINTS_FILENAME
         return Path.home() / GOOSEHINTS_FILENAME
 
@@ -106,8 +105,7 @@ class GooseAdapter(AdapterBase):
         if opts.prefix is not None:
             return opts.prefix / "agents" / "skills"
         if opts.scope == "project":
-            project = opts.project_dir
-            assert project is not None
+            project = opts.project_dir if opts.project_dir is not None else Path.cwd()
             return project / ".agents" / "skills"
         return Path.home() / ".agents" / "skills"
 

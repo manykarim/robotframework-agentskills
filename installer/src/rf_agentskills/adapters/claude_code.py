@@ -232,12 +232,13 @@ class ClaudeCodeAdapter(AdapterBase):
         return data
 
     def _mcp_target(self, opts: InstallOptions) -> Path:
-        if opts.scope == "project":
-            assert opts.project_dir is not None
-            return opts.project_dir / ".mcp.json"
-        # User scope: claude code reads `~/.mcp.json` per docs.
+        # Resolution order matches install_root: prefix > project > user.
         if opts.prefix is not None:
             return opts.prefix / ".mcp.json"
+        if opts.scope == "project":
+            project = opts.project_dir if opts.project_dir is not None else Path.cwd()
+            return project / ".mcp.json"
+        # User scope: claude code reads `~/.mcp.json` per docs.
         return Path.home() / ".mcp.json"
 
     def _hooks_merge_op(
@@ -258,22 +259,29 @@ class ClaudeCodeAdapter(AdapterBase):
         # previous v0.4.1 ``.sh→.ps1`` rewrite was the source of the
         # broken Windows install — see docs/issues/.
 
+        # Ownership marker: every rf-agentskills hook command references
+        # this install dir, so it uniquely identifies the groups we add.
+        marker = plugin_root_abs
+
         def apply() -> list[str]:
-            return _x.merge_json_file(settings_path, HOOKS_KEY, hooks_value)
+            # Granular, ownership-aware: append our matcher-groups per
+            # event without clobbering hooks added by the user or other
+            # tools (the old whole-`hooks`-key replace destroyed them).
+            return _x.merge_hooks_block(settings_path, hooks_value, marker=marker)
 
         def revert() -> None:
-            # We drop the whole `hooks` key on revert; the plugin owns
-            # it. If the user has merged their own hooks in, they
-            # should re-author them after uninstall.
-            _x.remove_json_keys(settings_path, [HOOKS_KEY])
+            _x.remove_owned_hook_entries(
+                settings_path, marker=marker, events=list(hooks_value)
+            )
 
         return ConfigMergeOp(
             path=settings_path,
             description=f"merge hooks block into {settings_path}",
             apply=apply,
             revert=revert,
-            kind="json_top",
-            key_path=(),
+            kind="json_hooks",
+            key_path=(HOOKS_KEY,),
+            marker=marker,
         )
 
     def _mcp_merge_op(

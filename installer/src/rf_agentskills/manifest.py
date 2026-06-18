@@ -48,6 +48,21 @@ def default_manifest_path() -> Path:
     return Path.home() / ".local" / "share" / "rf-agentskills" / "installed.json"
 
 
+def manifest_path_for(scope: str, project_dir: Path | None) -> Path:
+    """Resolve the manifest location for a given install scope.
+
+    Project-scope installs keep their manifest **inside the project**
+    (``<project_or_cwd>/.rf-agentskills/installed.json``) so two projects
+    never collide on the ``(agent, scope)`` key and ``uninstall`` run from
+    within a repo needs no ``--project``. User-scope installs use the global
+    ``default_manifest_path()``.
+    """
+    if scope == "project":
+        base = project_dir if project_dir is not None else Path.cwd()
+        return base / ".rf-agentskills" / "installed.json"
+    return default_manifest_path()
+
+
 def sha256_file(path: Path) -> str:
     """SHA256 hex digest of the file at ``path``."""
     h = hashlib.sha256()
@@ -79,9 +94,14 @@ class ConfigMerge:
     """
     path: str
     added_keys: list[str]
-    kind: str = "json_top"             # "json_top" | "json_nested" | "toml_table" | "yaml_block"
+    kind: str = "json_top"             # "json_top" | "json_nested" | "json_hooks" | "toml_table" | "yaml_block"
     key_path: list[str] = field(default_factory=list)
     backup_path: str | None = None     # optional pre-merge backup we can restore
+    # For kind="json_hooks": install-dir ownership marker. ``added_keys``
+    # then holds the hook event names rf-agentskills contributed to, and
+    # uninstall removes only matcher-groups whose command contains this
+    # marker — preserving hooks added by the user or other tools.
+    marker: str | None = None
 
 
 @dataclass
@@ -134,6 +154,7 @@ class Manifest:
                             kind=m.get("kind", "json_top"),
                             key_path=list(m.get("key_path", [])),
                             backup_path=m.get("backup_path"),
+                            marker=m.get("marker"),
                         )
                         for m in entry.get("config_merges", [])
                     ],

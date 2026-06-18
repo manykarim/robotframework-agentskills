@@ -44,7 +44,7 @@ would falsely advertise stability and violate SemVer expectations of
 | Tag pattern | Workflow | What it produces |
 |---|---|---|
 | `v*` (e.g. `v1.3.0`) | `.github/workflows/release.yml` | Plugin tarball, `.vsix`, skills tarballs (Codex/Copilot/generic), GitHub release. Force-pushes `stable` and `latest` branches. |
-| `rf-agentskills-v*` (e.g. `rf-agentskills-v0.4.0`) | none (manual `gh release create` today) | Wheel + sdist on a GitHub release. PyPI upload step is a future follow-up. |
+| `rf-agentskills-v*` (e.g. `rf-agentskills-v0.4.0`) | none (manual `gh release create` + `uv publish` today) | Wheel + sdist on a GitHub release **and** on PyPI (`uvx rf-agentskills`). |
 
 The two patterns are non-overlapping so the flows can co-trigger or
 fire independently as needed.
@@ -108,5 +108,16 @@ during the messy pre-1.0 phase.
 5. Commit, push.
 6. `gh release create rf-agentskills-vX.Y.Z dist/rf_agentskills-*` with
    release notes referencing the bundled content version.
-7. (Future) `twine upload dist/rf_agentskills-*` once PyPI publishing
-   is wired up.
+7. **Publish to PyPI** so `uvx rf-agentskills` / `pipx run rf-agentskills`
+   resolves the new version:
+   ```bash
+   # API token in $PYPI_TOKEN (or a CI secret); never commit it.
+   uv publish --token "$PYPI_TOKEN" dist/rf_agentskills-*
+   # or: twine upload -u __token__ -p "$PYPI_TOKEN" dist/rf_agentskills-*
+   ```
+   Only `rf_agentskills-*` is public; the internal `rf-skill-eval` harness is
+   classified `Private :: Do Not Upload` and PyPI rejects it. After upload,
+   smoke-test the published artifact:
+   ```bash
+   uvx --refresh rf-agentskills@X.Y.Z version
+   ```

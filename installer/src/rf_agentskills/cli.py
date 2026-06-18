@@ -64,25 +64,38 @@ def _build_parser() -> argparse.ArgumentParser:
 
     # install ---------------------------------------------------------------
     sp = sub.add_parser("install", help="Install rf-agentskills into one or more agents.")
-    grp = sp.add_mutually_exclusive_group(required=True)
-    grp.add_argument("--agent", choices=all_names(), help="Single agent to install into.")
-    grp.add_argument("--all", action="store_true", help="Install into every detected agent.")
-    sp.add_argument("--scope", choices=("user", "project"), default="user")
-    sp.add_argument("--project", type=Path, help="Project directory (required with --scope project).")
+    grp = sp.add_mutually_exclusive_group(required=False)
+    grp.add_argument("--agent", choices=all_names(), help="Single agent (back-compat).")
+    grp.add_argument("--all", action="store_true", help="Every detected agent (back-compat).")
+    grp.add_argument(
+        "--agents",
+        metavar="SEL",
+        help="Selection: 'all' (every known agent), 'none', 'detected', "
+        "or a comma-separated list of agent ids. Omit for the interactive "
+        "wizard (or detected agents when non-interactive).",
+    )
+    sp.add_argument("--scope", choices=("project", "user"), default="project",
+                    help="Install scope (default: project).")
+    sp.add_argument("--project", type=Path, help="Project directory for --scope project (default: CWD).")
     sp.add_argument("--prefix", type=Path, help="Override install root (used by tests).")
     sp.add_argument(
         "--what",
         default="skills,agents,hooks,mcp",
         help="Comma-separated subset of categories to install (default: all).",
     )
+    sp.add_argument("--yes", "-y", action="store_true",
+                    help="Accept the detected default without prompting.")
+    sp.add_argument("--no-input", action="store_true",
+                    help="Never prompt; fail instead of asking (CI).")
     sp.add_argument("--dry-run", action="store_true", help="Show plan without writing.")
     sp.add_argument("--force", action="store_true", help="Overwrite user-modified files.")
 
     # uninstall -------------------------------------------------------------
     sp = sub.add_parser("uninstall", help="Remove a previous install (manifest-tracked).")
     sp.add_argument("--agent", choices=all_names(), required=True)
-    sp.add_argument("--scope", choices=("user", "project"), default="user")
-    sp.add_argument("--project", type=Path)
+    sp.add_argument("--scope", choices=("project", "user"), default="project",
+                    help="Install scope (default: project).")
+    sp.add_argument("--project", type=Path, help="Project directory for --scope project (default: CWD).")
     sp.add_argument("--dry-run", action="store_true")
 
     # list ------------------------------------------------------------------
@@ -107,51 +120,176 @@ def _build_parser() -> argparse.ArgumentParser:
 
 def _opts_from_args(args: argparse.Namespace) -> InstallOptions:
     what = frozenset(s.strip() for s in str(args.what).split(",") if s.strip())
+    project = args.project
+    if args.scope == "project" and project is None:
+        project = Path.cwd()
     return InstallOptions(
         scope=args.scope,
-        project_dir=args.project,
+        project_dir=project,
         prefix=args.prefix,
         what=what,
-        dry_run=args.dry_run,
-        force=args.force,
+        dry_run=getattr(args, "dry_run", False),
+        force=getattr(args, "force", False),
     )
 
 
+def _manifest_path(opts: InstallOptions) -> Path:
+    """Where this install's manifest lives — per scope (project-local for
+    project scope, global for user). ``--prefix`` overrides only the install
+    *root*, not the manifest, so install/uninstall stay symmetric and the
+    manifest never lands inside the install tree."""
+    return _m.manifest_path_for(opts.scope, opts.project_dir)
+
+
+def _detected_names() -> list[str]:
+    return [cls().name for cls in ALL_ADAPTERS if cls().detect()]
+
+
+class _SelectionError(ValueError):
+    """Raised for an invalid --agents value."""
+
+
+def _explicit_selection(args: argparse.Namespace) -> list[str] | None:
+    """Resolve an explicit selection from flags, or None if none was given.
+
+    Returns a (possibly empty) list of agent names. An empty list ('none')
+    is distinct from None ('no flag given' → wizard / detected fallback).
+    """
+    if getattr(args, "agent", None):
+        return [args.agent]
+    if getattr(args, "all", False):
+        return _detected_names()
+    sel = getattr(args, "agents", None)
+    if sel is None:
+        return None
+    token = sel.strip().lower()
+    if token == "all":
+        return list(all_names())
+    if token == "none":
+        return []
+    if token == "detected":
+        return _detected_names()
+    names = [s.strip() for s in sel.split(",") if s.strip()]
+    unknown = [n for n in names if n not in all_names()]
+    if unknown:
+        raise _SelectionError(
+            f"unknown agent(s): {', '.join(unknown)}. "
+            f"valid: {', '.join(all_names())}"
+        )
+    return names
+
+
+def _is_interactive(args: argparse.Namespace) -> bool:
+    """Prompt only on a real TTY and when not opted out via --yes/--no-input."""
+    if getattr(args, "no_input", False) or getattr(args, "yes", False):
+        return False
+    try:
+        return sys.stdin.isatty()
+    except (ValueError, OSError):
+        return False
+
+
+def _select_agents_interactively(detected: list[str]) -> list[str] | None:
+    """Multi-select wizard; questionary if available, else stdlib fallback.
+
+    Returns the chosen agent names, or None if the user cancelled.
+    """
+    choices = list(all_names())
+    try:
+        import questionary  # optional [interactive] extra
+    except ImportError:
+        return _select_agents_stdlib(detected, choices)
+    answer = questionary.checkbox(
+        "Select agents to install rf-agentskills into:",
+        choices=[
+            questionary.Choice(
+                f"{by_name(n)().pretty} ({n})",
+                value=n,
+                checked=n in detected,
+            )
+            for n in choices
+        ],
+    ).ask()
+    return answer  # None when cancelled (Ctrl-C/Esc)
+
+
+def _select_agents_stdlib(detected: list[str], choices: list[str]) -> list[str] | None:
+    """Dependency-free numbered selector used when questionary is absent."""
+    console.print("Select agents (comma/space-separated numbers; Enter = detected):")
+    for i, n in enumerate(choices, 1):
+        mark = "*" if n in detected else " "
+        console.print(f"  [{mark}] {i}. {by_name(n)().pretty} ({n})")
+    try:
+        raw = input("> ").strip()
+    except EOFError:
+        return detected
+    if not raw:
+        return detected
+    picks: list[str] = []
+    for tok in raw.replace(",", " ").split():
+        if tok.isdigit() and 1 <= int(tok) <= len(choices):
+            name = choices[int(tok) - 1]
+            if name not in picks:
+                picks.append(name)
+    return picks
+
+
 def cmd_install(args: argparse.Namespace) -> int:
-    if args.scope == "project" and args.project is None:
-        err_console.print("[red]error:[/red] --project is required when --scope project")
+    # 1. Resolve selection: explicit flags → wizard (TTY) → detected fallback.
+    try:
+        selection = _explicit_selection(args)
+    except _SelectionError as exc:
+        err_console.print(f"[red]error:[/red] {exc}")
         return 2
 
+    if selection is None:
+        if _is_interactive(args):
+            selection = _select_agents_interactively(_detected_names())
+            if selection is None:
+                console.print("[dim]cancelled[/dim]")
+                return 0
+        else:
+            selection = _detected_names()
+            if not selection:
+                err_console.print(
+                    "[red]error:[/red] no agents detected and none selected."
+                )
+                err_console.print(f"valid agents: {', '.join(all_names())}")
+                err_console.print(
+                    "pass --agents all|detected|<csv>, or --agent <name>."
+                )
+                return 1
+
+    if not selection:
+        console.print("[dim]nothing selected — nothing to install[/dim]")
+        return 0
+
     opts = _opts_from_args(args)
-    if args.all:
-        agents = [cls for cls in ALL_ADAPTERS if cls().detect()]
-        if not agents:
-            err_console.print("[red]error:[/red] no installed agents detected on this machine")
-            return 1
-    else:
-        cls = by_name(args.agent)
-        if cls is None:
-            err_console.print(f"[red]error:[/red] unknown agent {args.agent!r}")
-            return 2
-        agents = [cls]
+    manifest_path = _manifest_path(opts)
 
     rc = 0
-    for cls in agents:
+    for name in selection:
+        cls = by_name(name)
+        if cls is None:
+            err_console.print(f"[red]error:[/red] unknown agent {name!r}")
+            rc = max(rc, 2)
+            continue
         adapter = cls()
         plan = adapter.plan(opts)
         if opts.dry_run:
             _render_plan_dry_run(adapter, plan)
             continue
-        rc |= _execute_plan(adapter, plan, opts)
+        rc |= _execute_plan(adapter, plan, opts, manifest_path)
     return rc
 
 
 def cmd_uninstall(args: argparse.Namespace) -> int:
-    if args.scope == "project" and args.project is None:
-        err_console.print("[red]error:[/red] --project is required when --scope project")
-        return 2
+    project = args.project
+    if args.scope == "project" and project is None:
+        project = Path.cwd()
+    manifest_path = _m.manifest_path_for(args.scope, project)
 
-    manifest = _m.Manifest.load()
+    manifest = _m.Manifest.load(manifest_path)
     record = manifest.for_agent(args.agent, args.scope)
     if record is None:
         err_console.print(
@@ -193,6 +331,13 @@ def cmd_uninstall(args: argparse.Namespace) -> int:
                     _x.remove_json_keys_at_path(
                         path, key_path=merge.key_path, keys=merge.added_keys
                     )
+                elif merge.kind == "json_hooks":
+                    _x.remove_owned_hook_entries(
+                        path,
+                        marker=merge.marker or "",
+                        events=merge.added_keys,
+                        top_key=merge.key_path[0] if merge.key_path else "hooks",
+                    )
                 elif merge.kind == "toml_table":
                     _x.remove_toml_table(path, merge.key_path)
                 elif merge.kind == "yaml_block":
@@ -210,7 +355,7 @@ def cmd_uninstall(args: argparse.Namespace) -> int:
 
     if not args.dry_run:
         manifest.remove(args.agent, args.scope)
-        manifest.save()
+        manifest.save(manifest_path)
 
     table = Table(title=f"uninstall {args.agent} ({args.scope})")
     table.add_column("removed", style="green")
@@ -230,8 +375,13 @@ def cmd_uninstall(args: argparse.Namespace) -> int:
 
 
 def cmd_list(_args: argparse.Namespace) -> int:
-    manifest = _m.Manifest.load()
-    if not manifest.installations:
+    # Show the global (user-scope) manifest plus the project-local manifest
+    # in the current directory, if any (project installs live in-repo).
+    installs = list(_m.Manifest.load().iter_agents())
+    proj_manifest = Path.cwd() / ".rf-agentskills" / "installed.json"
+    if proj_manifest.is_file():
+        installs.extend(_m.Manifest.load(proj_manifest).iter_agents())
+    if not installs:
         console.print("[dim]no installations recorded[/dim]")
         return 0
     table = Table(title="rf-agentskills installations")
@@ -240,7 +390,7 @@ def cmd_list(_args: argparse.Namespace) -> int:
     table.add_column("bundle")
     table.add_column("installed_at")
     table.add_column("files")
-    for ins in manifest.iter_agents():
+    for ins in installs:
         table.add_row(
             ins.agent,
             ins.scope,
@@ -384,7 +534,12 @@ def _render_plan_dry_run(adapter: Adapter, plan: InstallPlan) -> None:
     console.print(table)
 
 
-def _execute_plan(adapter: Adapter, plan: InstallPlan, opts: InstallOptions) -> int:
+def _execute_plan(
+    adapter: Adapter,
+    plan: InstallPlan,
+    opts: InstallOptions,
+    manifest_path: Path,
+) -> int:
     """Write every target, perform every merge, update the manifest.
 
     Returns 0 on success, non-zero if any target failed safety checks.
@@ -405,7 +560,7 @@ def _execute_plan(adapter: Adapter, plan: InstallPlan, opts: InstallOptions) -> 
             # Conflict: file exists. Check whether it's already ours
             # (manifest record matches hash) — if so, overwrite freely.
             # Otherwise, warn and skip (force flag overrides).
-            existing_owned = _is_already_owned(tgt.dst, adapter.name, opts.scope)
+            existing_owned = _is_already_owned(tgt.dst, adapter.name, opts.scope, manifest_path)
             if not existing_owned:
                 err_console.print(
                     f"[yellow]warn:[/yellow] {tgt.dst} already exists (not "
@@ -433,13 +588,14 @@ def _execute_plan(adapter: Adapter, plan: InstallPlan, opts: InstallOptions) -> 
                 kind=merge.kind,
                 key_path=list(merge.key_path),
                 backup_path=None,
+                marker=merge.marker,
             ))
         except Exception as exc:
             err_console.print(f"[red]error:[/red] {merge.path}: {exc}")
             rc = max(rc, 2)
 
     # 3. Manifest.
-    manifest = _m.Manifest.load()
+    manifest = _m.Manifest.load(manifest_path)
     manifest.upsert(_m.Installation(
         agent=adapter.name,
         scope=opts.scope,
@@ -449,7 +605,7 @@ def _execute_plan(adapter: Adapter, plan: InstallPlan, opts: InstallOptions) -> 
         config_merges=config_merges,
         notes=list(plan.notes),
     ))
-    manifest.save()
+    manifest.save(manifest_path)
 
     # 4. Post-install nudges.
     table = Table(title=f"installed {adapter.pretty}")
@@ -464,9 +620,9 @@ def _execute_plan(adapter: Adapter, plan: InstallPlan, opts: InstallOptions) -> 
     return rc
 
 
-def _is_already_owned(path: Path, agent: str, scope: str) -> bool:
+def _is_already_owned(path: Path, agent: str, scope: str, manifest_path: Path) -> bool:
     """Check if ``path`` is recorded in our manifest for this (agent, scope)."""
-    manifest = _m.Manifest.load()
+    manifest = _m.Manifest.load(manifest_path)
     record = manifest.for_agent(agent, scope)
     if record is None:
         return False

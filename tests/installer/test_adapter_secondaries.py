@@ -67,7 +67,7 @@ def test_install_then_uninstall_clears_prefix(
     files_after_install = [p for p in install_prefix.rglob("*") if p.is_file()]
     assert files_after_install, f"{agent} install left no files"
 
-    # Uninstall reverses cleanly.
+    # Uninstall reverses cleanly (manifest is project/CWD-scoped via fake_home).
     rc = main(["uninstall", "--agent", agent])
     assert rc == 0
     files_left = [p for p in install_prefix.rglob("*") if p.is_file()]
