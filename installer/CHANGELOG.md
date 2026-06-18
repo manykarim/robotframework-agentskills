@@ -4,6 +4,59 @@ The `rf-agentskills` package is versioned independently from the
 content bundle (Claude Code plugin, VS Code extension, skills
 tarballs). See `RELEASING.md` at the repo root for the policy.
 
+## 0.5.0 — 2026-06-18
+
+Stable 0.5.0, consolidating pre-releases rc1–rc3. Install with
+`pip install rf-agentskills` (no `--pre` needed) or the attached wheel.
+
+### Bundled content
+- **rf-agentskills plugin manifest: 1.2.0** — Robot Framework validation
+  hooks, the new `rf-platynui` native-desktop skill, and the overhauled
+  libdoc/testcase scripts.
+
+### Added
+- **Real static + semantic validation hooks** for `.robot`/`.resource` files
+  (replaces the previous no-op `get_model` check): `PostToolUse` runs
+  `robocop check --threshold E` (errors fed back via exit 2) and
+  `robocop format --check` (formatting drift as a suggestion); an opt-in
+  `Stop` hook (`RF_AGENTSKILLS_PROJECT_VALIDATION`) runs `robot --dryrun` +
+  `robotframework-find-unused`. All tiers degrade to a silent no-op when their
+  optional tooling is absent (install via the `validation` extra).
+- **PlatynUI library skill** (`/rf-agentskills:platynui`) — native desktop UI
+  testing (Windows UIA, Linux AT-SPI2) for the `new_core` `PlatynUI.BareMetal`
+  surface: pinned pre-release install guidance, the XPath/namespace locator
+  model, the 24-keyword reference, the CLI/inspector loop, and platform setup.
+  The context-injection hook now triggers on `platynui`.
+- `rf_libdoc.py --include-library-doc` flag.
+- `testcase_builder.py --full-suite` flag — wraps output in a `*** Test Cases
+  ***` section so the artifact is a directly runnable suite (default remains a
+  composable fragment).
+- Installer README: pre-release install guidance + a troubleshooting note for
+  the stale-uv-cache "no version of rf-agentskills==<rc>" failure.
+
+### Changed
+- **BREAKING (script output contract):** `rf_libdoc.py` (and the `rf-tools`
+  MCP `libdoc_search`/`libdoc_explain` tools) now return a single stable shape
+  — `{schema_version, mode, libraries, results, ...}` with `mode ∈
+  explain|search|fallback|list` and one uniform `results` array — instead of
+  the old, outcome-dependent `matches`/`keyword_matches`/`keywords` keys.
+- **Bounded payloads:** a library's full prose `doc` is **no longer embedded
+  by default** (it dominated 56–96% of responses); pass `--include-library-doc`
+  to restore it. Per-result `library` is now a minimal `{name,type,version}`
+  reference. Typical explain responses drop from ~80 KB to ~3 KB.
+- **Cleaner `usage`:** arguments are exposed as `params: [{name, type, default,
+  kind}]` (`kind ∈ required|optional|vararg|kwarg|named_only`); names are bare
+  (no `: type`), and `defaults` is keyed by bare name.
+
+### Fixed
+- **Stop-hook infinite loop.** Both Stop hooks (`maybe_remind_robot_tests.mjs`,
+  `validate_robot_project.mjs`) now short-circuit on `stop_hook_active`, and
+  the reminder fires at most once per session. (Lesson documented in the hook
+  README: on Stop hooks, model-facing output — `additionalContext` or exit 2 —
+  re-invokes the model, so "exit 0" alone is not non-blocking.)
+- Marketplace SKILL.md validation reads files as UTF-8 (was failing on Windows
+  for skills containing non-ASCII characters).
+
 ## 0.5.0rc3 — 2026-06-17 (pre-release)
 
 Third pre-release toward 0.5.0. Fixes the Stop-hook loop and overhauls the
