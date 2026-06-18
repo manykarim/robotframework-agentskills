@@ -41,8 +41,8 @@ from typing import Any, Callable, Iterable, Protocol
 class InstallOptions:
     """User-supplied flags passed to every adapter for one install run."""
 
-    scope: str = "user"                 # "user" | "project"
-    project_dir: Path | None = None     # required when scope == "project"
+    scope: str = "project"              # "project" (default) | "user"
+    project_dir: Path | None = None     # project scope target; defaults to CWD
     prefix: Path | None = None          # override the install root (for tests / sandboxing)
     what: frozenset[str] = field(
         default_factory=lambda: frozenset({"skills", "agents", "hooks", "mcp"})
@@ -100,6 +100,10 @@ class ConfigMergeOp:
     revert: Callable[[], None]  # called by uninstall in same process
     kind: str = "json_top"
     key_path: tuple[str, ...] = ()
+    # For kind="json_hooks": the install-dir ownership marker so that
+    # out-of-process uninstall can remove only rf-agentskills-owned hook
+    # matcher-groups (see transforms.remove_owned_hook_entries).
+    marker: str | None = None
 
 
 @dataclass(frozen=True)
@@ -160,9 +164,8 @@ class AdapterBase:
         if opts.prefix is not None:
             return opts.prefix
         if opts.scope == "project":
-            project = opts.project_dir
-            if project is None:
-                raise ValueError("--project required when --scope project")
+            # project scope defaults to the current directory
+            project = opts.project_dir if opts.project_dir is not None else Path.cwd()
             return project.joinpath(*self.project_root_subpath)
         return Path.home().joinpath(*self.user_root_subpath)
 

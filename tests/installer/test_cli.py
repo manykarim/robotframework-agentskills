@@ -65,17 +65,18 @@ def test_cli_uninstall_with_no_record_is_zero(capsys, fake_home: Path) -> None:
     assert "nothing to do" in err.lower()
 
 
-def test_cli_install_project_scope_requires_project(capsys, fake_home: Path) -> None:
+def test_cli_install_project_scope_defaults_to_cwd(capsys, fake_home: Path) -> None:
+    """Project scope (the default) no longer requires --project; it uses CWD."""
+    # fake_home chdir's into the sandbox, so CWD == fake_home here.
     rc = main(["install", "--agent", "claude-code", "--scope", "project"])
-    assert rc == 2
-    err = capsys.readouterr().err
-    assert "--project" in err
+    assert rc == 0
+    # Wrote into the project (CWD) layout, not the user home layout.
+    assert (fake_home / ".claude" / "skills").is_dir()
 
 
-def test_cli_uninstall_project_scope_requires_project(capsys, fake_home: Path) -> None:
-    rc = main([
-        "uninstall", "--agent", "claude-code", "--scope", "project",
-    ])
-    assert rc == 2
+def test_cli_uninstall_project_scope_no_record_is_zero(capsys, fake_home: Path) -> None:
+    """Project-scope uninstall in a fresh dir finds nothing and exits 0."""
+    rc = main(["uninstall", "--agent", "claude-code", "--scope", "project"])
+    assert rc == 0
     err = capsys.readouterr().err
-    assert "--project" in err
+    assert "nothing to do" in err.lower()

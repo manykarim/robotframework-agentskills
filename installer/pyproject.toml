@@ -13,7 +13,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "rf-agentskills"
-version = "0.5.0"
+version = "0.6.0"
 description = "Cross-agent installer for Robot Framework agent skills (Claude Code, Copilot, Codex, Cursor, Goose, OpenCode, Claude Desktop)"
 readme = "README.md"
 license = { text = "Apache-2.0" }
@@ -52,10 +52,17 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+# Interactive selection wizard. Optional on purpose: the installer reaches
+# into the user's $HOME, so the base stays dependency-light and the wizard
+# degrades to a stdlib numbered selector when this extra is absent.
+interactive = [
+    "questionary >=2.0",
+]
 dev = [
     "pytest >=8",
     "pytest-cov >=5",
     "ruff >=0.5",
+    "questionary >=2.0",
 ]
 
 [project.scripts]

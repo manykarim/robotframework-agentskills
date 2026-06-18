@@ -6,25 +6,29 @@ AI agent skills for Robot Framework test automation, distributed for **seven cod
 
 ### Recommended: cross-agent Python installer (`rf-agentskills`)
 
-A single command auto-detects every supported agent on your machine and writes the bundle into each one's documented install paths:
+Run it with zero install and let it walk you through the agents to set up:
 
 ```bash
-# Install the installer
-pipx install https://github.com/manykarim/robotframework-agentskills/releases/download/rf-agentskills-v0.4.0/rf_agentskills-0.4.0-py3-none-any.whl
+# Zero-install: bare `install` is interactive — multi-select of known agents,
+# with the ones detected on your machine pre-checked.
+uvx rf-agentskills install            # or: pipx run rf-agentskills install
 
-# Detect what's installed
-rf-agentskills targets
-
-# Install into every detected agent
-rf-agentskills install --all
-
-# Or just one
-rf-agentskills install --agent claude-code
+# See what's detected first
+uvx rf-agentskills targets
 ```
 
-Other commands: `uninstall`, `list`, `doctor`, `version`. Useful flags: `--scope user|project [--project DIR]`, `--prefix DIR`, `--dry-run`, `--what skills,agents,hooks,mcp`, `--force`.
+Fully scriptable too — no prompt with an explicit selection, `--yes`, or a non-TTY stdin:
 
-Manifest at `$XDG_DATA_HOME/rf-agentskills/installed.json` tracks every file we wrote (hash + transform); `uninstall` only removes files whose hash still matches, so any user edits are preserved.
+```bash
+rf-agentskills install --agents all                 # every known agent
+rf-agentskills install --agents claude-code,cursor  # explicit list
+rf-agentskills install --agents detected --yes      # only detected, headless
+rf-agentskills install --agent claude-code          # single (back-compat)
+```
+
+Installs default to **project scope** (into the current directory, e.g. `./.claude/`); add `--scope user` for a global install under your home directory. Other commands: `uninstall`, `list`, `doctor`, `version`. Useful flags: `--scope project|user [--project DIR]`, `--prefix DIR`, `--dry-run`, `--what skills,agents,hooks,mcp`, `--force`, `--no-input`.
+
+A manifest (per-project under `<project>/.rf-agentskills/`, or global for user scope) tracks every file written (hash + transform); `uninstall` removes only files whose hash still matches and only the hook/MCP config entries it added — user edits and other tools' hooks are preserved.
 
 | Agent | What lands where | Coverage |
 |---|---|---|
