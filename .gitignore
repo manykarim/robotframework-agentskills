@@ -16,7 +16,10 @@ env/
 # Eval harness working state (generated, not committed)
 eval/runs/
 eval/reports/
-results/
+# Anchored to repo root: the unanchored `results/` also matched the
+# legitimate skill dir `skills/results/`, silently dropping its SKILL.md
+# from the packaged wheel (hatchling honors .gitignore for the sdist).
+/results/
 
 # Test output
 .pytest_cache/
