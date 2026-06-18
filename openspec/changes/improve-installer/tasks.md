@@ -40,7 +40,7 @@
 ## 6. PyPI publish (zero-install entry point)
 
 - [x] 6.1 Wire `twine upload` into the tooling release flow (token via CI secret); update `RELEASING.md` (remove the "future follow-up" caveat).
-- [ ] 6.2 Verify `uvx rf-agentskills install` / `pipx run rf-agentskills` works from the published package.
+- [x] 6.2 Verify `uvx rf-agentskills install` / `pipx run rf-agentskills` works from the published package.
 
 ## 7. Docs + changelog
 
