@@ -40,6 +40,10 @@
           {
             "type": "command",
             "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/maybe_remind_robot_tests.mjs\""
+          },
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/validate_robot_project.mjs\""
           }
         ]
       }

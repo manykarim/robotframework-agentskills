@@ -88,8 +88,14 @@ def tool_libdoc_search(
     include_private: bool = False,
     exclude_deprecated: bool = False,
     tags: Optional[List[str]] = None,
+    include_library_doc: bool = False,
 ) -> Dict[str, Any]:
-    """Search Robot Framework libraries for keywords matching a use case."""
+    """Search Robot Framework libraries for keywords matching a use case.
+
+    Returns the unified rf_libdoc schema: ``{schema_version, mode, libraries,
+    results, ...}`` (mode ``search``). Library prose ``doc`` is omitted unless
+    ``include_library_doc=True``.
+    """
     mod = _load_module("rf_libdoc", _SCRIPT_PATHS["rf_libdoc"])
 
     load_errors: List[Dict[str, str]] = []
@@ -103,23 +109,18 @@ def tool_libdoc_search(
         doc_format=None,
         errors=load_errors,
     )
-    parsed_weights = mod._parse_weights(weights or "")
 
-    data: Dict[str, Any] = {
-        "libraries": [mod._library_meta(lib) for lib in libs],
-    }
-    if load_errors:
-        data["errors"] = load_errors
-
-    data["query"] = search
-    data["matches"] = mod._search_keywords(
-        libs, search, parsed_weights, limit,
-        include_private, exclude_deprecated, tags or [],
+    return mod.build_response(
+        libs,
+        search=search,
+        weights=mod._parse_weights(weights or ""),
+        limit=limit,
+        include_private=include_private,
+        exclude_deprecated=exclude_deprecated,
+        tags=tags or [],
+        include_library_doc=include_library_doc,
+        load_errors=load_errors,
     )
-    if not data["matches"]:
-        data["hint"] = "No keyword matches found. Try a broader search or adjust weights."
-
-    return data
 
 
 def tool_libdoc_explain(
@@ -129,8 +130,13 @@ def tool_libdoc_explain(
     search_fallback: Optional[str] = None,
     include_private: bool = False,
     exclude_deprecated: bool = False,
+    include_library_doc: bool = False,
 ) -> Dict[str, Any]:
-    """Explain a Robot Framework keyword with full argument details."""
+    """Explain a Robot Framework keyword with full argument details.
+
+    Returns the unified rf_libdoc schema (mode ``explain`` on an exact match,
+    else ``fallback`` with search suggestions).
+    """
     mod = _load_module("rf_libdoc", _SCRIPT_PATHS["rf_libdoc"])
 
     load_errors: List[Dict[str, str]] = []
@@ -145,27 +151,17 @@ def tool_libdoc_explain(
         errors=load_errors,
     )
 
-    data: Dict[str, Any] = {
-        "libraries": [mod._library_meta(lib) for lib in libs],
-    }
-    if load_errors:
-        data["errors"] = load_errors
-
-    matches = mod._find_keyword(libs, keyword, include_private, exclude_deprecated, [])
-    if matches:
-        data["keyword_matches"] = matches
-    elif search_fallback:
-        weights = mod._parse_weights("")
-        data["matches"] = mod._search_keywords(
-            libs, search_fallback, weights, 10,
-            include_private, exclude_deprecated, [],
-        )
-        if not data["matches"]:
-            data["hint"] = "No keyword matches found."
-    else:
-        data["hint"] = f"Keyword '{keyword}' not found. Try providing a search_fallback."
-
-    return data
+    return mod.build_response(
+        libs,
+        keyword=keyword,
+        search=search_fallback,
+        weights=mod._parse_weights(""),
+        limit=10,
+        include_private=include_private,
+        exclude_deprecated=exclude_deprecated,
+        include_library_doc=include_library_doc,
+        load_errors=load_errors,
+    )
 
 
 def tool_results_analyze(

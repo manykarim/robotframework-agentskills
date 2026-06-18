@@ -32,14 +32,14 @@ if (!prompt) process.exit(0);
 //   - Direct RF mentions: "robot framework", "robot-framework"
 //   - File extensions: .robot, .resource
 //   - Library names: SeleniumLibrary, Browser Library, AppiumLibrary,
-//     RequestsLibrary, RESTinstance
+//     RequestsLibrary, RESTinstance, PlatynUI
 //   - rf-agentskills skill ids: libdoc-search, libdoc-explain,
 //     keyword-builder, testcase-builder, resource-architect, rf-results
 //   - rf-agentskills subagent ids: rf-test-architect, rf-debug-expert,
 //     rf-keyword-consultant, rf-migration-guide
 //   - Tooling: libdoc, robotidy, robocop, rfbrowser
 // Things NOT matched: bare "test" (too noisy), bare "RF" (ambiguous).
-const RF_REGEX = /robot[ -]?framework|\.robot\b|\.resource\b|\b(selenium|browser|appium|requests)library\b|\brestinstance\b|\b(selenium|browser|appium|requests) library\b|\blibdoc\b|\b(robotidy|robocop|rfbrowser)\b|\b(keyword|testcase|resource)[ -]builder\b|\b(libdoc-search|libdoc-explain|keyword-builder|testcase-builder|resource-architect|rf-results)\b|\brf-(test-architect|debug-expert|keyword-consultant|migration-guide)\b/i;
+const RF_REGEX = /robot[ -]?framework|\.robot\b|\.resource\b|\b(selenium|browser|appium|requests)library\b|\brestinstance\b|\b(selenium|browser|appium|requests) library\b|\bplatynui\b|\blibdoc\b|\b(robotidy|robocop|rfbrowser)\b|\b(keyword|testcase|resource)[ -]builder\b|\b(libdoc-search|libdoc-explain|keyword-builder|testcase-builder|resource-architect|rf-results)\b|\brf-(test-architect|debug-expert|keyword-consultant|migration-guide)\b/i;
 
 if (!RF_REGEX.test(prompt)) process.exit(0);
 

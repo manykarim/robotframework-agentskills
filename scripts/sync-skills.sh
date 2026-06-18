@@ -21,6 +21,7 @@ declare -A SHORT_NAMES=(
     ["robotframework-keyword-builder"]="keyword-builder"
     ["robotframework-libdoc-explain"]="libdoc-explain"
     ["robotframework-libdoc-search"]="libdoc-search"
+    ["robotframework-platynui-skill"]="platynui"
     ["robotframework-requests-skill"]="requests"
     ["robotframework-resource-architect"]="resource-architect"
     ["robotframework-restinstance-skill"]="restinstance"

@@ -16,7 +16,9 @@
 //   stdout — Either empty (no reminder) or one JSON object with
 //            hookSpecificOutput.additionalContext.
 //   exit   — Always 0.
-import { readFileSync, existsSync, statSync, openSync, readSync, closeSync } from "node:fs";
+import { readFileSync, existsSync, statSync, openSync, readSync, closeSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 
 let raw = "";
 try { raw = readFileSync(0, "utf-8"); } catch { process.exit(0); }
@@ -24,8 +26,31 @@ if (!raw) process.exit(0);
 
 let event;
 try { event = JSON.parse(raw); } catch { process.exit(0); }
+
+// Break the Stop-hook loop. Claude Code sets `stop_hook_active` when this
+// Stop fires as a continuation of a previous Stop-hook block; emitting any
+// model-facing output here would re-invoke the model and loop until the
+// block cap. Always no-op in that state.
+if (event?.stop_hook_active) process.exit(0);
+
 const transcript = (event?.transcript_path ?? "").toString();
 if (!transcript || !existsSync(transcript)) process.exit(0);
+
+// Fire the reminder at most once per session. Without this, every later turn
+// that touched a .robot file re-emits it (the noise the loop amplified). The
+// marker is a tiny file in the OS temp dir keyed by session_id; all I/O is
+// best-effort and must never break the (non-blocking) hook.
+const sessionId = (event?.session_id ?? "").toString();
+let marker = "";
+if (sessionId) {
+  const safe = sessionId.replace(/[^A-Za-z0-9._-]/g, "_");
+  marker = join(tmpdir(), `rf-agentskills-reminded-${safe}`);
+  try {
+    if (existsSync(marker)) process.exit(0);
+  } catch {
+    // Can't stat the marker — fall through and emit (guard above prevents loops).
+  }
+}
 
 // Pattern: `"file_path"  :  "...path.robot"` (or .resource). Matches the
 // `grep -E` regex from the bash original. Whitespace optional between
@@ -73,6 +98,11 @@ const payload = {
     ].join(""),
   },
 };
+
+// Record that this session has been reminded (best-effort).
+if (marker) {
+  try { writeFileSync(marker, ""); } catch { /* ignore — never break the hook */ }
+}
 
 process.stdout.write(JSON.stringify(payload) + "\n");
 process.exit(0);

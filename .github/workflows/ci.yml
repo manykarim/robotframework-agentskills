@@ -31,8 +31,25 @@ jobs:
         # mirrors plugins/rf-agentskills/ into the package's _assets/
         # tree — that's what the runtime asset-loader reads.
         run: |
-          pip install robotframework pytest
+          # pytest-asyncio is required by `asyncio_mode = "auto"` in
+          # pyproject; pytest 9+ treats the unknown config option as a
+          # fatal error otherwise. robocop + find-unused let the
+          # validation-hook tests run for real here instead of skipping.
+          pip install robotframework pytest pytest-asyncio robotframework-robocop robotframework-find-unused
           pip install -e ./installer
+        shell: bash
+      - name: Install PlatynUI (optional — rf-platynui keyword-fidelity test)
+        # PlatynUI new_core requires Python 3.12+; the fidelity test skips when
+        # it's absent, so this install is fail-soft (no-op on the 3.10 matrix
+        # leg or if the pre-release is unavailable). Pinned to the verified
+        # pre-release; prebuilt wheel, no Rust.
+        run: pip install "robotframework-PlatynUI==0.12.0.dev330" || echo "PlatynUI unavailable on this interpreter — rf-platynui fidelity test will skip"
+        shell: bash
+      - name: Install Browser Library (optional — libdoc output regression tests)
+        # Lets the Browser-specific rf_libdoc tests (named-only args, payload
+        # bounds) run for real; skip-if-absent otherwise. No `rfbrowser init`
+        # needed — libdoc only introspects the Python library.
+        run: pip install robotframework-browser || echo "Browser unavailable — those libdoc tests will skip"
         shell: bash
       - name: Run tests
         # tests/eval/ is the rf-skill-eval harness suite — an INTERNAL
@@ -71,7 +88,9 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - run: pip install pytest
+      # pytest-asyncio satisfies `asyncio_mode = "auto"` in pyproject
+      # (pytest 9+ errors on the unknown config option without it).
+      - run: pip install pytest pytest-asyncio
       - name: Validate manifests and SKILL.md frontmatter
         run: python -m pytest tests/test_marketplace_validation.py -v
 

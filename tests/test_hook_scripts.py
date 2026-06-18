@@ -36,7 +36,38 @@ PLUGIN_SCRIPTS = (
 INJECT_SCRIPT = PLUGIN_SCRIPTS / "maybe_inject_rf_context.mjs"
 REMIND_SCRIPT = PLUGIN_SCRIPTS / "maybe_remind_robot_tests.mjs"
 VALIDATE_SCRIPT = PLUGIN_SCRIPTS / "validate_robot.mjs"
+VALIDATE_PROJECT_SCRIPT = PLUGIN_SCRIPTS / "validate_robot_project.mjs"
 CHECK_ENV_SCRIPT = PLUGIN_SCRIPTS / "check_rf_environment.mjs"
+
+
+def _module_importable(module: str) -> bool:
+    """True if any interpreter the hook scripts would try has ``module``.
+
+    Mirrors the scripts' resolution order (python_runtime.json is absent in
+    a source checkout, so this is the PATH fallbacks plus the test runner's
+    own interpreter, which is what `python3` typically resolves to under
+    `uv run`)."""
+    import sys
+
+    for py in (sys.executable, "python3", "python"):
+        if py is None:
+            continue
+        try:
+            rc = subprocess.run(
+                [py, "-c", f"import {module}"],
+                capture_output=True,
+                timeout=30,
+            ).returncode
+        except (OSError, subprocess.SubprocessError):
+            continue
+        if rc == 0:
+            return True
+    return False
+
+
+_HAS_ROBOCOP = _module_importable("robocop")
+_HAS_ROBOT = _module_importable("robot")
+_HAS_FIND_UNUSED = _module_importable("robotframework_find_unused")
 
 
 def _run(script: Path, payload: dict | None = None, *,
@@ -95,6 +126,7 @@ def _expect_injection(stdout: str) -> dict:
         "robotidy says this file has formatting issues",
         "rfbrowser init failed — what now?",
         "Rewrite this test using RESTinstance",
+        "Automate the desktop calculator with PlatynUI",
     ],
 )
 def test_inject_fires_on_rf_signals(prompt: str) -> None:
@@ -261,6 +293,76 @@ def test_remind_does_not_match_substring_in_unrelated_path(tmp_path: Path) -> No
     _expect_no_injection(out)
 
 
+# --- Stop-hook loop safety (stop_hook_active) -----------------------------
+
+
+def _robot_transcript(tmp_path: Path) -> Path:
+    return _write_transcript(
+        tmp_path,
+        [json.dumps({"type": "tool_use", "input": {"file_path": "/w/tests/login.robot"}})],
+    )
+
+
+def test_remind_silent_when_stop_hook_active(tmp_path: Path) -> None:
+    """The loop fix: on a continuation (stop_hook_active=true) the reminder
+    must stay silent so it cannot re-invoke the model and loop."""
+    transcript = _robot_transcript(tmp_path)
+    out, _err, rc = _run(
+        REMIND_SCRIPT,
+        {"transcript_path": str(transcript), "stop_hook_active": True},
+    )
+    assert rc == 0
+    assert out == ""
+
+
+def test_remind_fires_when_not_stop_hook_active(tmp_path: Path) -> None:
+    """Explicit stop_hook_active=false still emits the reminder."""
+    transcript = _robot_transcript(tmp_path)
+    out, _err, rc = _run(
+        REMIND_SCRIPT,
+        {"transcript_path": str(transcript), "stop_hook_active": False},
+    )
+    assert rc == 0
+    assert "additionalContext" in out
+
+
+def test_remind_fires_at_most_once_per_session(tmp_path: Path) -> None:
+    """Same session_id → first invocation emits, second is deduped silent."""
+    import tempfile
+    import os
+
+    transcript = _robot_transcript(tmp_path)
+    session_id = "pytest-session-loopfix-001"
+    marker = os.path.join(tempfile.gettempdir(), f"rf-agentskills-reminded-{session_id}")
+    try:
+        os.path.exists(marker) and os.remove(marker)
+        payload = {"transcript_path": str(transcript), "session_id": session_id}
+        out1, _e1, rc1 = _run(REMIND_SCRIPT, payload)
+        out2, _e2, rc2 = _run(REMIND_SCRIPT, payload)
+        assert rc1 == 0 and rc2 == 0
+        assert "additionalContext" in out1, "first invocation should remind"
+        assert out2 == "", "second invocation in same session should be deduped"
+    finally:
+        if os.path.exists(marker):
+            os.remove(marker)
+
+
+def test_validate_project_silent_when_stop_hook_active() -> None:
+    """The opt-in project validator must not re-block on a continuation,
+    even with the flag enabled and a persistent finding."""
+    import os
+
+    env = os.environ.copy()
+    env["RF_AGENTSKILLS_PROJECT_VALIDATION"] = "1"
+    out, err, rc = _run(
+        VALIDATE_PROJECT_SCRIPT,
+        {"cwd": str(Path.cwd()), "stop_hook_active": True},
+        env=env,
+    )
+    assert rc == 0
+    assert out == "" and err == ""
+
+
 # --- validate_robot.mjs ---------------------------------------------------
 
 
@@ -301,20 +403,73 @@ def test_validate_silently_skips_for_missing_file(tmp_path: Path) -> None:
 
 
 def test_validate_accepts_valid_robot_file(tmp_path: Path) -> None:
-    """A well-formed .robot file → exit 0 with a stderr OK message
-    (assuming the test runner has robotframework installed)."""
+    """A well-formed .robot file → exit 0 and no model-facing error,
+    whether or not Robocop is installed (graceful no-op when absent)."""
     import os
     robot_file = tmp_path / "ok.robot"
+    robot_file.write_text(
+        "*** Test Cases ***\nLogin\n    [Documentation]    ok\n    Log    hello\n",
+        encoding="utf-8",
+    )
+    env = os.environ.copy()
+    env["TOOL_INPUT"] = json.dumps({"file_path": str(robot_file)})
+    out, err, rc = _run(VALIDATE_SCRIPT, stdin="", env=env)
+    assert rc == 0, err
+    assert "validation found errors" not in err
+
+
+@pytest.mark.skipif(not _HAS_ROBOCOP, reason="Robocop not installed")
+def test_validate_clean_undocumented_file_passes(tmp_path: Path) -> None:
+    """`--threshold E` must NOT flag style-only issues: an undocumented
+    but structurally valid file passes cleanly (no DOC03 noise)."""
+    import os
+    robot_file = tmp_path / "undoc.robot"
+    # No [Documentation] anywhere — default Robocop would emit DOC02/DOC03.
     robot_file.write_text(
         "*** Test Cases ***\nLogin\n    Log    hello\n", encoding="utf-8"
     )
     env = os.environ.copy()
     env["TOOL_INPUT"] = json.dumps({"file_path": str(robot_file)})
     out, err, rc = _run(VALIDATE_SCRIPT, stdin="", env=env)
-    # Either "syntax OK" (robotframework installed) or
-    # "skipping syntax validation" (robotframework missing) — both rc=0.
-    assert rc == 0
-    assert ("syntax OK" in err) or ("skipping syntax validation" in err), err
+    assert rc == 0, err
+    assert err == "", f"style-only findings should be suppressed, got: {err!r}"
+
+
+@pytest.mark.skipif(not _HAS_ROBOCOP, reason="Robocop not installed")
+def test_validate_flags_structural_error_with_exit_2(tmp_path: Path) -> None:
+    """A structural error (unterminated FOR) → exit 2 (NOT 1) with the
+    diagnostic on stderr so the agent receives it and can self-correct."""
+    import os
+    robot_file = tmp_path / "broken.robot"
+    robot_file.write_text(
+        "*** Test Cases ***\nT\n    FOR    ${x}    IN    a    b\n        Log    ${x}\n",
+        encoding="utf-8",
+    )
+    env = os.environ.copy()
+    env["TOOL_INPUT"] = json.dumps({"file_path": str(robot_file)})
+    out, err, rc = _run(VALIDATE_SCRIPT, stdin="", env=env)
+    assert rc == 2, f"expected exit 2, got {rc}; stderr={err!r}"
+    assert "broken.robot" in err
+    # The specific Robocop error id for invalid FOR syntax.
+    assert "ERR" in err
+
+
+@pytest.mark.skipif(not _HAS_ROBOCOP, reason="Robocop not installed")
+def test_validate_reads_file_path_from_stdin_json(tmp_path: Path) -> None:
+    """The new script reads `tool_input.file_path` from stdin JSON (the
+    documented PostToolUse contract), not just the legacy TOOL_INPUT env."""
+    import os
+    robot_file = tmp_path / "broken_stdin.robot"
+    robot_file.write_text(
+        "*** Test Cases ***\nT\n    FOR    ${x}    IN    a    b\n        Log    ${x}\n",
+        encoding="utf-8",
+    )
+    # Strip TOOL_INPUT so only the stdin path can satisfy the hook.
+    env = {k: v for k, v in os.environ.items() if k != "TOOL_INPUT"}
+    payload = {"tool_input": {"file_path": str(robot_file)}}
+    out, err, rc = _run(VALIDATE_SCRIPT, stdin=json.dumps(payload), env=env)
+    assert rc == 2, f"expected exit 2 via stdin input, got {rc}; stderr={err!r}"
+    assert "broken_stdin.robot" in err
 
 
 # --- check_rf_environment.mjs ---------------------------------------------
@@ -327,18 +482,98 @@ def test_check_rf_environment_runs_to_completion() -> None:
     assert "Robot Framework Environment Check" in err
 
 
+# --- validate_robot_project.mjs (Stop tier, opt-in) -----------------------
+
+
+def test_project_validation_noop_when_flag_unset(tmp_path: Path) -> None:
+    """Without RF_AGENTSKILLS_PROJECT_VALIDATION the whole tier is a no-op,
+    even when the project contains broken Robot Framework code."""
+    import os
+    (tmp_path / "suite.robot").write_text(
+        "*** Settings ***\nResource    nonexistent.resource\n"
+        "*** Test Cases ***\nT\n    Log    hi\n",
+        encoding="utf-8",
+    )
+    env = {
+        k: v for k, v in os.environ.items()
+        if k != "RF_AGENTSKILLS_PROJECT_VALIDATION"
+    }
+    payload = {"cwd": str(tmp_path)}
+    out, err, rc = _run(
+        VALIDATE_PROJECT_SCRIPT, stdin=json.dumps(payload), env=env
+    )
+    assert rc == 0
+    assert out == ""
+    assert err == ""
+
+
+@pytest.mark.skipif(not _HAS_ROBOT, reason="robotframework not installed")
+def test_project_validation_detects_broken_import_via_error_line(
+    tmp_path: Path,
+) -> None:
+    """A broken import surfaces only as a dryrun `[ ERROR ]` line (dryrun
+    exits 0 for it). The tier must catch it anyway and exit 2."""
+    import os
+    (tmp_path / "suite.robot").write_text(
+        "*** Settings ***\nResource    nonexistent.resource\n"
+        "*** Test Cases ***\nT\n    [Documentation]    ok\n    Log    hi\n",
+        encoding="utf-8",
+    )
+    env = os.environ.copy()
+    env["RF_AGENTSKILLS_PROJECT_VALIDATION"] = "1"
+    payload = {"cwd": str(tmp_path)}
+    out, err, rc = _run(
+        VALIDATE_PROJECT_SCRIPT, stdin=json.dumps(payload), env=env
+    )
+    assert rc == 2, f"expected exit 2, got {rc}; stderr={err!r}"
+    assert "nonexistent.resource" in err
+
+
+@pytest.mark.skipif(not _HAS_FIND_UNUSED, reason="find-unused not installed")
+def test_project_validation_reports_unused_keyword(tmp_path: Path) -> None:
+    """An never-called keyword is reported by the find-unused check."""
+    import os
+    (tmp_path / "helpers.resource").write_text(
+        "*** Keywords ***\nUsed Keyword\n    Log    used\n"
+        "Unused Keyword\n    Log    nobody calls me\n",
+        encoding="utf-8",
+    )
+    (tmp_path / "suite.robot").write_text(
+        "*** Settings ***\nResource    helpers.resource\n"
+        "*** Test Cases ***\nT\n    [Documentation]    ok\n    Used Keyword\n",
+        encoding="utf-8",
+    )
+    env = os.environ.copy()
+    env["RF_AGENTSKILLS_PROJECT_VALIDATION"] = "1"
+    payload = {"cwd": str(tmp_path)}
+    out, err, rc = _run(
+        VALIDATE_PROJECT_SCRIPT, stdin=json.dumps(payload), env=env
+    )
+    assert rc == 2, f"expected exit 2, got {rc}; stderr={err!r}"
+    assert "Unused Keyword" in err
+
+
 # --- Cross-script invariants ----------------------------------------------
 
 
 @pytest.mark.parametrize(
     "script",
-    [INJECT_SCRIPT, REMIND_SCRIPT, VALIDATE_SCRIPT, CHECK_ENV_SCRIPT],
+    [
+        INJECT_SCRIPT,
+        REMIND_SCRIPT,
+        VALIDATE_SCRIPT,
+        VALIDATE_PROJECT_SCRIPT,
+        CHECK_ENV_SCRIPT,
+    ],
 )
 def test_scripts_exist(script: Path) -> None:
     assert script.is_file(), f"{script} missing"
 
 
-@pytest.mark.parametrize("script", [INJECT_SCRIPT, REMIND_SCRIPT])
+@pytest.mark.parametrize(
+    "script",
+    [INJECT_SCRIPT, REMIND_SCRIPT, VALIDATE_SCRIPT, VALIDATE_PROJECT_SCRIPT],
+)
 def test_scripts_exit_zero_on_pathological_inputs(script: Path) -> None:
     """A misbehaving hook script can break user sessions; double-check
     that neither stdin-consuming script ever exits non-zero on weird

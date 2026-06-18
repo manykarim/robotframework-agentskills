@@ -34,6 +34,34 @@ def run_builder_ok(data, extra_args=None):
     return json.loads(result.stdout)
 
 
+def test_default_is_fragment_without_section_header():
+    """Issue 6: default artifact is a section fragment (no header)."""
+    data = {"tests": [{"name": "T", "steps": [{"keyword": "Log", "args": ["hi"]}]}]}
+    out = run_builder_ok(data)
+    assert "*** Test Cases ***" not in out["artifact"]
+    assert out.get("full_suite") is False
+
+
+def test_full_suite_flag_emits_runnable_suite():
+    """Issue 6: --full-suite wraps a parseable *** Test Cases *** section."""
+    data = {"tests": [{"name": "T", "steps": [{"keyword": "Log", "args": ["hi"]}]}]}
+    out = run_builder_ok(data, ["--full-suite"])
+    assert out["full_suite"] is True
+    assert out["artifact"].startswith("*** Test Cases ***")
+    try:
+        from robot.api import get_model
+    except ImportError:
+        return  # parse check needs robotframework; structural check above suffices
+    import tempfile
+    import os
+    with tempfile.TemporaryDirectory() as d:
+        p = os.path.join(d, "suite.robot")
+        with open(p, "w", encoding="utf-8") as fh:
+            fh.write(out["artifact"])
+        sections = list(getattr(get_model(p), "sections", []) or [])
+        assert sections, "full-suite artifact did not parse into RF sections"
+
+
 def test_basic_keyword_driven_test():
     """Simple test with name and steps produces valid artifact."""
     data = {

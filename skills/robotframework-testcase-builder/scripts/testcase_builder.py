@@ -92,6 +92,13 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Robot Framework test case builder")
     parser.add_argument("--input", help="JSON input file")
     parser.add_argument("--allow-control", action="store_true")
+    parser.add_argument(
+        "--full-suite",
+        action="store_true",
+        help="Wrap the test bodies in a '*** Test Cases ***' section so the "
+        "artifact is a directly saveable/runnable suite (default: a section "
+        "fragment for embedding into an existing suite).",
+    )
     args = parser.parse_args()
 
     data = _read_input(args.input)
@@ -113,8 +120,13 @@ def main() -> None:
         test["name"] = name
         artifacts.append(_render_test(test, args.allow_control, warnings))
 
+    body = "\n\n".join(artifacts)
+    if args.full_suite and body:
+        body = "*** Test Cases ***\n" + body + "\n"
+
     output = {
-        "artifact": "\n\n".join(artifacts),
+        "artifact": body,
+        "full_suite": bool(args.full_suite),
         "warnings": warnings,
         "suggestions": suggestions,
     }
