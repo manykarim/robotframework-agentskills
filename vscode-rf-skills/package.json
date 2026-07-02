@@ -1,0 +1,243 @@
+{
+  "name": "robotframework-skills",
+  "displayName": "Robot Framework Skills",
+  "description": "Curated snippets, keyword references, code generators, and migration tools for Robot Framework testing libraries. Works alongside RobotCode.",
+  "version": "0.1.0",
+  "publisher": "manykarim",
+  "license": "Apache-2.0",
+  "icon": "media/icon.png",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/manykarim/robotframework-agentskills"
+  },
+  "engines": {
+    "vscode": "^1.109.0"
+  },
+  "categories": [
+    "Snippets",
+    "Testing",
+    "Other"
+  ],
+  "keywords": [
+    "robotframework",
+    "robot framework",
+    "testing",
+    "automation",
+    "browser library",
+    "selenium",
+    "appium",
+    "requests",
+    "playwright",
+    "snippets",
+    "test automation",
+    "api testing",
+    "mobile testing"
+  ],
+  "activationEvents": [
+    "workspaceContains:**/*.robot",
+    "workspaceContains:**/*.resource"
+  ],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "snippets": [
+      {
+        "language": "robotframework",
+        "path": "./snippets/browser.json"
+      },
+      {
+        "language": "robotframework",
+        "path": "./snippets/selenium.json"
+      },
+      {
+        "language": "robotframework",
+        "path": "./snippets/appium.json"
+      },
+      {
+        "language": "robotframework",
+        "path": "./snippets/requests.json"
+      },
+      {
+        "language": "robotframework",
+        "path": "./snippets/restinstance.json"
+      },
+      {
+        "language": "robotframework",
+        "path": "./snippets/builtin.json"
+      },
+      {
+        "language": "robotframework",
+        "path": "./snippets/structure.json"
+      }
+    ],
+    "commands": [
+      {
+        "command": "rfSkills.searchKeyword",
+        "title": "Search Keywords",
+        "category": "RF Skills"
+      },
+      {
+        "command": "rfSkills.explainKeyword",
+        "title": "Explain Keyword at Cursor",
+        "category": "RF Skills"
+      },
+      {
+        "command": "rfSkills.generateKeyword",
+        "title": "Generate User Keyword",
+        "category": "RF Skills"
+      },
+      {
+        "command": "rfSkills.generateTestCase",
+        "title": "Generate Test Case",
+        "category": "RF Skills"
+      },
+      {
+        "command": "rfSkills.scaffoldProject",
+        "title": "Scaffold RF Project",
+        "category": "RF Skills"
+      },
+      {
+        "command": "rfSkills.analyzeResults",
+        "title": "Analyze Test Results",
+        "category": "RF Skills"
+      },
+      {
+        "command": "rfSkills.checkEnvironment",
+        "title": "Check RF Environment",
+        "category": "RF Skills"
+      },
+      {
+        "command": "rfSkills.modernizeSyntax",
+        "title": "Modernize RF Syntax (RF7+)",
+        "category": "RF Skills"
+      }
+    ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "rf-skills",
+          "title": "RF Skills",
+          "icon": "media/icon.svg"
+        }
+      ]
+    },
+    "views": {
+      "rf-skills": [
+        {
+          "id": "rfSkills.keywordBrowser",
+          "name": "Keyword Reference"
+        },
+        {
+          "id": "rfSkills.testResults",
+          "name": "Test Results"
+        }
+      ]
+    },
+    "menus": {
+      "editor/context": [
+        {
+          "when": "resourceLangId == robotframework",
+          "command": "rfSkills.explainKeyword",
+          "group": "navigation"
+        }
+      ]
+    },
+    "walkthroughs": [
+      {
+        "id": "rfSkills.gettingStarted",
+        "title": "Get Started with Robot Framework",
+        "description": "Learn to write tests with curated skill references",
+        "steps": [
+          {
+            "id": "checkEnvironment",
+            "title": "Check Your Environment",
+            "description": "Verify Python and Robot Framework are installed",
+            "media": {
+              "markdown": "media/walkthrough/check-environment.md"
+            },
+            "completionEvents": [
+              "onCommand:rfSkills.checkEnvironment"
+            ]
+          },
+          {
+            "id": "createTest",
+            "title": "Create Your First Test",
+            "description": "Generate a test case using the built-in scaffolder",
+            "media": {
+              "markdown": "media/walkthrough/create-test.md"
+            },
+            "completionEvents": [
+              "onCommand:rfSkills.generateTestCase"
+            ]
+          },
+          {
+            "id": "exploreSnippets",
+            "title": "Explore Library Snippets",
+            "description": "Type 'rf-' in a .robot file to see available snippets",
+            "media": {
+              "markdown": "media/walkthrough/explore-snippets.md"
+            }
+          },
+          {
+            "id": "browseKeywords",
+            "title": "Browse Keyword Reference",
+            "description": "Open the sidebar to explore keywords by library",
+            "media": {
+              "markdown": "media/walkthrough/browse-keywords.md"
+            },
+            "completionEvents": [
+              "onView:rfSkills.keywordBrowser"
+            ]
+          }
+        ]
+      }
+    ],
+    "configuration": {
+      "title": "Robot Framework Skills",
+      "properties": {
+        "rfSkills.pythonPath": {
+          "type": "string",
+          "default": "python3",
+          "description": "Path to Python interpreter for RF tools"
+        },
+        "rfSkills.results.outputPath": {
+          "type": "string",
+          "default": "results/output.xml",
+          "description": "Default output.xml location"
+        },
+        "rfSkills.results.autoOpen": {
+          "type": "boolean",
+          "default": true,
+          "description": "Auto-open results dashboard after test run"
+        },
+        "rfSkills.diagnostics.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable diagnostics for deprecated RF syntax patterns"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "compile": "npm run check-types && node esbuild.js",
+    "check-types": "tsc --noEmit",
+    "watch": "npm-run-all -p watch:*",
+    "watch:esbuild": "node esbuild.js --watch",
+    "watch:tsc": "tsc --noEmit --watch --project tsconfig.json",
+    "vscode:prepublish": "npm run package",
+    "package": "npm run check-types && node esbuild.js --production",
+    "test": "vscode-test",
+    "lint": "eslint src"
+  },
+  "devDependencies": {
+    "@types/mocha": "^10.0.10",
+    "@types/node": "^20.19.33",
+    "@types/vscode": "^1.109.0",
+    "@vscode/test-cli": "^0.0.10",
+    "@vscode/test-electron": "^2.5.2",
+    "@vscode/vsce": "^3.7.1",
+    "esbuild": "^0.27.3",
+    "eslint": "^9.39.3",
+    "npm-run-all": "^4.1.5",
+    "typescript": "^5.9.3"
+  }
+}
