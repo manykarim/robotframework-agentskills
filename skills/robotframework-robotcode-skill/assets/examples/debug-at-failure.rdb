@@ -1,0 +1,6 @@
+.where
+.print ${total}
+.pp @{PRICES}
+${count}=    Get Length    ${PRICES}
+Log To Console    live keyword at the prompt: ${count} prices
+.continue

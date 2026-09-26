@@ -126,7 +126,11 @@ if (found.length) {
 }
 if (missing.length) {
   process.stderr.write(`Not installed: ${missing.join(", ")}\n`);
-  process.stderr.write("\nInstall missing packages as needed:\n");
+  process.stderr.write(
+    "\nSee the rf-agentskills setup skill for full install steps (uv / venv + pip / poetry).\n",
+  );
+  process.stderr.write("\nInstall missing packages into the project environment as needed:\n");
+  process.stderr.write("  uv add robotframework robotframework-requests   # uv project (preferred)\n");
   process.stderr.write("  pip install robotframework                    # Core (required)\n");
   process.stderr.write("  pip install robotframework-browser && rfbrowser init  # Web (Playwright)\n");
   process.stderr.write("  pip install robotframework-seleniumlibrary    # Web (Selenium)\n");

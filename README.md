@@ -93,7 +93,7 @@ bundled content: 1.2.0  (from rf-agentskills plugin manifest)
 
 ## What You Get
 
-### 12 Skills
+### 14 Skills
 
 | Skill | Type | Command | Description |
 |-------|------|---------|-------------|
@@ -103,6 +103,8 @@ bundled content: 1.2.0  (from rf-agentskills plugin manifest)
 | RequestsLibrary | library-reference | `/rf-agentskills:requests` | REST API testing with HTTP methods |
 | RESTinstance | library-reference | `/rf-agentskills:restinstance` | REST API testing with JSON Schema validation |
 | PlatynUI (preview) | library-reference | `/rf-agentskills:platynui` | Native desktop UI testing (Windows UIA, Linux AT-SPI2) via PlatynUI.BareMetal |
+| robotcode CLI | cli-reference | `/rf-agentskills:robotcode` | Discover tests, look up keywords, debug failing tests, REPL, analyze results and code with the `robotcode` CLI |
+| Setup | setup-guide | `/rf-agentskills:setup` | Install Robot Framework and libraries with uv, venv + pip or Poetry; project layout, CI, troubleshooting |
 | Keyword Builder | script-based | `/rf-agentskills:keyword-builder` | Generate RF user keywords from structured input |
 | Test Case Builder | script-based | `/rf-agentskills:testcase-builder` | Generate RF test cases from structured input |
 | Resource Architect | script-based | `/rf-agentskills:resource-architect` | Design resource/variable file layouts |
@@ -110,7 +112,7 @@ bundled content: 1.2.0  (from rf-agentskills plugin manifest)
 | Libdoc Explain | script-based | `/rf-agentskills:libdoc-explain` | Explain keyword arguments and documentation |
 | Results | script-based | `/rf-agentskills:results` | Parse output.xml into JSON summaries (requires robotframework) |
 
-The 5 library-reference skills provide documentation and usage guidance. The 6 script-based skills execute Python scripts to generate code or analyze artifacts. Library-reference skills cross-reference their companion script-based skills (e.g., the Browser skill suggests using Keyword Builder and Libdoc Search).
+The library-reference skills provide documentation and usage guidance. The robotcode CLI skill guides agents through the `robotcode` command line and is preferred over the libdoc and results scripts when `robotcode` is installed. The 6 script-based skills execute Python scripts to generate code or analyze artifacts. Library-reference skills cross-reference their companion script-based skills (e.g., the Browser skill suggests using Keyword Builder and Libdoc Search).
 
 ### 4 Specialized Agents
 
@@ -133,6 +135,7 @@ The 5 library-reference skills provide documentation and usage guidance. The 6 s
 - **Claude Code** 1.0.33 or later
 - **Python 3.8+** (for builder and tool scripts)
 - **robotframework** Python package (required for libdoc-search, libdoc-explain, and results skills)
+- New to Robot Framework setup? The `setup` skill walks an agent through installing it into a project environment (uv preferred).
 
 ```bash
 pip install robotframework
@@ -148,6 +151,7 @@ pip install robotframework-appiumlibrary    # Appium skill
 pip install robotframework-requests   # Requests skill
 pip install RESTinstance              # RESTinstance skill
 pip install --pre robotframework-PlatynUI   # PlatynUI skill (preview; Python 3.12+; NOT plain install — see skill)
+pip install "robotcode[all]"          # robotcode CLI skill (install into the project environment)
 ```
 
 ## Team Distribution

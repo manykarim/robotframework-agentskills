@@ -1,0 +1,17 @@
+# Explore a REST API step by step before writing a test.
+# Run:  robotcode repl --plain --no-history -d results/repl < explore-api.robotrepl
+# Needs: robotframework-requests, internet access (public demo API).
+Import Library    RequestsLibrary
+Create Session    booker    https://restful-booker.herokuapp.com
+${resp}=    GET On Session    booker    /ping    expected_status=201
+Log To Console    ping status: ${resp.status_code}
+${resp}=    GET On Session    booker    /booking    params=firstname=Jim
+${count}=    Get Length    ${resp.json()}
+Log To Console    bookings for Jim: ${count}
+IF    ${count} > 0
+    ${id}=    Set Variable    ${resp.json()}[0][bookingid]
+    ${detail}=    GET On Session    booker    /booking/${id}
+    Log To Console    first booking: ${detail.json()}[firstname] ${detail.json()}[lastname]
+END
+.kw On Session
+.exit

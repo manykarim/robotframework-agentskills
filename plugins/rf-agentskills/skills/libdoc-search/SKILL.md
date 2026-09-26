@@ -7,6 +7,8 @@ description: Search Robot Framework library/resource/suite documentation to find
 
 Use this skill to search Robot Framework libraries/resources/suites for keywords that match a use case. Output JSON only.
 
+> If `robotcode` is on PATH, `robotcode libdoc <Lib> list "*text*"` or the REPL's `.kw <text>` is usually quicker and uses the project's `robot.toml`. See `robotcode`.
+
 ## Command
 
 Search in standard libraries:

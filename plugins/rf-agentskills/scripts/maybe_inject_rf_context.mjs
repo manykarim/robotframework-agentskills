@@ -37,9 +37,10 @@ if (!prompt) process.exit(0);
 //     keyword-builder, testcase-builder, resource-architect, rf-results
 //   - rf-agentskills subagent ids: rf-test-architect, rf-debug-expert,
 //     rf-keyword-consultant, rf-migration-guide
-//   - Tooling: libdoc, robotidy, robocop, rfbrowser
+//   - Tooling: libdoc, robotidy, robocop, rfbrowser, robotcode,
+//     robot-debug, robot.toml
 // Things NOT matched: bare "test" (too noisy), bare "RF" (ambiguous).
-const RF_REGEX = /robot[ -]?framework|\.robot\b|\.resource\b|\b(selenium|browser|appium|requests)library\b|\brestinstance\b|\b(selenium|browser|appium|requests) library\b|\bplatynui\b|\blibdoc\b|\b(robotidy|robocop|rfbrowser)\b|\b(keyword|testcase|resource)[ -]builder\b|\b(libdoc-search|libdoc-explain|keyword-builder|testcase-builder|resource-architect|rf-results)\b|\brf-(test-architect|debug-expert|keyword-consultant|migration-guide)\b/i;
+const RF_REGEX = /robot[ -]?framework|\.robot\b|\.resource\b|\b(selenium|browser|appium|requests)library\b|\brestinstance\b|\b(selenium|browser|appium|requests) library\b|\bplatynui\b|\blibdoc\b|\b(robotidy|robocop|rfbrowser|robotcode)\b|\brobot-debug\b|\brobot\.toml\b|\b(keyword|testcase|resource)[ -]builder\b|\b(libdoc-search|libdoc-explain|keyword-builder|testcase-builder|resource-architect|rf-results)\b|\brf-(test-architect|debug-expert|keyword-consultant|migration-guide)\b/i;
 
 if (!RF_REGEX.test(prompt)) process.exit(0);
 
@@ -49,11 +50,14 @@ const payload = {
     additionalContext: [
       "Robot Framework context detected. Available rf-agentskills ",
       "(load the relevant SKILL.md when needed):",
-      "\n  - Library references: browser, selenium, appium, requests, restinstance",
+      "\n  - Library references: browser, selenium, appium, requests, restinstance, platynui",
+      "\n  - CLI tooling: robotcode (discover, libdoc, repl, robot-debug, results, analyze)",
+      "\n  - Setup: setup (install RF + libraries with uv / venv + pip / poetry, verify the environment)",
       "\n  - Script-based tools: keyword-builder, testcase-builder, resource-architect, ",
       "libdoc-search, libdoc-explain, results",
       "\n  - Subagents: rf-test-architect, rf-debug-expert, rf-keyword-consultant, rf-migration-guide",
-      "\nPrefer libdoc-search / libdoc-explain over guessing keyword signatures from memory.",
+      "\nPrefer libdoc-search / libdoc-explain (or `robotcode libdoc` when robotcode is installed) ",
+      "over guessing keyword signatures from memory.",
     ].join(""),
   },
 };

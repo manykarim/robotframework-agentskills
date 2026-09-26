@@ -1,0 +1,10 @@
+# Robot Framework and test libraries for this project.
+# Install into the project venv:  python -m pip install -r requirements.txt
+robotframework>=7.3
+robotframework-requests>=0.9.7
+# robotframework-browser[bb]>=20.0   # web UI testing (then: rfbrowser install chromium)
+# robotframework-seleniumlibrary>=6.7
+
+# Developer tools (optional)
+robotcode[all]>=2.7
+robotframework-robocop>=9.0

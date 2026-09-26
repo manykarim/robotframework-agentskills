@@ -7,6 +7,8 @@ description: Explain Robot Framework keywords and their arguments from library/r
 
 Use this skill to retrieve detailed keyword docs and argument usage from Robot Framework libraries/resources/suites. Output JSON only.
 
+> If `robotcode` is on PATH, `robotcode libdoc <Lib> show "<Keyword>"` is usually quicker and uses the project's `robot.toml`. See `rf-robotcode`.
+
 ## Command
 
 Explain a keyword in standard libraries:

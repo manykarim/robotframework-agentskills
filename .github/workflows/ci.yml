@@ -51,6 +51,12 @@ jobs:
         # needed — libdoc only introspects the Python library.
         run: pip install robotframework-browser || echo "Browser unavailable — those libdoc tests will skip"
         shell: bash
+      - name: Install robotcode (optional — rf-robotcode CLI-fidelity test)
+        # Pinned to the version the skill was verified against; bumping the pin
+        # is the moment to re-check references/gotchas.md. Fail-soft: the
+        # fidelity test skips when robotcode is not on PATH.
+        run: pip install "robotcode[all]==2.7.0" || echo "robotcode unavailable — rf-robotcode fidelity test will skip"
+        shell: bash
       - name: Run tests
         # tests/eval/ is the rf-skill-eval harness suite — an INTERNAL
         # workspace package (root pyproject; "Private :: Do Not Upload")

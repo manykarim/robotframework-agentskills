@@ -1,0 +1,34 @@
+# Copy to .github/workflows/robot.yml. Assumes a uv project (pyproject.toml, uv.lock, .python-version).
+name: Robot Framework
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  robot:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: astral-sh/setup-uv@v10
+        with:
+          enable-cache: true
+
+      - name: Install dependencies
+        run: uv sync --locked
+
+      # Only when the project uses robotframework-browser[bb].
+      # With plain robotframework-browser + Node.js use: uv run rfbrowser init chromium
+      - name: Install Playwright browser
+        run: uv run rfbrowser install chromium --with-deps
+
+      - name: Run tests
+        run: uv run robot --outputdir results tests
+
+      - name: Upload results
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: robot-results
+          path: results/

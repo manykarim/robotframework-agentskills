@@ -4,6 +4,34 @@ The `rf-agentskills` package is versioned independently from the
 content bundle (Claude Code plugin, VS Code extension, skills
 tarballs). See `RELEASING.md` at the repo root for the policy.
 
+## Unreleased
+
+### Added
+- **robotcode CLI skill** (`/rf-agentskills:robotcode`) — guides agents
+  through the `robotcode` CLI: test discovery, `libdoc`, running with
+  `robot.toml` profiles and wrappers, piped REPL sessions, `robot-debug`
+  (stop at failures, breakpoints, live keywords), `results`
+  (summary/show/log/stats/diff) and `analyze code`. Includes agent-safe
+  invocation rules and version-stamped known limitations (robotcode 2.7.0).
+  The results and libdoc skills now point to it when `robotcode` is
+  installed; they are unchanged otherwise.
+- The context-injection hook now triggers on `robotcode`, `robot-debug` and
+  `robot.toml`, and lists the robotcode skill.
+- **Setup skill** (`/rf-agentskills:setup`) — installs Robot Framework,
+  test libraries and tooling into the project environment with uv
+  (preferred), venv + pip or Poetry: tool detection from lockfiles, Python
+  version floors (3.12 recommended), library post-install steps (Browser
+  `[bb]` + `rfbrowser install` or Node + `rfbrowser init`, Appium server and
+  drivers, PlatynUI pre-release), project layout, GitHub Actions example and
+  troubleshooting. Every recipe was run against uv 0.9.26, Poetry 2.4.1 and
+  pip 26. The SessionStart environment check and the context-injection
+  hook now point to it.
+
+### Known issues
+- The SessionStart environment check writes its report to stderr, which
+  Claude Code likely does not add to the model's context (only stdout is
+  added for SessionStart). To be addressed in a follow-up change.
+
 ## 0.6.0 — 2026-06-18
 
 Installer onboarding + uninstall-safety overhaul. No content-bundle change

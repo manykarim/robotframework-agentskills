@@ -1,0 +1,23 @@
+# Explore a web page step by step before writing a test.
+# Create the output directory first; the REPL does not create it and Browser needs it:
+#   mkdir -p results/repl
+#   robotcode repl --plain --no-history -d results/repl < explore-browser.robotrepl
+# Needs: robotframework-browser + `rfbrowser init chromium`, internet access (public demo site).
+Import Library    Browser    timeout=15s
+New Browser    chromium    headless=True
+New Page    https://www.saucedemo.com
+${title}=    Get Title
+Log To Console    title is ${title}
+${n}=    Get Element Count    [data-test="username"]
+Log To Console    username fields found: ${n}
+# Demo credentials are printed on the public login page.
+VAR    ${SAUCE_PASSWORD}    secret_sauce
+Fill Text    [data-test="username"]    standard_user
+Fill Secret    [data-test="password"]    $SAUCE_PASSWORD
+Click    [data-test="login-button"]
+Get Url    *=    inventory
+${items}=    Get Element Count    [data-test="inventory-item"]
+Log To Console    inventory items: ${items}
+Take Screenshot    explore-inventory
+Close Browser
+.exit

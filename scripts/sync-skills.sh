@@ -25,8 +25,10 @@ declare -A SHORT_NAMES=(
     ["robotframework-requests-skill"]="requests"
     ["robotframework-resource-architect"]="resource-architect"
     ["robotframework-restinstance-skill"]="restinstance"
+    ["robotframework-robotcode-skill"]="robotcode"
     ["robotframework-results"]="results"
     ["robotframework-selenium-skill"]="selenium"
+    ["robotframework-setup-skill"]="setup"
     ["robotframework-testcase-builder"]="testcase-builder"
 )
 
@@ -49,6 +51,8 @@ transform_skill_md_for_plugin() {
         -e 's|`rf-libdoc-search`|`libdoc-search`|g' \
         -e 's|`rf-libdoc-explain`|`libdoc-explain`|g' \
         -e 's|`rf-results`|`results`|g' \
+        -e 's|`rf-robotcode`|`robotcode`|g' \
+        -e 's|`rf-setup`|`setup`|g' \
         "$src" > "$dest"
 }
 

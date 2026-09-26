@@ -16,6 +16,7 @@ from __future__ import annotations
 import json
 import shutil
 import subprocess
+import sys
 from pathlib import Path
 
 import pytest
@@ -127,6 +128,9 @@ def _expect_injection(stdout: str) -> dict:
         "rfbrowser init failed — what now?",
         "Rewrite this test using RESTinstance",
         "Automate the desktop calculator with PlatynUI",
+        "Use robotcode to discover all tests tagged smoke",
+        "Step through the failing login with robot-debug",
+        "Add a headed profile to robot.toml",
     ],
 )
 def test_inject_fires_on_rf_signals(prompt: str) -> None:
@@ -137,6 +141,8 @@ def test_inject_fires_on_rf_signals(prompt: str) -> None:
     # The injected context names the rf-agentskills, so callers can spot it.
     assert "rf-agentskills" in ctx
     assert "libdoc-search" in ctx
+    assert "robotcode" in ctx
+    assert "setup" in ctx
 
 
 # --- maybe_inject_rf_context.mjs: negative cases --------------------------
@@ -480,6 +486,24 @@ def test_check_rf_environment_runs_to_completion() -> None:
     out, err, rc = _run(CHECK_ENV_SCRIPT, stdin="")
     assert rc == 0
     assert "Robot Framework Environment Check" in err
+
+
+@pytest.mark.skipif(sys.platform == "win32", reason="fake POSIX python3 shim")
+def test_check_rf_environment_points_to_setup_skill(tmp_path: Path) -> None:
+    """When packages are missing, the install hint names the setup skill and a
+    uv command. A fake ``python3`` first on PATH makes every import check fail,
+    so the hint is always printed."""
+    import os
+    import stat
+    fake = tmp_path / "python3"
+    fake.write_text("#!/bin/sh\nexit 1\n", encoding="utf-8")
+    fake.chmod(fake.stat().st_mode | stat.S_IEXEC)
+    env = {**os.environ, "PATH": f"{tmp_path}{os.pathsep}{os.environ.get('PATH', '')}"}
+    _out, err, rc = _run(CHECK_ENV_SCRIPT, stdin="", env=env)
+    assert rc == 0
+    assert "Not installed:" in err
+    assert "setup skill" in err
+    assert "uv add robotframework" in err
 
 
 # --- validate_robot_project.mjs (Stop tier, opt-in) -----------------------
