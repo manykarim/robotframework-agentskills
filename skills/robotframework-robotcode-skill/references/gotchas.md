@@ -27,3 +27,4 @@ Additional behaviour seen while writing this skill (2.7.0):
 - `robotcode discover` / `robot` without path arguments and without `paths` in `robot.toml` fail with `Expected at least 1 argument, got 0.`
 - `robotcode discover … --search` also matches keyword calls inside tests, not only test names.
 - `robotcode analyze code` without paths analyzes the whole project root, even when run from a subfolder.
+- **Windows, piped output:** text output that contains non-ASCII characters (`results` prints ❌/✅, some `--help` texts contain `→`) crashes with `UnicodeEncodeError: 'charmap' codec can't encode character` when stdout uses cp1252. Set `PYTHONUTF8=1` (or `PYTHONIOENCODING=utf-8`) in the environment, or use `--format json`. Seen in GitHub Actions Windows runners; reproduced with `PYTHONIOENCODING=cp1252`.

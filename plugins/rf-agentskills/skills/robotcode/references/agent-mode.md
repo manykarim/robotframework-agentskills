@@ -32,6 +32,8 @@ Rules for agents and scripts:
 4. Put a `timeout` around the call when you run it from a script: `timeout 300 robotcode robot-debug --plain … < cmds.rdb`.
 5. For the debugger, EOF while paused resumes the run, so a short command list is safe.
 
+On **Windows**, set `PYTHONUTF8=1` for robotcode commands whose output is piped or captured. Otherwise text output with ❌/✅ or `→` can crash with `UnicodeEncodeError` under the cp1252 console encoding. `--format json` output is not affected.
+
 `discover`, `libdoc`, `results` and `analyze` are not interactive. Agent mode only removes colour and the pager there, so their output is the same.
 
 ## Secrets in output

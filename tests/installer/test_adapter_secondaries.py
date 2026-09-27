@@ -99,7 +99,12 @@ def test_codex_subagents_become_toml(install_prefix: Path) -> None:
     cls = by_name("codex")
     assert cls is not None
     plan = cls().plan(InstallOptions(prefix=install_prefix))
-    toml_targets = [t for t in plan.targets if str(t.dst).endswith(".toml")]
+    # Subagents land directly in <root>/agents/<name>.toml; skills may ship
+    # their own .toml example files (copied verbatim), which must not count.
+    toml_targets = [
+        t for t in plan.targets
+        if t.dst.suffix == ".toml" and t.dst.parent.name == "agents"
+    ]
     assert toml_targets, "expected at least one .toml subagent target"
     for t in toml_targets:
         body = t.payload.decode("utf-8")

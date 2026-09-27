@@ -223,8 +223,12 @@ def _help(*cmd: str) -> str:
         [_ROBOTCODE, *cmd, "--help"],
         capture_output=True,
         text=True,
+        encoding="utf-8",
+        errors="replace",
         timeout=120,
-        env={**os.environ, "NO_COLOR": "1"},
+        # Some help texts contain non-ASCII (e.g. "→"); on Windows a piped
+        # stdout defaults to cp1252 and robotcode crashes while printing.
+        env={**os.environ, "NO_COLOR": "1", "PYTHONIOENCODING": "utf-8", "PYTHONUTF8": "1"},
     )
     assert result.returncode == 0, f"`robotcode {' '.join(cmd)} --help` failed: {result.stderr}"
     return result.stdout
