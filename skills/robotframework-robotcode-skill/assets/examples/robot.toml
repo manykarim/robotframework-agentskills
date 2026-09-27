@@ -1,0 +1,29 @@
+# robot.toml: shared by every robotcode command (robot, robot-debug, repl,
+# discover, libdoc, results, analyze). Put it in the project root.
+# Check the effective result with:  robotcode config show   /   robotcode profiles list
+
+output-dir = "results/latest"
+python-path = ["resources", "libraries"]
+paths = ["tests"]
+
+[variables]
+HEADLESS = "true"
+BASE_URL = "https://restful-booker.herokuapp.com"
+
+# Static analysis settings (robotcode analyze code)
+[tool.robotcode-analyze.modifiers]
+# Example: report undefined variables as warnings instead of errors
+warning = ["VariableNotFound"]
+
+[profiles.headed]
+description = "Run browsers with a visible window"
+variables = { HEADLESS = "false" }
+
+[profiles.ci]
+description = "CI run: virtual display, separate output folder"
+output-dir = "results/ci"
+wrapper = ["xvfb-run", "-a"]
+
+[profiles.baseline]
+description = "Reference run for `results diff`"
+output-dir = "results/baseline"

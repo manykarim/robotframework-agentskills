@@ -59,7 +59,13 @@
         "path": "./skills/rf-results/SKILL.md"
       },
       {
+        "path": "./skills/rf-robotcode/SKILL.md"
+      },
+      {
         "path": "./skills/rf-selenium/SKILL.md"
+      },
+      {
+        "path": "./skills/rf-setup/SKILL.md"
       },
       {
         "path": "./skills/rf-testcase-builder/SKILL.md"

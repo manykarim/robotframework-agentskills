@@ -13,6 +13,8 @@ Use the bundled script to read Robot Framework `output.xml` and return JSON. It 
 - timing (keyword timing is opt-in)
 - single or multiple outputs (merge or combine with rebot)
 
+> If `robotcode` is on PATH, `robotcode results summary|show|log|stats|diff` is usually quicker and uses the project's `robot.toml`. See `rf-robotcode`.
+
 ## Quick start
 
 Single file summary:

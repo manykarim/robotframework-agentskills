@@ -1,0 +1,16 @@
+# robot.toml: shared robot options, read by robotcode (`robotcode robot`, IDE, discover, …).
+# Plain `robot` ignores this file; see references/project-layout.md.
+output-dir = "results"
+python-path = ["resources", "libraries"]
+paths = ["tests"]
+
+[variables]
+HEADLESS = "true"
+
+[profiles.headed]
+description = "Show the browser window"
+variables = { HEADLESS = "false" }
+
+[profiles.ci]
+description = "CI run"
+output-dir = "results/ci"

@@ -1,0 +1,29 @@
+# pyproject.toml for a Robot Framework test project managed with Poetry 2.x.
+# Created with:
+#   poetry init --no-interaction --python ">=3.12,<3.14"
+#   poetry add robotframework robotframework-requests
+#   poetry add --group dev "robotcode[all]" robotframework-robocop
+# Reproduce elsewhere with: poetry install
+[project]
+name = "my-tests"
+version = "0.1.0"
+description = "Robot Framework tests"
+requires-python = ">=3.12,<3.14"
+dependencies = [
+    "robotframework (>=7.5,<8.0)",
+    "robotframework-requests (>=0.9.7,<0.10.0)"
+]
+
+[tool.poetry]
+# A test project is not a package to build; without this `poetry install` fails.
+package-mode = false
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+[dependency-groups]
+dev = [
+    "robotcode[all] (>=2.7.0,<3.0.0)",
+    "robotframework-robocop (>=9.1.0,<10.0.0)"
+]

@@ -1,0 +1,21 @@
+# pyproject.toml for a Robot Framework test project managed with uv.
+# Created with:
+#   uv init --bare --python 3.12 && uv python pin 3.12
+#   uv add robotframework robotframework-requests
+#   uv add --dev "robotcode[all]" robotframework-robocop
+# Reproduce elsewhere with: uv sync --locked
+[project]
+name = "my-tests"
+version = "0.1.0"
+requires-python = ">=3.12"
+dependencies = [
+    "robotframework>=7.5",
+    "robotframework-requests>=0.9.7",
+    # "robotframework-browser[bb]>=20.5.0",  # then: uv run rfbrowser install chromium
+]
+
+[dependency-groups]
+dev = [
+    "robotcode[all]>=2.7.0",
+    "robotframework-robocop>=9.1.0",
+]

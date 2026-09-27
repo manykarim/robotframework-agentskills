@@ -1,0 +1,22 @@
+# Copy to .gitignore in the project root.
+# Environments
+.venv/
+__pycache__/
+
+# Robot Framework output
+results/
+output.xml
+log.html
+report.html
+*.xunit.xml
+
+# Browser / Playwright
+playwright-log.txt
+browser/
+
+# robotcode and pabot
+.robotcode_cache/
+.pabotsuitenames
+pabot_results/
+
+# Keep: uv.lock, poetry.lock, .python-version, requirements*.txt
