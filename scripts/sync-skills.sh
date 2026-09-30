@@ -129,11 +129,14 @@ if [ -f "$PACKAGE_JSON" ]; then
     echo ""
     echo "=== Updating vscode-extension/package.json chatSkills paths ==="
     PY="$(command -v python3 || command -v python)"
-    "$PY" -c "
+    # Run from the repo root with relative paths: on Windows, Git Bash paths
+    # (/d/a/...) cannot be opened by a native Windows Python.
+    (cd "$REPO_ROOT" && "$PY" -c "
 import json, os
 
-pkg = json.load(open('$PACKAGE_JSON'))
-skills_dir = '$VSCODE_DIR'
+package_json = os.path.join('vscode-extension', 'package.json')
+skills_dir = os.path.join('vscode-extension', 'skills')
+pkg = json.load(open(package_json, encoding='utf-8'))
 skill_dirs = sorted(d for d in os.listdir(skills_dir) if os.path.isdir(os.path.join(skills_dir, d)))
 
 pkg['contributes'] = pkg.get('contributes', {})
@@ -142,12 +145,12 @@ pkg['contributes']['chatSkills'] = [
     for d in skill_dirs
 ]
 
-with open('$PACKAGE_JSON', 'w') as f:
+with open(package_json, 'w', encoding='utf-8', newline='\\n') as f:
     json.dump(pkg, f, indent=2)
-    f.write('\n')
+    f.write('\\n')
 
 print(f'  Updated {len(skill_dirs)} chatSkills paths')
-"
+")
 fi
 
 echo ""
