@@ -34,7 +34,7 @@ class Settings(BaseSettings):
     anthropic_api_key: str | None = Field(default=None)
 
     # Model selection
-    claude_model_default: str = Field(default="claude-haiku-4-5")
+    claude_model_default: str = Field(default="claude-haiku-4-5-20251001")
 
     # Logging
     rf_skill_eval_log_level: str = Field(default="INFO")

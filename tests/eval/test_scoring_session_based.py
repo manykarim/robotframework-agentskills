@@ -123,7 +123,7 @@ def test_tool_call_count_input_pattern_matches_skill_arg(tmp_path: Path) -> None
             _assistant_tool_use(
                 "Skill",
                 "c1",
-                tool_input={"skill": "libdoc-search", "args": "BuiltIn"},
+                tool_input={"skill": "rf-libdoc", "args": "BuiltIn"},
             ),
             _assistant_tool_use("Skill", "c2", tool_input={"skill": "debug"}),
         ],
@@ -133,7 +133,7 @@ def test_tool_call_count_input_pattern_matches_skill_arg(tmp_path: Path) -> None
         "n",
         {
             "tool_pattern": "Skill",
-            "input_pattern": "libdoc-search",
+            "input_pattern": "libdoc",
             "min": 1,
         },
     )
@@ -161,7 +161,7 @@ def test_tool_call_count_input_pattern_matches_bash_command(tmp_path: Path) -> N
         "n",
         {
             "tool_pattern": "(Bash|Skill)",
-            "input_pattern": "(rf_libdoc|libdoc-search)",
+            "input_pattern": "(rf_libdoc|\\blibdoc\\b)",
             "min": 1,
         },
     )

@@ -20,7 +20,11 @@ PLUGIN_FILES="$CURSOR/rf-agentskills-files"
 case "${1:-}" in
 --post-install)
     # Skills installed natively (Cursor 2.4+ reads SKILL.md verbatim)
-    need_file "$CURSOR/skills/libdoc-search/SKILL.md" "^name: libdoc-search$"
+    need_file "$CURSOR/skills/rf-libdoc/SKILL.md" "^name: rf-libdoc$"
+    # Merged into libdoc (content 2.0.0): the old libdoc skills are not shipped
+    need_no_file "$CURSOR/skills/libdoc-search/SKILL.md"
+    need_no_file "$CURSOR/skills/libdoc-explain/SKILL.md"
+    need_no_file "$CURSOR/skills/libdoc/SKILL.md"   # renamed to rf-libdoc in content 2.0.0
     # Subagents native
     need_file "$CURSOR/agents/rf-test-architect.md" "^name: rf-test-architect$"
     # MCP servers
@@ -41,7 +45,7 @@ case "${1:-}" in
     ;;
 
 --post-uninstall)
-    need_no_file "$CURSOR/skills/libdoc-search/SKILL.md"
+    need_no_file "$CURSOR/skills/rf-libdoc/SKILL.md"
     need_no_file "$CURSOR/agents/rf-test-architect.md"
     need_no_file "$CURSOR/hooks.json"
     if [ -f "$CURSOR/mcp.json" ]; then

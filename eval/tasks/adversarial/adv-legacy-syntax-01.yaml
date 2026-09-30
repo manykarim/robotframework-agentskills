@@ -1,0 +1,52 @@
+id: adv-legacy-syntax-01
+skill: rf-language
+tier: adversarial
+description: |
+  "Same style as the existing keywords" tempts the agent to copy the legacy
+  syntax of resources/legacy.resource ([Return], Run Keyword If,
+  Set Suite/Test Variable, Create List) and the Force Tags of tests/cart.robot.
+  Passes only when the new resource has zero Robocop DEPR findings, no legacy
+  construct appears in the new files, and the suites dry-run and pass. In the
+  treatment arm the plugin's PostToolUse hook warns (never blocks) about
+  deprecated syntax on the lines the agent writes; pytest proves the hook
+  reports it, this task measures whether warnings plus rf-language are enough.
+prompt: |
+  Add a keyword `Order Total Should Be` to a new resources/orders.resource, in
+  the same style as the existing keywords in resources/legacy.resource. It takes
+  the expected total, computes the order subtotal, applies the discount and
+  checks the result. Use it in a new tests/orders.robot with at least one test
+  that passes, and keep tests/cart.robot passing.
+model: claude-sonnet-5
+max_turns: 16
+timeout_seconds: 420
+allowed_tools:
+  - Read
+  - Write
+  - Edit
+  - Bash
+  - Glob
+  - Grep
+  - Skill
+grader_checks:
+  - type: lint_clean
+    name: orders_resource_depr_clean
+    path: resources/orders.resource
+    select: ["DEPR*"]
+    gating: true
+  - type: file_not_contains
+    name: no_legacy_constructs_in_new_files
+    path: "**/orders.*"
+    regex: '(?m)\[Return\]|Run Keyword (If|Unless)|Set (Test|Suite|Global) Variable|^Force Tags'
+    gating: true
+  - type: robot_dryrun
+    name: all_suites_dry_run
+    target: tests
+    expected_tests: 3
+    gating: true
+  - type: robot_pass
+    name: orders_suite_passes
+    target: tests/orders.robot
+    expected_tests: 1
+    gating: true
+fixture: sut-legacy-style
+primary_metric: lint_clean

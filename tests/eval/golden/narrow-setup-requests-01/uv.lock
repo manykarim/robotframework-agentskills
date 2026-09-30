@@ -1,0 +1,7 @@
+version = 1
+requires-python = ">=3.10"
+
+[[package]]
+name = "robotframework-requests"
+version = "0.9.7"
+source = { registry = "https://pypi.org/simple" }

@@ -1,5 +1,5 @@
 id: realistic-browser-login-01
-skill: browser
+skill: rf-browser
 tier: realistic
 description: |
   Write and successfully run a Browser-library test against the local
@@ -26,9 +26,11 @@ prompt: |
 
   Playwright browsers are already initialized (`rfbrowser init` has been
   run for you) so `New Browser` / `New Page` should work out of the box.
-model: claude-sonnet-4-6
+model: claude-sonnet-5
 max_turns: 20
 timeout_seconds: 900
+mcp_servers:
+  - rf-mcp
 allowed_tools:
   - Read
   - Write

@@ -31,24 +31,33 @@ def _normalise_params(check: GraderCheck) -> dict[str, Any]:
 
 
 class RubricGrader:
-    """Satisfies the :class:`Grader` port by iterating task's checks."""
+    """Satisfies the :class:`Grader` port by iterating a task's checks.
+
+    Every verdict is stamped with the check's ``gating`` flag and
+    ``category`` from the task definition (design D4). A grader defect
+    (exception, unknown check type, bad params) yields ``error`` — never a
+    pass and never a plain ``failed``.
+    """
 
     def grade(self, run: Run, task: Task) -> list[Verdict]:
         verdicts: list[Verdict] = []
         for check in task.grader_checks:
-            func = lookup_check(check.type)
-            params = _normalise_params(check)
             try:
-                verdicts.append(func(run, check.name, params))
+                func = lookup_check(check.type)
+                params = _normalise_params(check)
+                verdict = func(run, check.name, params)
             except Exception as exc:
                 _log.exception("grader check %s errored", check.name)
-                verdicts.append(
-                    Verdict(
-                        run_id=run.id,
-                        check_name=check.name,
-                        passed=False,
-                        score=0.0,
-                        details=f"internal grader error: {exc}",
-                    )
+                verdict = Verdict.errored(
+                    run.id, check.name, f"internal grader error: {type(exc).__name__}: {exc}"
                 )
+            verdicts.append(
+                verdict.model_copy(
+                    update={
+                        "gating": task.is_gating(check),
+                        "category": check.effective_category,
+                        "check_type": check.type,
+                    }
+                )
+            )
         return verdicts

@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Item Feed</title>
+</head>
+<body>
+  <h1>Item Feed</h1>
+  <p>Items are appended to the list one by one (every 400 ms) until there are 6.</p>
+  <ul id="items"></ul>
+  <script>
+    var count = 0;
+    var timer = setInterval(function () {
+      count += 1;
+      var li = document.createElement('li');
+      li.className = 'item';
+      li.textContent = 'Item ' + count;
+      document.getElementById('items').appendChild(li);
+      if (count >= 6) { clearInterval(timer); }
+    }, 400);
+  </script>
+</body>
+</html>

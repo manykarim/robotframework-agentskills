@@ -1,0 +1,53 @@
+id: narrow-platynui-calculator-01
+skill: rf-platynui
+tier: narrow
+description: |
+  Write a PlatynUI desktop test for a calculator flow (1 + 2 = 3). No desktop
+  session exists on the runner, so the gating check is static:
+  keywords_resolve against the committed PlatynUI.BareMetal libdoc spec.
+prompt: |
+  We automate desktop apps with Robot Framework and PlatynUI. README.md lists
+  the Calculator element XPaths.
+
+  Write tests/calculator.robot that brings the Calculator window to the front,
+  clicks 1, +, 2, =, and verifies that the result display shows 3. There is no
+  desktop session on this machine, so you cannot run it — make sure every
+  keyword really exists in the PlatynUI.BareMetal library (a libdoc spec is in
+  specs/).
+model: claude-haiku-4-5-20251001
+max_turns: 14
+timeout_seconds: 300
+allowed_tools:
+  - Read
+  - Write
+  - Edit
+  - Bash
+  - Glob
+  - Grep
+  - Skill
+expected_files:
+  - path: tests/calculator.robot
+    must_contain:
+      - "PlatynUI.BareMetal"
+grader_checks:
+  - type: keywords_resolve
+    name: platynui_keywords_resolve
+    target: tests/calculator.robot
+    specs: [specs/PlatynUI.BareMetal.json]
+    required_libraries: [PlatynUI.BareMetal]
+    min_calls: 4
+  - type: file_contains
+    name: targets_calculator
+    path: tests/calculator.robot
+    regex: "Calculator"
+  - type: file_contains
+    name: checks_result
+    path: tests/calculator.robot
+    regex: '(CalculatorResults|Get Attribute)'
+  - type: tool_call_count
+    name: loaded_rf_platynui_skill
+    tool_pattern: "(Skill|Read)"
+    input_pattern: '(rf-platynui|/skills/rf-platynui/SKILL\.md)'
+    min: 1
+fixture: sut-platynui
+primary_metric: keywords_resolve

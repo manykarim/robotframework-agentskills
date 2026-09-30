@@ -72,7 +72,7 @@ fi
 
 # 5. Install/refresh Python deps
 _info "Syncing Python dependencies with uv..."
-uv sync
+uv sync --all-packages
 
 # 6. rfbrowser init (idempotent via flag file)
 RFBROWSER_FLAG=".venv/.rfbrowser-initialized"

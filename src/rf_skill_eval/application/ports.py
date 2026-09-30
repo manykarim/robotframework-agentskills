@@ -14,9 +14,14 @@ from ..domain.verdict import Verdict
 
 @runtime_checkable
 class SkillRunner(Protocol):
-    """Executes one `(task, profile)` pair and returns a :class:`Run`."""
+    """Executes one `(task, profile)` pair and returns a :class:`Run`.
 
-    def execute(self, task: Task, profile: Profile, output_dir: Path) -> Run: ...
+    Each call provisions a fresh workspace (one call per replicate).
+    """
+
+    def execute(
+        self, task: Task, profile: Profile, output_dir: Path, *, replicate: int = 0
+    ) -> Run: ...
 
 
 @runtime_checkable
@@ -46,3 +51,5 @@ class RunRepository(Protocol):
     def load_run(self, run_id: str) -> Run | None: ...
 
     def list_runs(self) -> list[Run]: ...
+
+    def load_scorecards(self) -> list[Scorecard]: ...

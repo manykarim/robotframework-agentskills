@@ -30,11 +30,13 @@
 // interpreter is available, or the required tool isn't installed.
 import { readFileSync, mkdtempSync } from "node:fs";
 import { spawnSync } from "node:child_process";
-import { fileURLToPath } from "node:url";
-import { dirname, join } from "node:path";
+import { join } from "node:path";
 import { tmpdir } from "node:os";
+import { findInterpreterWith, projectRoot as projectRootOf, spawnOptions } from "./_python_env.mjs";
 
-const HERE = dirname(fileURLToPath(import.meta.url));
+// Project-wide checks scale with project size: bounded, but more generous than
+// the per-file 20 s dry run. A timeout skips the check silently.
+const PROJECT_TIMEOUT_MS = 120000;
 
 // ── Gate: opt-in only ───────────────────────────────────────────────────────
 function isTruthy(v) {
@@ -54,53 +56,15 @@ try {
 }
 if (stopEvent?.stop_hook_active) process.exit(0);
 
-function loadPythonInterpreters() {
-  const candidates = [];
-  try {
-    const cfg = JSON.parse(
-      readFileSync(join(HERE, "python_runtime.json"), "utf-8"),
-    );
-    if (typeof cfg.interpreter === "string" && cfg.interpreter) {
-      candidates.push(cfg.interpreter);
-    }
-    for (const fb of cfg.fallbacks ?? []) {
-      if (typeof fb === "string" && fb && !candidates.includes(fb)) {
-        candidates.push(fb);
-      }
-    }
-  } catch {
-    // Config missing — PATH fallbacks only.
-  }
-  for (const fb of ["python3", "python"]) {
-    if (!candidates.includes(fb)) candidates.push(fb);
-  }
-  return candidates;
-}
-
 // Resolve the project root from the (already-parsed) Stop event JSON (cwd),
 // falling back to the process cwd.
-function resolveProjectRoot() {
-  if (stopEvent?.cwd) return stopEvent.cwd.toString();
-  return process.cwd();
-}
+const projectRoot = projectRootOf(stopEvent);
 
-// Find the first interpreter for which `import <module>` succeeds.
-function findInterpreterWith(moduleName) {
-  for (const py of loadPythonInterpreters()) {
-    const probe = spawnSync(py, ["-c", `import ${moduleName}`], {
-      stdio: ["ignore", "ignore", "ignore"],
-    });
-    if (probe.error && probe.error.code === "ENOENT") continue;
-    if (probe.status === 0) return py;
-  }
-  return null;
-}
-
-const projectRoot = resolveProjectRoot();
 const findings = [];
 
 // ── Check 1: robot --dryrun ─────────────────────────────────────────────────
-const robotPy = findInterpreterWith("robot");
+// Interpreter: _python_env.mjs (VIRTUAL_ENV -> <cwd>/.venv -> python_runtime.json -> PATH).
+const robotPy = findInterpreterWith("robot", projectRoot);
 if (robotPy) {
   let outDir;
   try {
@@ -124,9 +88,12 @@ if (robotPy) {
       outDir,
       projectRoot,
     ],
-    { encoding: "utf-8" },
+    spawnOptions(PROJECT_TIMEOUT_MS, { encoding: "utf-8", cwd: projectRoot }),
   );
-  const combined = `${dry.stdout ?? ""}\n${dry.stderr ?? ""}`;
+  // Timeout / crash: skip the check silently (never report partial output).
+  const combined = dry.error || dry.status === null
+    ? ""
+    : `${dry.stdout ?? ""}\n${dry.stderr ?? ""}`;
   // Import/parse problems surface as [ ERROR ] lines regardless of exit code.
   const errorLines = combined
     .split(/\r?\n/)
@@ -138,7 +105,7 @@ if (robotPy) {
   }
   // A non-zero exit with no [ ERROR ] line means keyword-resolution failures
   // (undefined keyword, argument errors). Surface the FAIL summary lines.
-  if (dry.status !== 0 && !errorLines.length) {
+  if (combined && dry.status !== 0 && !errorLines.length) {
     const failLines = combined
       .split(/\r?\n/)
       .filter((l) => /no keyword with name|FAIL|multiple errors/i.test(l))
@@ -152,14 +119,14 @@ if (robotPy) {
 }
 
 // ── Check 2: find-unused (unused keywords) ──────────────────────────────────
-const unusedPy = findInterpreterWith("robotframework_find_unused");
+const unusedPy = findInterpreterWith("robotframework_find_unused", projectRoot);
 if (unusedPy) {
   const unused = spawnSync(
     unusedPy,
     ["-m", "robotframework_find_unused", "keywords", projectRoot],
-    { encoding: "utf-8" },
+    spawnOptions(PROJECT_TIMEOUT_MS, { encoding: "utf-8", cwd: projectRoot }),
   );
-  const out = `${unused.stdout ?? ""}\n${unused.stderr ?? ""}`;
+  const out = unused.error ? "" : `${unused.stdout ?? ""}\n${unused.stderr ?? ""}`;
   // The tool prints "Found N unused keywords:" followed by one per line.
   if (/found\s+\d+\s+unused keyword/i.test(out)) {
     const idx = out.toLowerCase().indexOf("found");

@@ -1,0 +1,59 @@
+id: narrow-language-embedded-01
+skill: rf-language
+tier: narrow
+description: |
+  Write the embedded-argument keyword behind "Select team Los Angeles Lakers".
+  With default patterns, adjacent embedded arguments bind city=Los and the dry
+  run still passes. Gated by a hidden grader suite (multi-word and one-word
+  cities) copied in from eval/graders/language/, an unchanged tests/teams.robot
+  and a clean dry run.
+prompt: |
+  tests/teams.robot calls steps like "Select team Los Angeles Lakers" and
+  imports resources/teams.resource, which does not exist yet. Create
+  resources/teams.resource with a user keyword so that "Select team <city>
+  <team>" records the city and the team (the team name is always one word, the
+  city can have several words) by calling the Record Selection keyword of
+  libraries/Selections.py. Do not change tests/teams.robot. Run the suite and
+  make sure it passes.
+model: claude-haiku-4-5-20251001
+max_turns: 25
+timeout_seconds: 600
+allowed_tools:
+  - Read
+  - Write
+  - Edit
+  - Bash
+  - Glob
+  - Grep
+  - Skill
+grader_checks:
+  - type: custom_python
+    name: hidden_suite_binds_cities
+    func_ref: rf_skill_eval.scoring.custom.language:hidden_suite
+    suite: teams_binding.robot
+    expected_tests: 4
+    gating: true
+  - type: custom_python
+    name: teams_robot_unchanged
+    func_ref: rf_skill_eval.scoring.custom.language:file_unchanged
+    fixture: sut-language-keywords
+    path: tests/teams.robot
+    gating: true
+  - type: robot_dryrun
+    name: teams_dry_run
+    target: tests/teams.robot
+    expected_tests: 2
+    gating: true
+  - type: custom_python
+    name: resource_lint_clean
+    func_ref: rf_skill_eval.scoring.custom.language:robocop_clean
+    path: resources/teams.resource
+    select: ["DEPR*", ORD02]
+    gating: false
+  - type: tool_call_count
+    name: loaded_rf_language_skill
+    tool_pattern: "(Skill|Read)"
+    input_pattern: '(rf-language|/skills/rf-language/SKILL\.md)'
+    min: 1
+fixture: sut-language-keywords
+primary_metric: custom_python

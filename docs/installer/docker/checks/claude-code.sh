@@ -17,9 +17,19 @@ PLUGIN_FILES="$ROOT/rf-agentskills-files"
 case "${1:-}" in
 --post-install)
     # Skills (verbatim copy)
-    need_file "$ROOT/skills/libdoc-search/SKILL.md" "^name: libdoc-search$" "^description:"
-    need_file "$ROOT/skills/keyword-builder/SKILL.md"
-    need_file "$ROOT/skills/testcase-builder/SKILL.md"
+    need_file "$ROOT/skills/rf-libdoc/SKILL.md" "^name: rf-libdoc$" "^description:"
+    # Merged into libdoc (content 2.0.0): the old libdoc skills are not shipped
+    need_no_file "$ROOT/skills/libdoc-search/SKILL.md"
+    need_no_file "$ROOT/skills/libdoc-explain/SKILL.md"
+    need_no_file "$ROOT/skills/libdoc/SKILL.md"   # renamed to rf-libdoc in content 2.0.0
+    need_file "$ROOT/skills/rf-results/SKILL.md"
+    need_file "$ROOT/skills/rf-language/SKILL.md" "^name: rf-language$"
+    need_file "$ROOT/skills/rf-language/scripts/rf_conventions.py"
+    need_file "$ROOT/skills/rf-python-library/SKILL.md" "^name: rf-python-library$"
+    need_file "$ROOT/skills/rf-python-library/scripts/check_library.py"
+    need_file "$ROOT/skills/rf-setup/SKILL.md"
+    # Retired generator skills are not shipped (content 2.0.0)
+    need_no_file "$ROOT/skills/keyword-builder/SKILL.md"
     # Subagents (verbatim copy)
     need_file "$ROOT/agents/rf-test-architect.md" "^name: rf-test-architect$"
     need_file "$ROOT/agents/rf-debug-expert.md"
@@ -80,7 +90,7 @@ PY
     ;;
 
 --post-uninstall)
-    need_no_file "$ROOT/skills/libdoc-search/SKILL.md"
+    need_no_file "$ROOT/skills/rf-libdoc/SKILL.md"
     need_no_file "$ROOT/agents/rf-test-architect.md"
     # settings.json may persist if it had pre-existing keys, but the hooks
     # block we added must be gone:
@@ -105,7 +115,7 @@ PY
     # Re-install (uninstall happened before this in the entrypoint flow,
     # so we need files in place again). Caller of --api-smoke can either
     # run before --post-uninstall (preferred) or re-install here.
-    if [ ! -f "$ROOT/skills/libdoc-search/SKILL.md" ]; then
+    if [ ! -f "$ROOT/skills/rf-libdoc/SKILL.md" ]; then
         skip "no install present (--api-smoke must run before --post-uninstall)"
     fi
 
@@ -117,8 +127,8 @@ PY
         printf '  [check] no stream output from claude (auth issue?)\n' >&2
         exit 1
     fi
-    if ! echo "$INIT" | jq -e '.skills | index("libdoc-search")' >/dev/null; then
-        printf '  [check] libdoc-search not in init event\n' >&2
+    if ! echo "$INIT" | jq -e '.skills | index("libdoc")' >/dev/null; then
+        printf '  [check] libdoc not in init event\n' >&2
         echo "$INIT" | jq -r '.skills' >&2 || true
         exit 1
     fi

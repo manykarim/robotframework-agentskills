@@ -8,16 +8,27 @@ from pathlib import Path
 
 import pytest
 
+from rf_skill_eval.config import get_settings
 from rf_skill_eval.domain.profile import Profile
 from rf_skill_eval.domain.run import Run
 from rf_skill_eval.domain.task import GraderCheck, Task
+
+
+@pytest.fixture(autouse=True)
+def _fresh_settings() -> Iterator[None]:
+    # get_settings() is lru_cached: without this, a test that ran without auth
+    # leaves a cached "no auth" and later tests that monkeypatch a token (e.g.
+    # the doctor ping tests) silently skip the ping. Locally a .env token hid it.
+    get_settings.cache_clear()
+    yield
+    get_settings.cache_clear()
 
 
 @pytest.fixture
 def sample_task() -> Task:
     return Task(
         id="narrow-kb-basic",
-        skill="keyword-builder",
+        skill="rf-results",
         description="Build a greeting keyword",
         prompt="Write a keyword that logs 'Hello'.",
         allowed_tools=("Read", "Write", "Edit"),
@@ -30,7 +41,7 @@ def sample_task() -> Task:
         ),
         expected_files=("keywords.resource",),
         timeout_seconds=120,
-        model="claude-haiku-4-5",
+        model="claude-haiku-4-5-20251001",
         tier="narrow",
     )
 
@@ -41,7 +52,7 @@ def sample_profile(tmp_path: Path) -> Profile:
     config_dir.mkdir(parents=True, exist_ok=True)
     return Profile(
         name="treatment",
-        enabled_skills=("keyword-builder",),
+        enabled_skills=("rf-results",),
         claude_config_dir=config_dir,
     )
 
@@ -59,7 +70,7 @@ def sample_run(tmp_path: Path) -> Run:
         finished_at=now,
         exit_code=0,
         artifacts_dir=artifacts,
-        model="claude-haiku-4-5",
+        model="claude-haiku-4-5-20251001",
     )
 
 
@@ -69,7 +80,7 @@ def task_yaml(tmp_path: Path) -> Iterator[Path]:
     path.write_text(
         """
 id: narrow-kb-basic
-skill: keyword-builder
+skill: rf-results
 description: basic
 prompt: Build a keyword
 allowed_tools:
@@ -83,7 +94,7 @@ grader_checks:
 expected_files:
   - keywords.resource
 timeout_seconds: 60
-model: claude-haiku-4-5
+model: claude-haiku-4-5-20251001
 tier: narrow
 """,
         encoding="utf-8",

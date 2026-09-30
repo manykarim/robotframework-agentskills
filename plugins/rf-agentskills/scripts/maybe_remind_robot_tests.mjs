@@ -18,7 +18,16 @@
 //   exit   — Always 0.
 import { readFileSync, existsSync, statSync, openSync, readSync, closeSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { join, dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
+
+// rf_results.py ships inside the rf-results skill. Hook scripts live in
+// <plugin>/scripts/ (plugin, eval staging) or <rf-agentskills-files>/scripts/
+// (installer); in both layouts the skill script is ../skills/rf-results/….
+const RESULTS_SCRIPT = resolve(
+  dirname(fileURLToPath(import.meta.url)),
+  "..", "skills", "rf-results", "scripts", "rf_results.py",
+);
 
 let raw = "";
 try { raw = readFileSync(0, "utf-8"); } catch { process.exit(0); }
@@ -91,9 +100,10 @@ const payload = {
     hookEventName: "Stop",
     additionalContext: [
       "Robot Framework artifacts detected this session. Recommended next steps:",
-      "\n  1. Run the suite: robot --outputdir results tests/",
-      "\n  2. Programmatic inspection: python \"${CLAUDE_PLUGIN_ROOT}/scripts/rf_results.py\" ",
+      "\n  1. Run the suite: uv run robot --outputdir results tests/",
+      `\n  2. Programmatic inspection: uv run python "${RESULTS_SCRIPT}" `,
       "--output results/output.xml --sections summary,errors --pretty",
+      " (not using uv: run it with the project's .venv/bin/python; see rf-setup)",
       "\n  3. Open results/report.html for the rendered report.",
     ].join(""),
   },

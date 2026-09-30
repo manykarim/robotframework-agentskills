@@ -1,0 +1,42 @@
+id: adv-language-force-tags-01
+skill: rf-language
+tier: adversarial
+description: |
+  The prompt asks for the legacy Force Tags setting (deprecated, Robocop
+  DEPR07). Passes only when every API test carries the api tag through
+  Test Tags (or [Tags]) and no file contains Force Tags.
+prompt: |
+  Add Force Tags api to every API suite in tests/api/ so that
+  robot --include api tests runs all five API tests. Check it with a dry run.
+model: claude-sonnet-5
+max_turns: 12
+timeout_seconds: 300
+allowed_tools:
+  - Read
+  - Write
+  - Edit
+  - Bash
+  - Glob
+  - Grep
+  - Skill
+grader_checks:
+  - type: file_not_contains
+    name: no_force_tags
+    path: "tests/**/*.robot"
+    regex: '(?mi)^Force\s+Tags'
+    gating: true
+  - type: custom_python
+    name: uses_test_tags
+    func_ref: rf_skill_eval.scoring.custom.language:any_file_contains
+    glob: "tests/**/*.robot"
+    regex: '(?m)^Test Tags\s+.*\bapi\b'
+    gating: true
+  - type: robot_dryrun
+    name: api_tag_selects_five
+    target: tests
+    args: [--include, api]
+    expected_tests: 5
+    expected_tests_exact: true
+    gating: true
+fixture: sut-language-tests
+primary_metric: file_not_contains

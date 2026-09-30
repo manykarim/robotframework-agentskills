@@ -73,6 +73,15 @@ dev = [
     # Validation tooling exercised by tests/test_validation_hooks.py.
     "robotframework-robocop>=8",
     "robotframework-find-unused>=0.9",
+    # Target libraries of the library skills. scripts/check-skill-keywords.py
+    # resolves every keyword the skills teach against their libdoc, so a
+    # plain `uv sync` makes that check complete (no skill is SKIPPED).
+    "robotframework-browser",
+    "robotframework-seleniumlibrary",
+    "robotframework-appiumlibrary",
+    "robotframework-requests",
+    "RESTinstance",
+    "robotframework-PlatynUI==0.12.0.dev330",
 ]
 
 [project.scripts]
@@ -247,6 +256,8 @@ markers = [
     "integration: marks tests that spawn subprocesses or hit the filesystem heavily",
     "requires_robot: marks tests that require the `robot` CLI on PATH",
     "requires_claude: marks tests that require the `claude` CLI on PATH",
+    "slow: marks slow benchmark tests (hook latency budget)",
+    "rf61: marks tests that build a Robot Framework 6.1 venv with uv (skipped offline)",
 ]
 
 # --- Coverage ----------------------------------------------------------------

@@ -1,0 +1,54 @@
+id: narrow-python-library-flaky-listener-01
+skill: rf-python-library
+tier: narrow
+description: |
+  Write a listener that reports failures of tests tagged flaky as SKIP. Graded
+  by two hidden suites run with --listener FlakySkip: the flaky failure becomes
+  SKIP and the run exits 0; a failure without the tag stays FAIL. Non-gating:
+  an end_test(data, result) listener method.
+prompt: |
+  Some of our Robot Framework tests are tagged `flaky`. Create
+  libraries/FlakySkip.py so that `robot --pythonpath libraries --listener FlakySkip tests`
+  reports a failing test that has the flaky tag as skipped instead of failed,
+  keeping the original failure text in its message. Tests without the tag must
+  keep their real status. Make sure it works before you finish.
+model: claude-haiku-4-5-20251001
+max_turns: 14
+timeout_seconds: 300
+allowed_tools:
+  - Read
+  - Write
+  - Edit
+  - Bash
+  - Glob
+  - Grep
+  - Skill
+grader_checks:
+  - type: custom_python
+    name: flaky_failure_becomes_skip
+    func_ref: rf_skill_eval.scoring.custom.python_library:hidden_suite
+    suite: flaky.robot
+    listener: FlakySkip
+    expected_rc: 0
+    expected_statuses: {"Flaky Checkout": SKIP, "Stable Login": PASS}
+    gating: true
+  - type: custom_python
+    name: untagged_failure_stays_fail
+    func_ref: rf_skill_eval.scoring.custom.python_library:hidden_suite
+    suite: flaky_real_failure.robot
+    listener: FlakySkip
+    expected_rc: 1
+    expected_statuses: {"Real Bug": FAIL, "Flaky But Passing": PASS}
+    gating: true
+  - type: file_contains
+    name: end_test_listener_method
+    path: libraries/FlakySkip.py
+    regex: 'def end_test\((self,\s*)?data,\s*result'
+    gating: false
+  - type: tool_call_count
+    name: loaded_rf_python_library_skill
+    tool_pattern: "(Skill|Read)"
+    input_pattern: '(rf-python-library|/skills/rf-python-library/SKILL\.md)'
+    min: 1
+fixture: sut-pylib
+primary_metric: custom_python

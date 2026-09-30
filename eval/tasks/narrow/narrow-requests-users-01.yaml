@@ -1,0 +1,54 @@
+id: narrow-requests-users-01
+skill: rf-requests
+tier: narrow
+description: |
+  Write RequestsLibrary API tests (GET + status/JSON assertions, a 404 case)
+  against the local stdlib API in sut-api. Gated by robot_pass.
+prompt: |
+  libraries/ApiServer.py starts a small local HTTP API (see README.md): the
+  keyword `Start Api Server` sets ${API_URL}. Write tests/users_api.robot with
+  RequestsLibrary that starts the server in Suite Setup, stops it in Suite
+  Teardown, and has two tests:
+
+    1. GET /users returns 200, exactly 3 users, and the first user's name is
+       "Alice".
+    2. GET /users/99 returns 404.
+
+  Run the suite and make sure both tests pass.
+model: claude-haiku-4-5-20251001
+max_turns: 14
+timeout_seconds: 300
+allowed_tools:
+  - Read
+  - Write
+  - Edit
+  - Bash
+  - Glob
+  - Grep
+  - Skill
+expected_files:
+  - path: tests/users_api.robot
+    must_contain:
+      - "RequestsLibrary"
+      - "Alice"
+grader_checks:
+  - type: robot_pass
+    name: api_suite_passes
+    target: tests/users_api.robot
+    requires: [RequestsLibrary]
+    expected_tests: 2
+  - type: file_contains
+    name: imports_requestslibrary
+    path: tests/users_api.robot
+    regex: '^Library\s+RequestsLibrary\b'
+  - type: file_contains
+    name: checks_404
+    path: tests/users_api.robot
+    regex: '404'
+  - type: tool_call_count
+    name: loaded_rf_requests_skill
+    tool_pattern: "(Skill|Read)"
+    input_pattern: '(rf-requests|/skills/rf-requests/SKILL\.md)'
+    min: 1
+fixture: sut-api
+primary_metric: robot_pass

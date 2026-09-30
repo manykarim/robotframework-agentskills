@@ -7,8 +7,8 @@ today. This document captures why and when that's expected to change.
 
 | Scope | Channel | Source of truth | Current version |
 |---|---|---|---|
-| **Content** | Claude Code plugin · VS Code `.vsix` · skills tarballs | `plugins/rf-agentskills/.claude-plugin/plugin.json` + `vscode-extension/package.json` | **1.2.0** |
-| **Tooling** | `rf-agentskills` Python installer (PyPI / GitHub release) | `installer/pyproject.toml` | **0.3.0** |
+| **Content** | Claude Code plugin · VS Code `.vsix` · skills tarballs | `plugins/rf-agentskills/.claude-plugin/plugin.json` + `vscode-extension/package.json` | **2.0.0** |
+| **Tooling** | `rf-agentskills` Python installer (PyPI / GitHub release) | `installer/pyproject.toml` | **0.7.0** |
 
 Internal-only:
 
@@ -29,7 +29,7 @@ The two scopes are driven by different change axes:
   only `rf-agentskills` needs a new release.
 
 Forcing one number across both axes means either:
-- A typo fix in `skills/browser/SKILL.md` drags the installer's
+- A typo fix in `skills/rf-browser/SKILL.md` drags the installer's
   pre-1.0 version along (false signal to `pipx` users), **or**
 - A fix in the installer's Codex adapter stalls until the next content
   release (unnecessary lockstep).

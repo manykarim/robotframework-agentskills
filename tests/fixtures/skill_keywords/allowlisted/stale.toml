@@ -1,0 +1,11 @@
+[[allow]]
+skill = "browser"
+file = "SKILL.md"
+keyword = "Create New Item"
+reason = "illustrative application keyword"
+
+[[allow]]
+skill = "browser"
+file = "SKILL.md"
+keyword = "Keyword That Is Gone"
+reason = "stale on purpose"

@@ -1,0 +1,209 @@
+{
+  "kind": "eval-report",
+  "skills": [
+    {
+      "baseline_outcome_pass_rate": 0.3333,
+      "delta": {
+        "cost_usd": 0.01,
+        "duration_s": 0.0,
+        "input_tokens": 200.0,
+        "outcome_pass_rate": 0.6667,
+        "output_tokens": 0.0,
+        "turns": 0.0
+      },
+      "skill": "rf-browser",
+      "tasks": 2,
+      "tasks_with_delta": 1,
+      "treatment_outcome_pass_rate": 0.5
+    },
+    {
+      "baseline_outcome_pass_rate": null,
+      "delta": null,
+      "skill": "rf-selenium",
+      "tasks": 1,
+      "tasks_with_delta": 0,
+      "treatment_outcome_pass_rate": 0.3333
+    }
+  ],
+  "summary": {
+    "cost_usd": 0.25,
+    "fail": 4,
+    "incomplete": 1,
+    "pass": 6,
+    "runs": 11,
+    "skipped_checks": 2
+  },
+  "tasks": [
+    {
+      "arms": {
+        "treatment": {
+          "cost_usd": 0.02,
+          "duration_s": 20.0,
+          "flaky": false,
+          "incomplete": 0,
+          "input_tokens": 1000.0,
+          "model": "claude-haiku-4-5-20251001",
+          "outcome_pass_rate": 0.0,
+          "output_tokens": 200.0,
+          "pass_rate": 0.0,
+          "runs": 1,
+          "source": "run",
+          "stdev": {
+            "cost_usd": 0.0,
+            "duration_s": 0.0,
+            "input_tokens": 0.0,
+            "output_tokens": 0.0,
+            "turns": 0.0
+          },
+          "turns": 4.0
+        }
+      },
+      "delta": null,
+      "gating": false,
+      "incomplete_reasons": [],
+      "process": [],
+      "skill": "rf-browser",
+      "skipped": [],
+      "task_id": "adv-web-wrong-library",
+      "tier": "adversarial"
+    },
+    {
+      "arms": {
+        "baseline": {
+          "cost_usd": 0.02,
+          "duration_s": 20.0,
+          "flaky": true,
+          "incomplete": 0,
+          "input_tokens": 1000.0,
+          "model": "claude-haiku-4-5-20251001",
+          "outcome_pass_rate": 0.3333,
+          "output_tokens": 200.0,
+          "pass_rate": 0.3333,
+          "runs": 3,
+          "source": "run",
+          "stdev": {
+            "cost_usd": 0.0,
+            "duration_s": 0.0,
+            "input_tokens": 0.0,
+            "output_tokens": 0.0,
+            "turns": 0.0
+          },
+          "turns": 4.0
+        },
+        "treatment": {
+          "cost_usd": 0.03,
+          "duration_s": 20.0,
+          "flaky": false,
+          "incomplete": 0,
+          "input_tokens": 1200.0,
+          "model": "claude-haiku-4-5-20251001",
+          "outcome_pass_rate": 1.0,
+          "output_tokens": 200.0,
+          "pass_rate": 1.0,
+          "runs": 3,
+          "source": "run",
+          "stdev": {
+            "cost_usd": 0.0,
+            "duration_s": 0.0,
+            "input_tokens": 0.0,
+            "output_tokens": 0.0,
+            "turns": 0.0
+          },
+          "turns": 4.0
+        }
+      },
+      "delta": {
+        "cost_usd": 0.01,
+        "duration_s": 0.0,
+        "input_tokens": 200.0,
+        "outcome_pass_rate": 0.6667,
+        "output_tokens": 0.0,
+        "turns": 0.0
+      },
+      "gating": true,
+      "incomplete_reasons": [],
+      "process": [
+        {
+          "check": "loaded_skill",
+          "passed": 3,
+          "runs": 3
+        }
+      ],
+      "skill": "rf-browser",
+      "skipped": [],
+      "task_id": "narrow-browser-login-01",
+      "tier": "narrow"
+    },
+    {
+      "arms": {
+        "treatment": {
+          "cost_usd": 0.02,
+          "duration_s": 20.0,
+          "flaky": false,
+          "incomplete": 0,
+          "input_tokens": 1000.0,
+          "model": "claude-haiku-4-5-20251001",
+          "outcome_pass_rate": 1.0,
+          "output_tokens": 200.0,
+          "pass_rate": 1.0,
+          "runs": 1,
+          "source": "run",
+          "stdev": {
+            "cost_usd": 0.0,
+            "duration_s": 0.0,
+            "input_tokens": 0.0,
+            "output_tokens": 0.0,
+            "turns": 0.0
+          },
+          "turns": 4.0
+        }
+      },
+      "delta": null,
+      "gating": true,
+      "incomplete_reasons": [],
+      "process": [],
+      "skill": "plugin",
+      "skipped": [],
+      "task_id": "narrow-non-rf-control-01",
+      "tier": "narrow"
+    },
+    {
+      "arms": {
+        "treatment": {
+          "cost_usd": 0.02,
+          "duration_s": 20.0,
+          "flaky": true,
+          "incomplete": 1,
+          "input_tokens": 1000.0,
+          "model": "claude-haiku-4-5-20251001",
+          "outcome_pass_rate": 0.3333,
+          "output_tokens": 200.0,
+          "pass_rate": 0.3333,
+          "runs": 3,
+          "source": "run",
+          "stdev": {
+            "cost_usd": 0.0,
+            "duration_s": 0.0,
+            "input_tokens": 0.0,
+            "output_tokens": 0.0,
+            "turns": 0.0
+          },
+          "turns": 4.0
+        }
+      },
+      "delta": null,
+      "gating": true,
+      "incomplete_reasons": [
+        "gating check 'robot_pass:tests/login.robot' skipped: robot CLI not installed"
+      ],
+      "process": [],
+      "skill": "rf-selenium",
+      "skipped": [
+        "lint_clean:tests/login.robot: skipped (robocop not installed)",
+        "robot_pass:tests/login.robot: skipped (robot CLI not installed)"
+      ],
+      "task_id": "narrow-selenium-login-01",
+      "tier": "narrow"
+    }
+  ]
+}

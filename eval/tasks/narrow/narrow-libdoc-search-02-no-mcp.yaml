@@ -1,8 +1,8 @@
 id: narrow-libdoc-search-02-no-mcp
-skill: libdoc-search
+skill: rf-libdoc
 tier: narrow
 description: |
-  Control task for libdoc-search that deliberately excludes the rf-mcp
+  Control task for the rf-libdoc skill that deliberately excludes the rf-mcp
   MCP server from allowed_tools. The agent must derive the answer from
   the workspace and its own knowledge of SeleniumLibrary, without any
   dynamic RF tool calls. Session-based graders verify that zero
@@ -30,9 +30,10 @@ prompt: |
   You DO have Read, Write, Edit, Bash, Glob, and Grep. Use your own
   knowledge of SeleniumLibrary for the keyword signature — no need to
   look it up externally.
-model: claude-haiku-4-5
+model: claude-haiku-4-5-20251001
 max_turns: 12
 timeout_seconds: 300
+# No mcp_servers: rf-mcp is deliberately not provisioned (in either arm).
 allowed_tools:
   - Read
   - Write

@@ -7,6 +7,66 @@
 
 ---
 
+## Amendment 2026-09-27 — `strengthen-skill-eval-harness`
+
+This amendment supersedes the model and verdict rules below where they
+conflict. It is implemented in `src/rf_skill_eval/` (see the OpenSpec change
+`strengthen-skill-eval-harness`).
+
+### Model policy
+
+| Id | Where | Notes |
+|---|---|---|
+| `claude-haiku-4-5-20251001` | narrow tier, trigger evals, every PR run (default) | cheap, low variance |
+| `claude-sonnet-5` | realistic and adversarial tiers | higher fidelity |
+| `claude-opus-5-5` | **manual runs only**, explicit opt-in | checks that a skill does not *hurt* the strongest model |
+
+- Task YAML and trigger sets may declare Haiku or Sonnet only; declaring
+  `claude-opus-5-5` is rejected ("use --model with --allow-opus").
+- Opus runs require `--model claude-opus-5-5 --allow-opus --max-cost-usd <cap>`;
+  the harness refuses to start and names the missing flag otherwise. Opus is
+  never used on PRs or the weekly schedule (≈5× Sonnet per token; it would
+  dominate spend without changing merge decisions).
+- Retired ids (`claude-haiku-4-5`, `claude-sonnet-4-6`) are rejected at load
+  time with a migration hint and the list of permitted ids.
+- Every batch, trigger and gate command accepts `--max-cost-usd`. Cumulative
+  cost is the stream-json `total_cost_usd` (a notional budget under OAuth).
+  When it reaches the cap, no further session starts, unstarted runs are
+  recorded `incomplete` (reason `budget`) and the command exits non-zero. A
+  pre-dispatch estimate over 1.5× the cap refuses the run.
+
+### Verdict states (replaces "passed: bool")
+
+A verdict is `passed`, `failed`, `skipped` (could not be evaluated — tool
+missing, library not importable, spec or transcript missing — always with a
+reason) or `error` (grader defect). `skipped` and `error` never count as
+passes: aggregate pass rates use `passed / (passed + failed + skipped +
+error)`. `lint_clean` with robocop missing is `skipped`, not a pass. Stored
+`eval.db` files migrate on open (`passed=1` → `passed`, `passed=0` →
+`failed`; `PRAGMA user_version` 2).
+
+### Gating and gate result
+
+Checks whose `type` equals the task's `primary_metric`, or that set
+`gating: true`, are gating. A run's gate result is `pass` (all gating checks
+passed), `fail` (any gating check failed) or `incomplete` (otherwise —
+including skipped/errored gating checks, budget stops and arm leaks). CI treats
+`incomplete` as a failure. Checks are `outcome` or `process` (default
+`process` for `tool_call_count`, `tool_result_count`, `tool_call_sequence`);
+treatment − baseline deltas use outcome checks only.
+
+### Arms, replicates, statistics
+
+The `control` arm is now `baseline` (no plugin parts; `control` is a
+deprecated alias). Every task can run in `treatment` and `baseline`,
+`--runs N` (default 3) replicates each. Reports show raw pass rates, means,
+stdev/min/max and deltas; the Mann-Whitney / Cliff's δ / BH stack described
+below remains the target once N is large enough — with N=3 it is
+underpowered, so the regression gate uses a tolerance of one replicate
+(> 1/N) and a +30 % input-token budget against a stored baseline instead.
+
+---
+
 ## Context
 
 "Did this skill help?" is the question the harness must answer. Three scoring

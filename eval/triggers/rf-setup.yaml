@@ -1,0 +1,45 @@
+# Trigger query set for rf-setup (format: eval/triggers/README.md).
+# Tune descriptions on the train split only; never edit validation queries
+# to make a description pass (rotate them only when the skill's intent changes).
+skill: rf-setup
+model: claude-haiku-4-5-20251001
+runs: 3
+threshold: 0.5
+queries:
+  # should trigger (train)
+  - {id: su-t01, split: train, should_trigger: true, query: "Set up a new Robot Framework project with uv and Browser library"}
+  - {id: su-t02, split: train, should_trigger: true, note: "indirect: pasted error", query: "ModuleNotFoundError: No module named 'SeleniumLibrary' when I run robot — how do I fix my environment?"}
+  - {id: su-t03, split: train, should_trigger: true, note: "indirect: pasted error", query: "pip install robotframework-browser fails with 'externally-managed-environment' on Ubuntu"}
+  - {id: su-t04, split: train, should_trigger: true, query: "Add RequestsLibrary to our Poetry-managed Robot Framework project"}
+  - {id: su-t05, split: train, should_trigger: true, query: "rfbrowser init fails with 'node not found' — how do I install Browser library without Node?"}
+  - {id: su-t06, split: train, should_trigger: true, query: "Install the Appium server and UiAutomator2 driver for Robot Framework AppiumLibrary"}
+  - {id: su-t07, split: train, should_trigger: true, note: "typos, user phrasing", query: "robot: command not found after i installed robotframework with pip, what did i do wrong"}
+  # should trigger (validation)
+  - {id: su-v01, split: validation, should_trigger: true, note: "edit existing file", query: "Update pyproject.toml of our RF project so robotframework-browser is a dependency and the lock file is refreshed"}
+  - {id: su-v02, split: validation, should_trigger: true, query: "Which Python version do I need for RESTinstance and how do I install it into our venv?"}
+  - {id: su-v03, split: validation, should_trigger: true, query: "Robot runs with the wrong interpreter (global Python instead of .venv) — how do I set it up correctly?"}
+  - {id: su-v04, split: validation, should_trigger: true, query: "Install the PlatynUI pre-release into our uv project"}
+  # should NOT trigger (train): sibling skills + non-RF look-alikes
+  - {id: su-n01, split: train, should_trigger: false, note: "sibling rf-browser", query: "Write a Browser library login test for http://localhost:8000"}
+  - {id: su-n02, split: train, should_trigger: false, note: "sibling rf-requests", query: "Write RequestsLibrary tests for GET /users and a 404 case"}
+  - {id: su-n03, split: train, should_trigger: false, note: "sibling rf-robotcode", query: "Run the ci profile from robot.toml with robotcode"}
+  - {id: su-n04, split: train, should_trigger: false, note: "sibling rf-results", query: "Summarise the failures in output.xml from the last run"}
+  - {id: su-n05, split: train, should_trigger: false, note: "non-RF look-alike", query: "pip install requirements for our Django app fails on psycopg2"}
+  - {id: su-n06, split: train, should_trigger: false, note: "non-RF look-alike", query: "Create a conda environment for a data-science notebook with pandas and scikit-learn"}
+  # should NOT trigger (validation)
+  - {id: su-n07, split: validation, should_trigger: false, note: "sibling rf-selenium", query: "Fix the SeleniumLibrary wait in tests/ui/login.robot"}
+  - {id: su-n08, split: validation, should_trigger: false, note: "sibling rf-appium", query: "Write an AppiumLibrary test that swipes to the settings screen"}
+  - {id: su-n09, split: validation, should_trigger: false, note: "non-RF look-alike", query: "Set up a Node.js project with pnpm and TypeScript"}
+  - {id: su-n10, split: validation, should_trigger: false, note: "non-RF look-alike", query: "Configure a Python virtualenv for our Flask API with pip-tools"}
+  # holdout (tune-skill-descriptions task 7.1): written after the descriptions shipped;
+  # never used to tune, select or accept a description. 5 should / 5 should-not trigger.
+  - {id: su-h01, split: holdout, should_trigger: true, query: "Bootstrap a Robot Framework repo for our QA team with a pinned Python 3.12 and a lock file"}
+  - {id: su-h02, split: holdout, should_trigger: true, note: "indirect: pasted error", query: "After adding robotframework-appiumlibrary with uv, robot still says Importing library 'AppiumLibrary' failed"}
+  - {id: su-h03, split: holdout, should_trigger: true, query: "Our GitHub Actions job needs Robot Framework and Browser library ready before the tests run; write the setup steps"}
+  - {id: su-h04, split: holdout, should_trigger: true, query: "Move our RF project from requirements.txt + pip to uv without breaking the installed libraries"}
+  - {id: su-h05, split: holdout, should_trigger: true, note: "indirect: symptom only", query: "robot works in my shell but the IDE terminal says No module named robot; how do I make both use the project venv?"}
+  - {id: su-h06, split: holdout, should_trigger: false, note: "sibling rf-browser", query: "Browser library is installed now; write the first login test for http://localhost:3000"}
+  - {id: su-h07, split: holdout, should_trigger: false, note: "sibling rf-language", query: "Write a data-driven robot test for the login form with five username/password pairs"}
+  - {id: su-h08, split: holdout, should_trigger: false, note: "sibling rf-robotcode", query: "Use robotcode to discover which tests carry the wip tag"}
+  - {id: su-h09, split: holdout, should_trigger: false, note: "non-RF look-alike", query: "Install CUDA-enabled PyTorch into a conda environment"}
+  - {id: su-h10, split: holdout, should_trigger: false, note: "non-RF look-alike", query: "Fix gem install permission errors for Jekyll on macOS"}

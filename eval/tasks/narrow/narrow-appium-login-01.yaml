@@ -1,0 +1,59 @@
+id: narrow-appium-login-01
+skill: rf-appium
+tier: narrow
+description: |
+  Write an AppiumLibrary login flow for the (spec-only) Demo Login Android app.
+  No device exists on the runner, so the gating check is static:
+  keywords_resolve against the committed AppiumLibrary libdoc spec. It reports
+  passed/failed, never skipped (the spec is part of the fixture).
+prompt: |
+  We are starting mobile tests for our Android app. app/SCREENS.md describes
+  the Demo Login app (package, activity, accessibility ids, Appium server URL).
+
+  Write tests/login.robot with AppiumLibrary that starts the app on the
+  emulator through the Appium server, logs in as demo/demo and verifies that
+  the welcome text "Welcome, demo" is shown, then closes the app. There is no
+  emulator on this machine, so you cannot run it — make sure every keyword you
+  use really exists in AppiumLibrary 3.x (a libdoc spec is in specs/).
+model: claude-haiku-4-5-20251001
+max_turns: 14
+timeout_seconds: 300
+allowed_tools:
+  - Read
+  - Write
+  - Edit
+  - Bash
+  - Glob
+  - Grep
+  - Skill
+expected_files:
+  - path: tests/login.robot
+    must_contain:
+      - "AppiumLibrary"
+      - "Open Application"
+grader_checks:
+  - type: keywords_resolve
+    name: appium_keywords_resolve
+    target: tests/login.robot
+    specs: [specs/AppiumLibrary.json]
+    required_libraries: [AppiumLibrary]
+    min_calls: 4
+  - type: file_contains
+    name: opens_application
+    path: tests/login.robot
+    regex: 'Open Application'
+  - type: file_contains
+    name: targets_login_ids
+    path: tests/login.robot
+    regex: '(username_input|com\.example\.demologin:id/username)'
+  - type: file_contains
+    name: checks_welcome
+    path: tests/login.robot
+    regex: '(welcome_text|com\.example\.demologin:id/welcome)'
+  - type: tool_call_count
+    name: loaded_rf_appium_skill
+    tool_pattern: "(Skill|Read)"
+    input_pattern: '(rf-appium|/skills/rf-appium/SKILL\.md)'
+    min: 1
+fixture: sut-appium
+primary_metric: keywords_resolve

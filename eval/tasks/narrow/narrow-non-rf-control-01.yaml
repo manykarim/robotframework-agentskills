@@ -1,5 +1,5 @@
 id: narrow-non-rf-control-01
-skill: libdoc-search
+skill: plugin
 tier: narrow
 description: |
   Negative-control task: a deliberately non-Robot-Framework prompt that
@@ -34,9 +34,11 @@ prompt: |
   Framework, libdoc, test automation, or any other RF concern. Do not
   search libdoc, do not initialize an rf-mcp session, do not consult any
   skill — just create the file and stop.
-model: claude-haiku-4-5
+model: claude-haiku-4-5-20251001
 max_turns: 4
 timeout_seconds: 60
+mcp_servers:
+  - rf-mcp
 allowed_tools:
   - Read
   - Write
@@ -73,13 +75,13 @@ grader_checks:
     tool_pattern: "mcp__rf-mcp__.*"
     min: 0
     max: 0
-  # Negative assertion: no libdoc-search invocations. The skill is staged
-  # (treatment profile provisions skill=libdoc-search) but is irrelevant
+  # Negative assertion: no libdoc invocations. The skill is staged
+  # (the treatment arm provisions the whole plugin) but is irrelevant
   # to the prompt; invoking it would be over-application.
   - type: tool_call_count
-    name: no_libdoc_search_invocation
+    name: no_libdoc_invocation
     tool_pattern: "(Bash|Skill)"
-    input_pattern: "(rf_libdoc|libdoc-search)"
+    input_pattern: '(rf_libdoc|\blibdoc\b)'
     min: 0
     max: 0
   # Loop detector: bound the total number of tool calls. A clean run for

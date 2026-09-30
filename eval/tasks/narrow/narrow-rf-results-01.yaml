@@ -1,5 +1,5 @@
 id: narrow-rf-results-01
-skill: results
+skill: rf-results
 tier: narrow
 description: |
   Parse a provided output.xml using the rf-results skill and report the
@@ -14,9 +14,11 @@ prompt: |
 
   Write your findings to reports/run-summary.md as a short bulleted summary.
   Make sure the counts come straight from the XML, not from a guess.
-model: claude-haiku-4-5
+model: claude-haiku-4-5-20251001
 max_turns: 6
 timeout_seconds: 240
+mcp_servers:
+  - rf-mcp
 allowed_tools:
   - Read
   - Write

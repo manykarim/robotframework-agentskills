@@ -1,0 +1,45 @@
+# Trigger query set for rf-libdoc (format: eval/triggers/README.md).
+# Tune descriptions on the train split only; never edit validation queries
+# to make a description pass (rotate them only when the skill's intent changes).
+skill: rf-libdoc
+model: claude-haiku-4-5-20251001
+runs: 3
+threshold: 0.5
+queries:
+  # should trigger (train)
+  - {id: ld-t01, split: train, should_trigger: true, query: "Which SeleniumLibrary keyword waits until an element contains some text?"}
+  - {id: ld-t02, split: train, should_trigger: true, query: "What arguments does the Browser keyword New Context take, and what are the defaults?"}
+  - {id: ld-t03, split: train, should_trigger: true, note: "indirect: pasted error", query: "Robot says \"No keyword with name 'Click Button Element' found\" — what is the right keyword?"}
+  - {id: ld-t04, split: train, should_trigger: true, note: "indirect: pasted error", query: "Keyword 'Input Text' expected 2 to 3 arguments, got 1 — what is the signature?"}
+  - {id: ld-t05, split: train, should_trigger: true, query: "Search our resources/common.resource for keywords about login"}
+  - {id: ld-t06, split: train, should_trigger: true, query: "Explain the RequestsLibrary keyword POST On Session with all its arguments"}
+  - {id: ld-t07, split: train, should_trigger: true, note: "typos, user phrasing", query: "whats the BuiltIn keyword in robot for checking a variable is not empty??"}
+  # should trigger (validation)
+  - {id: ld-v01, split: validation, should_trigger: true, note: "edit existing file", query: "Before I change tests/api/orders.robot: list the keywords available in resources/api.resource"}
+  - {id: ld-v02, split: validation, should_trigger: true, query: "Is there a Collections keyword that checks a dictionary contains a key?"}
+  - {id: ld-v03, split: validation, should_trigger: true, query: "Show me the documentation of the String library keyword Split String"}
+  - {id: ld-v04, split: validation, should_trigger: true, query: "Which Process library keyword starts a program in the background?"}
+  # should NOT trigger (train): sibling skills + non-RF look-alikes
+  - {id: ld-n01, split: train, should_trigger: false, note: "sibling rf-results", query: "Why did 3 tests fail in results/output.xml?"}
+  - {id: ld-n02, split: train, should_trigger: false, note: "sibling rf-setup", query: "ModuleNotFoundError: No module named 'Browser' when running robot"}
+  - {id: ld-n03, split: train, should_trigger: false, note: "sibling rf-browser", query: "Write a Browser library test that uploads a file on /settings"}
+  - {id: ld-n04, split: train, should_trigger: false, note: "sibling rf-robotcode", query: "robotcode is installed: show me the doc of Click via robotcode libdoc"}
+  - {id: ld-n05, split: train, should_trigger: false, note: "non-RF look-alike", query: "Show the docstring of Python's json.dumps with help()"}
+  - {id: ld-n06, split: train, should_trigger: false, note: "non-RF look-alike", query: "Generate Sphinx API docs for our Python package"}
+  # should NOT trigger (validation)
+  - {id: ld-n07, split: validation, should_trigger: false, note: "sibling rf-requests", query: "Write a RequestsLibrary test for POST /orders"}
+  - {id: ld-n08, split: validation, should_trigger: false, note: "sibling rf-results", query: "Merge the output.xml files from our pabot run"}
+  - {id: ld-n09, split: validation, should_trigger: false, note: "non-RF look-alike", query: "What arguments does pandas.read_csv take?"}
+  - {id: ld-n10, split: validation, should_trigger: false, note: "non-RF look-alike", query: "Explain the parameters of JUnit's @ParameterizedTest"}
+  # holdout (tune-skill-descriptions task 7.1): written after the descriptions shipped;
+  # never used to tune, select or accept a description. 5 should / 5 should-not trigger.
+  - {id: ld-h01, split: holdout, should_trigger: true, query: "Is there a keyword in the OperatingSystem library that waits until a file exists?"}
+  - {id: ld-h02, split: holdout, should_trigger: true, note: "indirect: pasted error", query: "Robot fails with \"Keyword 'Should Contain' got unexpected named argument 'case_insensitive'\", which arguments does it actually accept?"}
+  - {id: ld-h03, split: holdout, should_trigger: true, note: "file name", query: "Does our keywords/checkout.resource already have a keyword for applying a coupon, and what does it expect as input?"}
+  - {id: ld-h04, split: holdout, should_trigger: true, query: "What's the default timeout of Wait For Elements State in Browser library?"}
+  - {id: ld-h05, split: holdout, should_trigger: true, query: "Which DateTime keyword adds 3 days to a date string in robot?"}
+  - {id: ld-h06, split: holdout, should_trigger: false, note: "sibling rf-robotcode", query: "We have robotcode installed; show the arguments of Get Element Count with robotcode libdoc"}
+  - {id: ld-h07, split: holdout, should_trigger: false, note: "sibling rf-browser", query: "Write a Browser library test that waits for the toast message and checks its text"}
+  - {id: ld-h08, split: holdout, should_trigger: false, note: "sibling rf-python-library", query: "Add docstrings to the keywords of our Python library so libdoc renders them nicely"}
+  - {id: ld-h09, split: holdout, should_trigger: false, note: "non-RF look-alike", query: "What parameters does numpy.linspace take?"}
+  - {id: ld-h10, split: holdout, should_trigger: false, note: "non-RF look-alike", query: "Explain the rsync options --delete and --backup-dir"}

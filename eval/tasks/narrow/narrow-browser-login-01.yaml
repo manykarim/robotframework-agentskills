@@ -1,0 +1,54 @@
+id: narrow-browser-login-01
+skill: rf-browser
+tier: narrow
+description: |
+  Write a Browser-library login test against the local page in sut-browser and
+  make it pass. Gated by actually running the suite (robot_pass).
+prompt: |
+  pages/login.html in this project is a small login page: inputs id="username"
+  and id="password", a submit button id="submit". Logging in as demo/demo shows
+  a div id="welcome" with the text "Welcome, demo".
+
+  Write a Robot Framework test at tests/login.robot that uses the Browser
+  library (Playwright) to open the page via a file:// URL, log in as demo/demo
+  and verify the welcome text. Run it and make sure it passes. Playwright
+  browsers are already installed.
+model: claude-haiku-4-5-20251001
+max_turns: 16
+timeout_seconds: 420
+allowed_tools:
+  - Read
+  - Write
+  - Edit
+  - Bash
+  - Glob
+  - Grep
+  - Skill
+expected_files:
+  - path: tests/login.robot
+    must_contain:
+      - "Browser"
+      - "Welcome, demo"
+grader_checks:
+  - type: robot_pass
+    name: login_suite_passes
+    target: tests/login.robot
+    requires: [Browser]
+    expected_tests: 1
+  - type: file_contains
+    name: imports_browser
+    path: tests/login.robot
+    regex: '^Library\s+Browser\b'
+  - type: file_contains
+    name: asserts_welcome
+    path: tests/login.robot
+    regex: '(?i)welcome,\s*demo'
+  - type: no_deprecated_keywords
+    target: tests/login.robot
+  - type: tool_call_count
+    name: loaded_rf_browser_skill
+    tool_pattern: "(Skill|Read)"
+    input_pattern: '(rf-browser|/skills/rf-browser/SKILL\.md)'
+    min: 1
+fixture: sut-browser
+primary_metric: robot_pass

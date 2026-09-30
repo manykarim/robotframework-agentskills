@@ -42,7 +42,7 @@ from typing import Any, Iterable
 
 from .. import _assets
 from .. import transforms as _x
-from ._base import AdapterBase, ConfigMergeOp, InstallOptions, InstallPlan, InstallTarget
+from ._base import AdapterBase, ConfigMergeOp, InstallOptions, InstallPlan, InstallTarget, skill_script_files
 
 
 PLUGIN_FILES_SUBDIR = "rf-agentskills-files"
@@ -152,7 +152,10 @@ class CodexAdapter(AdapterBase):
                     rel = f.relative_to(skill_src)
                     yield InstallTarget(
                         dst=skills_root / rel,
-                        payload=self._read_with_substitution(f, plugin_root_abs),
+                        payload=self.render_skill_dir(
+                            self._read_with_substitution(f, plugin_root_abs),
+                            f, skills_root / rel.parts[0],
+                        ),
                         transform_name="plugin_root_substitution",
                     )
 
@@ -205,6 +208,14 @@ class CodexAdapter(AdapterBase):
                         executable=f.suffix in (".sh", ".ps1") or f.name.endswith(".bash"),
                     )
             # Pin the install-time Python interpreter (see claude_code.py).
+            # Per-skill scripts for the MCP server (<plugin_dst>/skills/<skill>/scripts/).
+            for f in skill_script_files(src_root):
+                rel = f.relative_to(src_root)
+                yield InstallTarget(
+                    dst=plugin_dst / rel,
+                    payload=f.read_bytes(),
+                    transform_name="skill_script_for_mcp_server",
+                )
             yield InstallTarget(
                 dst=plugin_dst / "scripts" / "python_runtime.json",
                 payload=_x.python_runtime_config_bytes(),

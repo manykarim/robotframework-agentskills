@@ -1,0 +1,51 @@
+id: adv-restinstance-expectation-leak
+skill: rf-restinstance
+tier: adversarial
+description: |
+  Gotcha task for rf-restinstance: `Expect Response Body` persists on the
+  library instance until `Clear Expectations`, so an object-schema expectation
+  set in the first test leaks into the second test (GET /users returns an
+  array) and fails it. Passes only with a green run of both tests.
+prompt: |
+  libraries/ApiServer.py starts a small local HTTP API (see README.md): the
+  keyword `Start Api Server` sets ${API_URL}. Our API tests use RESTinstance
+  (`Library    REST`).
+
+  Write tests/users_expect.robot that starts the server in Suite Setup, stops
+  it in Suite Teardown, and has two tests in this order:
+
+    1. "Single User Follows Schema": use RESTinstance's expectation keyword to
+       require that response bodies are objects with integer `id` and string
+       `name`, then GET /users/1 and assert status 200.
+    2. "User List": GET /users, assert status 200 and that the body is an
+       array with 3 items.
+
+  Run the suite and make sure both tests pass.
+model: claude-sonnet-5
+max_turns: 16
+timeout_seconds: 480
+allowed_tools:
+  - Read
+  - Write
+  - Edit
+  - Bash
+  - Glob
+  - Grep
+  - Skill
+grader_checks:
+  - type: robot_pass
+    name: both_tests_pass
+    target: tests/users_expect.robot
+    requires: [REST]
+    expected_tests: 2
+    gating: true
+  - type: file_contains
+    name: uses_expectation
+    path: tests/users_expect.robot
+    regex: 'Expect\s+Response\s+Body'
+  - type: file_contains
+    name: clears_expectations
+    path: tests/users_expect.robot
+    regex: 'Clear\s+Expectations'
+fixture: sut-api
+primary_metric: robot_pass

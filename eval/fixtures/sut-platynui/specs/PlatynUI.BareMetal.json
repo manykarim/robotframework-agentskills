@@ -1,0 +1,2351 @@
+{
+  "specversion": 3,
+  "name": "PlatynUI.BareMetal",
+  "doc": "<p>Robot Framework library for PlatynUI's native backend.</p>\n<p>This library exposes low-level, platform-aware UI automation keywords backed by the PlatynUI runtime. It allows you to query the UI tree (XPath-like expressions), perform pointer and keyboard actions, and operate on window surfaces.</p>",
+  "version": "0.12.0-dev.330",
+  "generated": "2026-09-27T20:44:43+00:00",
+  "type": "LIBRARY",
+  "scope": "SUITE",
+  "docFormat": "HTML",
+  "source": "/home/many/workspace/robotframework-agentskills/.venv/lib/python3.12/site-packages/PlatynUI/BareMetal/__init__.py",
+  "lineno": 134,
+  "tags": [],
+  "inits": [
+    {
+      "name": "__init__",
+      "args": [
+        {
+          "name": "",
+          "type": null,
+          "defaultValue": null,
+          "kind": "NAMED_ONLY_MARKER",
+          "required": false,
+          "repr": "*"
+        },
+        {
+          "name": "keyboard_profile",
+          "type": {
+            "name": "Union",
+            "typedoc": null,
+            "nested": [
+              {
+                "name": "KeyboardProfileLike",
+                "typedoc": null,
+                "nested": [],
+                "union": false
+              },
+              {
+                "name": "None",
+                "typedoc": "None",
+                "nested": [],
+                "union": false
+              }
+            ],
+            "union": true
+          },
+          "defaultValue": "None",
+          "kind": "NAMED_ONLY",
+          "required": false,
+          "repr": "keyboard_profile: KeyboardProfileLike | None = None"
+        },
+        {
+          "name": "pointer_settings",
+          "type": {
+            "name": "Union",
+            "typedoc": null,
+            "nested": [
+              {
+                "name": "PointerSettingsLike",
+                "typedoc": null,
+                "nested": [],
+                "union": false
+              },
+              {
+                "name": "None",
+                "typedoc": "None",
+                "nested": [],
+                "union": false
+              }
+            ],
+            "union": true
+          },
+          "defaultValue": "None",
+          "kind": "NAMED_ONLY",
+          "required": false,
+          "repr": "pointer_settings: PointerSettingsLike | None = None"
+        },
+        {
+          "name": "pointer_profile",
+          "type": {
+            "name": "Union",
+            "typedoc": null,
+            "nested": [
+              {
+                "name": "PointerProfileLike",
+                "typedoc": null,
+                "nested": [],
+                "union": false
+              },
+              {
+                "name": "None",
+                "typedoc": "None",
+                "nested": [],
+                "union": false
+              }
+            ],
+            "union": true
+          },
+          "defaultValue": "None",
+          "kind": "NAMED_ONLY",
+          "required": false,
+          "repr": "pointer_profile: PointerProfileLike | None = None"
+        },
+        {
+          "name": "use_mock",
+          "type": {
+            "name": "bool",
+            "typedoc": "boolean",
+            "nested": [],
+            "union": false
+          },
+          "defaultValue": "False",
+          "kind": "NAMED_ONLY",
+          "required": false,
+          "repr": "use_mock: bool = False"
+        },
+        {
+          "name": "auto_activate",
+          "type": {
+            "name": "bool",
+            "typedoc": "boolean",
+            "nested": [],
+            "union": false
+          },
+          "defaultValue": "True",
+          "kind": "NAMED_ONLY",
+          "required": false,
+          "repr": "auto_activate: bool = True"
+        }
+      ],
+      "returnType": null,
+      "doc": "<p>Initialize self.  See help(type(self)) for accurate signature.</p>",
+      "shortdoc": "Initialize self.  See help(type(self)) for accurate signature.",
+      "tags": [],
+      "source": "/home/many/workspace/robotframework-agentskills/.venv/lib/python3.12/site-packages/PlatynUI/BareMetal/__init__.py",
+      "lineno": 143
+    }
+  ],
+  "keywords": [
+    {
+      "name": "Activate Window",
+      "args": [
+        {
+          "name": "descriptor",
+          "type": {
+            "name": "UiNodeDescriptor",
+            "typedoc": "UiNodeDescriptor",
+            "nested": [],
+            "union": false
+          },
+          "defaultValue": null,
+          "kind": "POSITIONAL_OR_NAMED",
+          "required": true,
+          "repr": "descriptor: UiNodeDescriptor"
+        }
+      ],
+      "returnType": null,
+      "doc": "<p>Activate (bring to front and focus) a window.</p>\n<p>Operates through the element's <code>Activatable</code> pattern. Raises <code>PatternError</code> if the element doesn't support <code>Activatable</code>.</p>\n<p>Args: descriptor: The window element to activate.</p>\n<p>Examples:</p>\n<table border=\"1\">\n<tr>\n<td>Activate Window</td>\n<td>//control:Window[@Name=\"Editor\"]</td>\n</tr>\n</table>",
+      "shortdoc": "Activate (bring to front and focus) a window.",
+      "tags": [],
+      "source": "/home/many/workspace/robotframework-agentskills/.venv/lib/python3.12/site-packages/PlatynUI/BareMetal/__init__.py",
+      "lineno": 638
+    },
+    {
+      "name": "Bring To Front",
+      "args": [
+        {
+          "name": "descriptor",
+          "type": {
+            "name": "UiNodeDescriptor",
+            "typedoc": "UiNodeDescriptor",
+            "nested": [],
+            "union": false
+          },
+          "defaultValue": null,
+          "kind": "POSITIONAL_OR_NAMED",
+          "required": true,
+          "repr": "descriptor: UiNodeDescriptor"
+        }
+      ],
+      "returnType": null,
+      "doc": "<p>Bring the specified UiNode to the front.</p>\n<p>Args: descriptor: The UiNodeDescriptor representing the target node.</p>",
+      "shortdoc": "Bring the specified UiNode to the front.",
+      "tags": [],
+      "source": "/home/many/workspace/robotframework-agentskills/.venv/lib/python3.12/site-packages/PlatynUI/BareMetal/__init__.py",
+      "lineno": 713
+    },
+    {
+      "name": "Close Window",
+      "args": [
+        {
+          "name": "descriptor",
+          "type": {
+            "name": "UiNodeDescriptor",
+            "typedoc": "UiNodeDescriptor",
+            "nested": [],
+            "union": false
+          },
+          "defaultValue": null,
+          "kind": "POSITIONAL_OR_NAMED",
+          "required": true,
+          "repr": "descriptor: UiNodeDescriptor"
+        }
+      ],
+      "returnType": null,
+      "doc": "<p>Close a window.</p>\n<p>Operates through the element's <code>Closeable</code> pattern. Raises <code>PatternError</code> if the element doesn't support <code>Closeable</code>.</p>\n<p>Args: descriptor: The window element to close.</p>\n<p>Examples:</p>\n<table border=\"1\">\n<tr>\n<td>Close Window</td>\n<td>//control:Window[@Name=\"Editor\"]</td>\n</tr>\n</table>",
+      "shortdoc": "Close a window.",
+      "tags": [],
+      "source": "/home/many/workspace/robotframework-agentskills/.venv/lib/python3.12/site-packages/PlatynUI/BareMetal/__init__.py",
+      "lineno": 622
+    },
+    {
+      "name": "Focus",
+      "args": [
+        {
+          "name": "descriptor",
+          "type": {
+            "name": "UiNodeDescriptor",
+            "typedoc": "UiNodeDescriptor",
+            "nested": [],
+            "union": false
+          },
+          "defaultValue": null,
+          "kind": "POSITIONAL_OR_NAMED",
+          "required": true,
+          "repr": "descriptor: UiNodeDescriptor"
+        }
+      ],
+      "returnType": null,
+      "doc": "<p>Set input focus to the specified element.</p>\n<p>The target element is brought to the front (via the runtime) and focused using the platform's focus APIs. Use this before typing if an element isn't already focused.</p>\n<p>Args: descriptor: Element to focus. Can be a UiNode or a selector string.</p>\n<p>Examples:</p>\n<table border=\"1\">\n<tr>\n<td>Focus</td>\n<td>//control:Edit[@Name=\"Search\"]</td>\n</tr>\n</table>",
+      "shortdoc": "Set input focus to the specified element.",
+      "tags": [],
+      "source": "/home/many/workspace/robotframework-agentskills/.venv/lib/python3.12/site-packages/PlatynUI/BareMetal/__init__.py",
+      "lineno": 558
+    },
+    {
+      "name": "Get Attribute",
+      "args": [
+        {
+          "name": "descriptor",
+          "type": {
+            "name": "UiNodeDescriptor",
+            "typedoc": "UiNodeDescriptor",
+            "nested": [],
+            "union": false
+          },
+          "defaultValue": null,
+          "kind": "POSITIONAL_OR_NAMED",
+          "required": true,
+          "repr": "descriptor: UiNodeDescriptor"
+        },
+        {
+          "name": "attribute_name",
+          "type": {
+            "name": "str",
+            "typedoc": "string",
+            "nested": [],
+            "union": false
+          },
+          "defaultValue": null,
+          "kind": "POSITIONAL_OR_NAMED",
+          "required": true,
+          "repr": "attribute_name: str"
+        },
+        {
+          "name": "assertion_operator",
+          "type": {
+            "name": "Union",
+            "typedoc": null,
+            "nested": [
+              {
+                "name": "AssertionOperator",
+                "typedoc": "AssertionOperator",
+                "nested": [],
+                "union": false
+              },
+              {
+                "name": "None",
+                "typedoc": "None",
+                "nested": [],
+                "union": false
+              }
+            ],
+            "union": true
+          },
+          "defaultValue": "None",
+          "kind": "POSITIONAL_OR_NAMED",
+          "required": false,
+          "repr": "assertion_operator: AssertionOperator | None = None"
+        },
+        {
+          "name": "assertion_expected",
+          "type": {
+            "name": "Any",
+            "typedoc": "Any",
+            "nested": [],
+            "union": false
+          },
+          "defaultValue": "None",
+          "kind": "POSITIONAL_OR_NAMED",
+          "required": false,
+          "repr": "assertion_expected: Any = None"
+        },
+        {
+          "name": "assertion_message",
+          "type": {
+            "name": "Union",
+            "typedoc": null,
+            "nested": [
+              {
+                "name": "str",
+                "typedoc": "string",
+                "nested": [],
+                "union": false
+              },
+              {
+                "name": "None",
+                "typedoc": "None",
+                "nested": [],
+                "union": false
+              }
+            ],
+            "union": true
+          },
+          "defaultValue": "None",
+          "kind": "POSITIONAL_OR_NAMED",
+          "required": false,
+          "repr": "assertion_message: str | None = None"
+        }
+      ],
+      "returnType": {
+        "name": "Any",
+        "typedoc": "Any",
+        "nested": [],
+        "union": false
+      },
+      "doc": "<p>Get an attribute value from the specified UiNode.</p>\n<p>Args: descriptor: The UiNodeDescriptor representing the target node. attribute_name: The name of the attribute to retrieve.</p>\n<p>Returns: Any: The value of the specified attribute.</p>",
+      "shortdoc": "Get an attribute value from the specified UiNode.",
+      "tags": [],
+      "source": "/home/many/workspace/robotframework-agentskills/.venv/lib/python3.12/site-packages/PlatynUI/BareMetal/__init__.py",
+      "lineno": 722
+    },
+    {
+      "name": "Get Pointer Position",
+      "args": [
+        {
+          "name": "assertion_operator",
+          "type": {
+            "name": "Union",
+            "typedoc": null,
+            "nested": [
+              {
+                "name": "AssertionOperator",
+                "typedoc": "AssertionOperator",
+                "nested": [],
+                "union": false
+              },
+              {
+                "name": "None",
+                "typedoc": "None",
+                "nested": [],
+                "union": false
+              }
+            ],
+            "union": true
+          },
+          "defaultValue": "None",
+          "kind": "POSITIONAL_OR_NAMED",
+          "required": false,
+          "repr": "assertion_operator: AssertionOperator | None = None"
+        },
+        {
+          "name": "assertion_expected",
+          "type": {
+            "name": "Any",
+            "typedoc": "Any",
+            "nested": [],
+            "union": false
+          },
+          "defaultValue": "None",
+          "kind": "POSITIONAL_OR_NAMED",
+          "required": false,
+          "repr": "assertion_expected: Any = None"
+        },
+        {
+          "name": "assertion_message",
+          "type": {
+            "name": "Union",
+            "typedoc": null,
+            "nested": [
+              {
+                "name": "str",
+                "typedoc": "string",
+                "nested": [],
+                "union": false
+              },
+              {
+                "name": "None",
+                "typedoc": "None",
+                "nested": [],
+                "union": false
+              }
+            ],
+            "union": true
+          },
+          "defaultValue": "None",
+          "kind": "POSITIONAL_OR_NAMED",
+          "required": false,
+          "repr": "assertion_message: str | None = None"
+        }
+      ],
+      "returnType": {
+        "name": "Any",
+        "typedoc": "Any",
+        "nested": [],
+        "union": false
+      },
+      "doc": "<p>Get the current pointer position on the screen.</p>\n<p>Returns: Point: The current screen coordinates of the pointer.</p>",
+      "shortdoc": "Get the current pointer position on the screen.",
+      "tags": [],
+      "source": "/home/many/workspace/robotframework-agentskills/.venv/lib/python3.12/site-packages/PlatynUI/BareMetal/__init__.py",
+      "lineno": 547
+    },
+    {
+      "name": "Highlight",
+      "args": [
+        {
+          "name": "descriptor",
+          "type": {
+            "name": "Union",
+            "typedoc": null,
+            "nested": [
+              {
+                "name": "UiNodeDescriptor",
+                "typedoc": "UiNodeDescriptor",
+                "nested": [],
+                "union": false
+              },
+              {
+                "name": "list",
+                "typedoc": "list",
+                "nested": [
+                  {
+                    "name": "UiNodeDescriptor",
+                    "typedoc": "UiNodeDescriptor",
+                    "nested": [],
+                    "union": false
+                  }
+                ],
+                "union": false
+              },
+              {
+                "name": "None",
+                "typedoc": "None",
+                "nested": [],
+                "union": false
+              }
+            ],
+            "union": true
+          },
+          "defaultValue": "None",
+          "kind": "POSITIONAL_OR_NAMED",
+          "required": false,
+          "repr": "descriptor: UiNodeDescriptor | list[UiNodeDescriptor] | None = None"
+        },
+        {
+          "name": "",
+          "type": null,
+          "defaultValue": null,
+          "kind": "NAMED_ONLY_MARKER",
+          "required": false,
+          "repr": "*"
+        },
+        {
+          "name": "rect",
+          "type": {
+            "name": "Union",
+            "typedoc": null,
+            "nested": [
+              {
+                "name": "RectLike",
+                "typedoc": null,
+                "nested": [],
+                "union": false
+              },
+              {
+                "name": "list",
+                "typedoc": "list",
+                "nested": [
+                  {
+                    "name": "RectLike",
+                    "typedoc": null,
+                    "nested": [],
+                    "union": false
+                  }
+                ],
+                "union": false
+              },
+              {
+                "name": "None",
+                "typedoc": "None",
+                "nested": [],
+                "union": false
+              }
+            ],
+            "union": true
+          },
+          "defaultValue": "None",
+          "kind": "NAMED_ONLY",
+          "required": false,
+          "repr": "rect: RectLike | list[RectLike] | None = None"
+        },
+        {
+          "name": "duration",
+          "type": {
+            "name": "float",
+            "typedoc": "float",
+            "nested": [],
+            "union": false
+          },
+          "defaultValue": "1.0",
+          "kind": "NAMED_ONLY",
+          "required": false,
+          "repr": "duration: float = 1.0"
+        }
+      ],
+      "returnType": null,
+      "doc": "<p>Highlight a UI element for a specified duration.</p>\n<p>Args: descriptor: The UiNodeDescriptor representing the target node. rect: Optional Rect to highlight directly; if provided, <span class=\"name\">descriptor</span> is ignored. duration: Duration in seconds to highlight the element.</p>",
+      "shortdoc": "Highlight a UI element for a specified duration.",
+      "tags": [],
+      "source": "/home/many/workspace/robotframework-agentskills/.venv/lib/python3.12/site-packages/PlatynUI/BareMetal/__init__.py",
+      "lineno": 884
+    },
+    {
+      "name": "Keyboard Press",
+      "args": [
+        {
+          "name": "descriptor",
+          "type": {
+            "name": "Union",
+            "typedoc": null,
+            "nested": [
+              {
+                "name": "UiNodeDescriptor",
+                "typedoc": "UiNodeDescriptor",
+                "nested": [],
+                "union": false
+              },
+              {
+                "name": "None",
+                "typedoc": "None",
+                "nested": [],
+                "union": false
+              }
+            ],
+            "union": true
+          },
+          "defaultValue": null,
+          "kind": "POSITIONAL_OR_NAMED",
+          "required": true,
+          "repr": "descriptor: UiNodeDescriptor | None"
+        },
+        {
+          "name": "text",
+          "type": {
+            "name": "str",
+            "typedoc": "string",
+            "nested": [],
+            "union": false
+          },
+          "defaultValue": null,
+          "kind": "POSITIONAL_OR_NAMED",
+          "required": true,
+          "repr": "text: str"
+        },
+        {
+          "name": "",
+          "type": null,
+          "defaultValue": null,
+          "kind": "NAMED_ONLY_MARKER",
+          "required": false,
+          "repr": "*"
+        },
+        {
+          "name": "overrides",
+          "type": {
+            "name": "Union",
+            "typedoc": null,
+            "nested": [
+              {
+                "name": "KeyboardOverridesLike",
+                "typedoc": null,
+                "nested": [],
+                "union": false
+              },
+              {
+                "name": "None",
+                "typedoc": "None",
+                "nested": [],
+                "union": false
+              }
+            ],
+            "union": true
+          },
+          "defaultValue": "None",
+          "kind": "NAMED_ONLY",
+          "required": false,
+          "repr": "overrides: KeyboardOverridesLike | None = None"
+        }
+      ],
+      "returnType": null,
+      "doc": "<p>Press (and hold) keys according to a sequence.</p>\n<p>Unlike <code>Keyboard Type</code>, this sends only press events (no release). Use this to hold modifiers or keys; pair with <code>Keyboard Release</code> to complete the action.</p>\n<p>Args: descriptor: Optional element to focus before pressing. text: Sequence of keys, e.g. <code>&lt;Ctrl+Alt+T&gt;</code> or <code>&lt;Shift&gt;</code>.</p>\n<p>Examples:</p>\n<table border=\"1\">\n<tr>\n<td>Keyboard Press</td>\n<td>//control:Window[@Name=\"Terminal\"]</td>\n<td>&lt;Ctrl+Alt+T&gt;</td>\n</tr>\n<tr>\n<td>Keyboard Press</td>\n<td>${None}</td>\n<td>&lt;Ctrl&gt;</td>\n</tr>\n<tr>\n<td>Keyboard Release</td>\n<td>${None}</td>\n<td>&lt;Ctrl&gt;</td>\n</tr>\n</table>",
+      "shortdoc": "Press (and hold) keys according to a sequence.",
+      "tags": [],
+      "source": "/home/many/workspace/robotframework-agentskills/.venv/lib/python3.12/site-packages/PlatynUI/BareMetal/__init__.py",
+      "lineno": 767
+    },
+    {
+      "name": "Keyboard Release",
+      "args": [
+        {
+          "name": "descriptor",
+          "type": {
+            "name": "Union",
+            "typedoc": null,
+            "nested": [
+              {
+                "name": "UiNodeDescriptor",
+                "typedoc": "UiNodeDescriptor",
+                "nested": [],
+                "union": false
+              },
+              {
+                "name": "None",
+                "typedoc": "None",
+                "nested": [],
+                "union": false
+              }
+            ],
+            "union": true
+          },
+          "defaultValue": null,
+          "kind": "POSITIONAL_OR_NAMED",
+          "required": true,
+          "repr": "descriptor: UiNodeDescriptor | None"
+        },
+        {
+          "name": "text",
+          "type": {
+            "name": "str",
+            "typedoc": "string",
+            "nested": [],
+            "union": false
+          },
+          "defaultValue": null,
+          "kind": "POSITIONAL_OR_NAMED",
+          "required": true,
+          "repr": "text: str"
+        },
+        {
+          "name": "",
+          "type": null,
+          "defaultValue": null,
+          "kind": "NAMED_ONLY_MARKER",
+          "required": false,
+          "repr": "*"
+        },
+        {
+          "name": "overrides",
+          "type": {
+            "name": "Union",
+            "typedoc": null,
+            "nested": [
+              {
+                "name": "KeyboardOverridesLike",
+                "typedoc": null,
+                "nested": [],
+                "union": false
+              },
+              {
+                "name": "None",
+                "typedoc": "None",
+                "nested": [],
+                "union": false
+              }
+            ],
+            "union": true
+          },
+          "defaultValue": "None",
+          "kind": "NAMED_ONLY",
+          "required": false,
+          "repr": "overrides: KeyboardOverridesLike | None = None"
+        }
+      ],
+      "returnType": null,
+      "doc": "<p>Release keys according to a sequence.</p>\n<p>Complements <code>Keyboard Press</code> by releasing keys/modifiers. If you need a full press\u2192release cycle for characters or shortcuts, prefer <code>Keyboard Type</code>.</p>\n<p>Args: descriptor: Optional element to focus before releasing. text: Sequence of keys to release, e.g. <code>&lt;Ctrl+Alt+T&gt;</code> or <code>&lt;Ctrl&gt;</code>.</p>\n<p>Examples:</p>\n<table border=\"1\">\n<tr>\n<td>Keyboard Press</td>\n<td>//control:Window[@Name=\"Terminal\"]</td>\n<td>&lt;Ctrl+Alt&gt;</td>\n</tr>\n<tr>\n<td>Keyboard Release</td>\n<td>//control:Window[@Name=\"Terminal\"]</td>\n<td>&lt;Ctrl+Alt&gt;</td>\n</tr>\n<tr>\n<td>Keyboard Release</td>\n<td>${None}</td>\n<td>&lt;Ctrl+Alt&gt;</td>\n</tr>\n</table>",
+      "shortdoc": "Release keys according to a sequence.",
+      "tags": [],
+      "source": "/home/many/workspace/robotframework-agentskills/.venv/lib/python3.12/site-packages/PlatynUI/BareMetal/__init__.py",
+      "lineno": 794
+    },
+    {
+      "name": "Keyboard Type",
+      "args": [
+        {
+          "name": "descriptor",
+          "type": {
+            "name": "Union",
+            "typedoc": null,
+            "nested": [
+              {
+                "name": "UiNodeDescriptor",
+                "typedoc": "UiNodeDescriptor",
+                "nested": [],
+                "union": false
+              },
+              {
+                "name": "None",
+                "typedoc": "None",
+                "nested": [],
+                "union": false
+              }
+            ],
+            "union": true
+          },
+          "defaultValue": null,
+          "kind": "POSITIONAL_OR_NAMED",
+          "required": true,
+          "repr": "descriptor: UiNodeDescriptor | None"
+        },
+        {
+          "name": "text",
+          "type": {
+            "name": "str",
+            "typedoc": "string",
+            "nested": [],
+            "union": false
+          },
+          "defaultValue": null,
+          "kind": "POSITIONAL_OR_NAMED",
+          "required": true,
+          "repr": "text: str"
+        },
+        {
+          "name": "",
+          "type": null,
+          "defaultValue": null,
+          "kind": "NAMED_ONLY_MARKER",
+          "required": false,
+          "repr": "*"
+        },
+        {
+          "name": "overrides",
+          "type": {
+            "name": "Union",
+            "typedoc": null,
+            "nested": [
+              {
+                "name": "KeyboardOverridesLike",
+                "typedoc": null,
+                "nested": [],
+                "union": false
+              },
+              {
+                "name": "None",
+                "typedoc": "None",
+                "nested": [],
+                "union": false
+              }
+            ],
+            "union": true
+          },
+          "defaultValue": "None",
+          "kind": "NAMED_ONLY",
+          "required": false,
+          "repr": "overrides: KeyboardOverridesLike | None = None"
+        }
+      ],
+      "returnType": null,
+      "doc": "<p>Type a sequence of characters and/or keys.</p>\n<p>If <code>descriptor</code> is provided, the element is brought to front and focused first. Sequences may include plain text and special keys wrapped in angle brackets. Use <code>+</code> to combine modifiers with keys.</p>\n<p>Examples:</p>\n<table border=\"1\">\n<tr>\n<td>Keyboard Type</td>\n<td>//control:Edit[@Name=\"Search\"]</td>\n<td>Hello World</td>\n</tr>\n<tr>\n<td>Keyboard Type</td>\n<td>//control:Edit[@Name=\"Search\"]</td>\n<td>&lt;Ctrl+A&gt;&lt;Delete&gt;</td>\n</tr>\n</table>\n<pre>\nKeyboard Type | ${None} | Hello\\nWorld |  # newline supported\n</pre>\n<p>Notes:</p>\n<ul>\n<li>Special key syntax examples: <code>&lt;Ctrl+C&gt;</code>, <code>&lt;Return&gt;</code>, <code>&lt;ESC&gt;</code>, <code>&lt;Shift+Tab&gt;</code>.</li>\n<li>For the list of supported key names, see the CLI command <code>platynui-cli keyboard list</code> or the Python runtime method <code>Runtime.keyboard_known_key_names()</code>.</li>\n<li>To omit the descriptor (no focus change), pass <code>${None}</code> as the first argument in Robot Framework.</li>\n</ul>",
+      "shortdoc": "Type a sequence of characters and/or keys.",
+      "tags": [],
+      "source": "/home/many/workspace/robotframework-agentskills/.venv/lib/python3.12/site-packages/PlatynUI/BareMetal/__init__.py",
+      "lineno": 741
+    },
+    {
+      "name": "Maximize Window",
+      "args": [
+        {
+          "name": "descriptor",
+          "type": {
+            "name": "UiNodeDescriptor",
+            "typedoc": "UiNodeDescriptor",
+            "nested": [],
+            "union": false
+          },
+          "defaultValue": null,
+          "kind": "POSITIONAL_OR_NAMED",
+          "required": true,
+          "repr": "descriptor: UiNodeDescriptor"
+        }
+      ],
+      "returnType": null,
+      "doc": "<p>Maximize a window.</p>\n<p>Operates through the element's <code>Maximizable</code> pattern. Raises <code>PatternError</code> if the element doesn't support <code>Maximizable</code>.</p>\n<p>Args: descriptor: The window element to maximize.</p>\n<p>Examples:</p>\n<table border=\"1\">\n<tr>\n<td>Maximize Window</td>\n<td>//control:Window[@Name=\"Editor\"]</td>\n</tr>\n</table>",
+      "shortdoc": "Maximize a window.",
+      "tags": [],
+      "source": "/home/many/workspace/robotframework-agentskills/.venv/lib/python3.12/site-packages/PlatynUI/BareMetal/__init__.py",
+      "lineno": 590
+    },
+    {
+      "name": "Minimize Window",
+      "args": [
+        {
+          "name": "descriptor",
+          "type": {
+            "name": "UiNodeDescriptor",
+            "typedoc": "UiNodeDescriptor",
+            "nested": [],
+            "union": false
+          },
+          "defaultValue": null,
+          "kind": "POSITIONAL_OR_NAMED",
+          "required": true,
+          "repr": "descriptor: UiNodeDescriptor"
+        }
+      ],
+      "returnType": null,
+      "doc": "<p>Minimize a window.</p>\n<p>Operates through the element's <code>Minimizable</code> pattern. Raises <code>PatternError</code> if the element doesn't support <code>Minimizable</code>.</p>\n<p>Args: descriptor: The window element to minimize.</p>\n<p>Examples:</p>\n<table border=\"1\">\n<tr>\n<td>Minimize Window</td>\n<td>//control:Window[@Name=\"Editor\"]</td>\n</tr>\n</table>",
+      "shortdoc": "Minimize a window.",
+      "tags": [],
+      "source": "/home/many/workspace/robotframework-agentskills/.venv/lib/python3.12/site-packages/PlatynUI/BareMetal/__init__.py",
+      "lineno": 606
+    },
+    {
+      "name": "Move And Resize Window",
+      "args": [
+        {
+          "name": "descriptor",
+          "type": {
+            "name": "UiNodeDescriptor",
+            "typedoc": "UiNodeDescriptor",
+            "nested": [],
+            "union": false
+          },
+          "defaultValue": null,
+          "kind": "POSITIONAL_OR_NAMED",
+          "required": true,
+          "repr": "descriptor: UiNodeDescriptor"
+        },
+        {
+          "name": "x",
+          "type": {
+            "name": "float",
+            "typedoc": "float",
+            "nested": [],
+            "union": false
+          },
+          "defaultValue": null,
+          "kind": "POSITIONAL_OR_NAMED",
+          "required": true,
+          "repr": "x: float"
+        },
+        {
+          "name": "y",
+          "type": {
+            "name": "float",
+            "typedoc": "float",
+            "nested": [],
+            "union": false
+          },
+          "defaultValue": null,
+          "kind": "POSITIONAL_OR_NAMED",
+          "required": true,
+          "repr": "y: float"
+        },
+        {
+          "name": "width",
+          "type": {
+            "name": "float",
+            "typedoc": "float",
+            "nested": [],
+            "union": false
+          },
+          "defaultValue": null,
+          "kind": "POSITIONAL_OR_NAMED",
+          "required": true,
+          "repr": "width: float"
+        },
+        {
+          "name": "height",
+          "type": {
+            "name": "float",
+            "typedoc": "float",
+            "nested": [],
+            "union": false
+          },
+          "defaultValue": null,
+          "kind": "POSITIONAL_OR_NAMED",
+          "required": true,
+          "repr": "height: float"
+        }
+      ],
+      "returnType": null,
+      "doc": "<p>Move and resize a window in a single operation.</p>\n<p>Composes the element's <code>Movable</code> and <code>Resizable</code> patterns. Raises <code>PatternError</code> if the element doesn't support either pattern.</p>\n<p>Args: descriptor: The window element to move and resize. x: The target x coordinate for the window's top-left corner. y: The target y coordinate for the window's top-left corner. width: The target width. height: The target height.</p>\n<p>Examples:</p>\n<table border=\"1\">\n<tr>\n<td>Move And Resize Window</td>\n<td>//control:Window[@Name=\"Editor\"]</td>\n<td>100</td>\n<td>200</td>\n<td>800</td>\n<td>600</td>\n</tr>\n</table>",
+      "shortdoc": "Move and resize a window in a single operation.",
+      "tags": [],
+      "source": "/home/many/workspace/robotframework-agentskills/.venv/lib/python3.12/site-packages/PlatynUI/BareMetal/__init__.py",
+      "lineno": 690
+    },
+    {
+      "name": "Move Window",
+      "args": [
+        {
+          "name": "descriptor",
+          "type": {
+            "name": "UiNodeDescriptor",
+            "typedoc": "UiNodeDescriptor",
+            "nested": [],
+            "union": false
+          },
+          "defaultValue": null,
+          "kind": "POSITIONAL_OR_NAMED",
+          "required": true,
+          "repr": "descriptor: UiNodeDescriptor"
+        },
+        {
+          "name": "x",
+          "type": {
+            "name": "float",
+            "typedoc": "float",
+            "nested": [],
+            "union": false
+          },
+          "defaultValue": null,
+          "kind": "POSITIONAL_OR_NAMED",
+          "required": true,
+          "repr": "x: float"
+        },
+        {
+          "name": "y",
+          "type": {
+            "name": "float",
+            "typedoc": "float",
+            "nested": [],
+            "union": false
+          },
+          "defaultValue": null,
+          "kind": "POSITIONAL_OR_NAMED",
+          "required": true,
+          "repr": "y: float"
+        }
+      ],
+      "returnType": null,
+      "doc": "<p>Move a window to the specified screen coordinates.</p>\n<p>Operates through the element's <code>Movable</code> pattern. Raises <code>PatternError</code> if the element doesn't support <code>Movable</code>.</p>\n<p>Args: descriptor: The window element to move. x: The target x coordinate for the window's top-left corner. y: The target y coordinate for the window's top-left corner.</p>\n<p>Examples:</p>\n<table border=\"1\">\n<tr>\n<td>Move Window</td>\n<td>//control:Window[@Name=\"Editor\"]</td>\n<td>100</td>\n<td>200</td>\n</tr>\n</table>",
+      "shortdoc": "Move a window to the specified screen coordinates.",
+      "tags": [],
+      "source": "/home/many/workspace/robotframework-agentskills/.venv/lib/python3.12/site-packages/PlatynUI/BareMetal/__init__.py",
+      "lineno": 654
+    },
+    {
+      "name": "Pointer Click",
+      "args": [
+        {
+          "name": "descriptor",
+          "type": {
+            "name": "Union",
+            "typedoc": null,
+            "nested": [
+              {
+                "name": "UiNodeDescriptor",
+                "typedoc": "UiNodeDescriptor",
+                "nested": [],
+                "union": false
+              },
+              {
+                "name": "None",
+                "typedoc": "None",
+                "nested": [],
+                "union": false
+              }
+            ],
+            "union": true
+          },
+          "defaultValue": "None",
+          "kind": "POSITIONAL_OR_NAMED",
+          "required": false,
+          "repr": "descriptor: UiNodeDescriptor | None = None"
+        },
+        {
+          "name": "",
+          "type": null,
+          "defaultValue": null,
+          "kind": "NAMED_ONLY_MARKER",
+          "required": false,
+          "repr": "*"
+        },
+        {
+          "name": "button",
+          "type": {
+            "name": "PointerButtonLike",
+            "typedoc": null,
+            "nested": [],
+            "union": false
+          },
+          "defaultValue": "LEFT",
+          "kind": "NAMED_ONLY",
+          "required": false,
+          "repr": "button: PointerButtonLike = LEFT"
+        },
+        {
+          "name": "x",
+          "type": {
+            "name": "Union",
+            "typedoc": null,
+            "nested": [
+              {
+                "name": "float",
+                "typedoc": "float",
+                "nested": [],
+                "union": false
+              },
+              {
+                "name": "None",
+                "typedoc": "None",
+                "nested": [],
+                "union": false
+              }
+            ],
+            "union": true
+          },
+          "defaultValue": "None",
+          "kind": "NAMED_ONLY",
+          "required": false,
+          "repr": "x: float | None = None"
+        },
+        {
+          "name": "y",
+          "type": {
+            "name": "Union",
+            "typedoc": null,
+            "nested": [
+              {
+                "name": "float",
+                "typedoc": "float",
+                "nested": [],
+                "union": false
+              },
+              {
+                "name": "None",
+                "typedoc": "None",
+                "nested": [],
+                "union": false
+              }
+            ],
+            "union": true
+          },
+          "defaultValue": "None",
+          "kind": "NAMED_ONLY",
+          "required": false,
+          "repr": "y: float | None = None"
+        },
+        {
+          "name": "overrides",
+          "type": {
+            "name": "Union",
+            "typedoc": null,
+            "nested": [
+              {
+                "name": "PointerOverridesLike",
+                "typedoc": null,
+                "nested": [],
+                "union": false
+              },
+              {
+                "name": "None",
+                "typedoc": "None",
+                "nested": [],
+                "union": false
+              }
+            ],
+            "union": true
+          },
+          "defaultValue": "None",
+          "kind": "NAMED_ONLY",
+          "required": false,
+          "repr": "overrides: PointerOverridesLike | None = None"
+        },
+        {
+          "name": "activate",
+          "type": {
+            "name": "Union",
+            "typedoc": null,
+            "nested": [
+              {
+                "name": "bool",
+                "typedoc": "boolean",
+                "nested": [],
+                "union": false
+              },
+              {
+                "name": "None",
+                "typedoc": "None",
+                "nested": [],
+                "union": false
+              }
+            ],
+            "union": true
+          },
+          "defaultValue": "None",
+          "kind": "NAMED_ONLY",
+          "required": false,
+          "repr": "activate: bool | None = None"
+        }
+      ],
+      "returnType": null,
+      "doc": "<p>Click at absolute or element-relative screen coordinates.</p>\n<p>Args: descriptor: Optional node to target. When provided:</p>\n<ul>\n<li>If x/y are omitted: uses ActivationPoint if present, otherwise the center of Bounds.</li>\n<li>If x/y are given: they are offsets relative to the node's top-left Bounds. button: Mouse button to use. Defaults to LEFT. x: X coordinate. Absolute if no descriptor is provided; otherwise a relative offset. y: Y coordinate. Absolute if no descriptor is provided; otherwise a relative offset. activate: Whether to bring the element's window to the foreground before clicking. If None, the library-level <code>auto_activate</code> setting is used.</li>\n</ul>\n<p>Raises: ValueError: If only one of x or y is provided; or if neither coordinates nor a resolvable descriptor location are available.</p>\n<p>Examples:</p>\n<table border=\"1\">\n<tr>\n<td>Pointer Click</td>\n<td>//control:Button[@Name=\"OK\"]</td>\n<td></td>\n<td></td>\n</tr>\n<tr>\n<td>Pointer Click</td>\n<td></td>\n<td>x=${100}</td>\n<td>y=${200}</td>\n</tr>\n<tr>\n<td>Pointer Click</td>\n<td>//control:Button[@Name=\"OK\"]</td>\n<td>activate=${False}</td>\n<td></td>\n</tr>\n</table>",
+      "shortdoc": "Click at absolute or element-relative screen coordinates.",
+      "tags": [],
+      "source": "/home/many/workspace/robotframework-agentskills/.venv/lib/python3.12/site-packages/PlatynUI/BareMetal/__init__.py",
+      "lineno": 364
+    },
+    {
+      "name": "Pointer Move To",
+      "args": [
+        {
+          "name": "descriptor",
+          "type": {
+            "name": "Union",
+            "typedoc": null,
+            "nested": [
+              {
+                "name": "UiNodeDescriptor",
+                "typedoc": "UiNodeDescriptor",
+                "nested": [],
+                "union": false
+              },
+              {
+                "name": "None",
+                "typedoc": "None",
+                "nested": [],
+                "union": false
+              }
+            ],
+            "union": true
+          },
+          "defaultValue": "None",
+          "kind": "POSITIONAL_OR_NAMED",
+          "required": false,
+          "repr": "descriptor: UiNodeDescriptor | None = None"
+        },
+        {
+          "name": "",
+          "type": null,
+          "defaultValue": null,
+          "kind": "NAMED_ONLY_MARKER",
+          "required": false,
+          "repr": "*"
+        },
+        {
+          "name": "x",
+          "type": {
+            "name": "Union",
+            "typedoc": null,
+            "nested": [
+              {
+                "name": "float",
+                "typedoc": "float",
+                "nested": [],
+                "union": false
+              },
+              {
+                "name": "None",
+                "typedoc": "None",
+                "nested": [],
+                "union": false
+              }
+            ],
+            "union": true
+          },
+          "defaultValue": "None",
+          "kind": "NAMED_ONLY",
+          "required": false,
+          "repr": "x: float | None = None"
+        },
+        {
+          "name": "y",
+          "type": {
+            "name": "Union",
+            "typedoc": null,
+            "nested": [
+              {
+                "name": "float",
+                "typedoc": "float",
+                "nested": [],
+                "union": false
+              },
+              {
+                "name": "None",
+                "typedoc": "None",
+                "nested": [],
+                "union": false
+              }
+            ],
+            "union": true
+          },
+          "defaultValue": "None",
+          "kind": "NAMED_ONLY",
+          "required": false,
+          "repr": "y: float | None = None"
+        },
+        {
+          "name": "overrides",
+          "type": {
+            "name": "Union",
+            "typedoc": null,
+            "nested": [
+              {
+                "name": "PointerOverridesLike",
+                "typedoc": null,
+                "nested": [],
+                "union": false
+              },
+              {
+                "name": "None",
+                "typedoc": "None",
+                "nested": [],
+                "union": false
+              }
+            ],
+            "union": true
+          },
+          "defaultValue": "None",
+          "kind": "NAMED_ONLY",
+          "required": false,
+          "repr": "overrides: PointerOverridesLike | None = None"
+        },
+        {
+          "name": "activate",
+          "type": {
+            "name": "Union",
+            "typedoc": null,
+            "nested": [
+              {
+                "name": "bool",
+                "typedoc": "boolean",
+                "nested": [],
+                "union": false
+              },
+              {
+                "name": "None",
+                "typedoc": "None",
+                "nested": [],
+                "union": false
+              }
+            ],
+            "union": true
+          },
+          "defaultValue": "None",
+          "kind": "NAMED_ONLY",
+          "required": false,
+          "repr": "activate: bool | None = None"
+        }
+      ],
+      "returnType": null,
+      "doc": "<p>Move the pointer to absolute or element-relative screen coordinates.</p>\n<p>Args: descriptor: Optional node to target. When provided:</p>\n<ul>\n<li>If x/y are omitted: uses ActivationPoint if present, otherwise the center of Bounds.</li>\n<li>If x/y are given: they are offsets relative to the node's top-left Bounds. x: X coordinate. Absolute if no descriptor is provided; otherwise a relative offset. y: Y coordinate. Absolute if no descriptor is provided; otherwise a relative offset. activate: Whether to bring the element's window to the foreground before moving. If None, the library-level <code>auto_activate</code> setting is used.</li>\n</ul>\n<p>Raises: ValueError: If only one of x or y is provided; or if neither coordinates nor a resolvable descriptor location are available.</p>\n<p>Examples:</p>\n<table border=\"1\">\n<tr>\n<td>Pointer Move To</td>\n<td></td>\n<td>x=${400}</td>\n<td>y=${300}</td>\n</tr>\n<tr>\n<td>Pointer Move To</td>\n<td>//control:Button[@Name=\"OK\"]</td>\n<td></td>\n<td></td>\n</tr>\n</table>",
+      "shortdoc": "Move the pointer to absolute or element-relative screen coordinates.",
+      "tags": [],
+      "source": "/home/many/workspace/robotframework-agentskills/.venv/lib/python3.12/site-packages/PlatynUI/BareMetal/__init__.py",
+      "lineno": 511
+    },
+    {
+      "name": "Pointer Multi Click",
+      "args": [
+        {
+          "name": "descriptor",
+          "type": {
+            "name": "Union",
+            "typedoc": null,
+            "nested": [
+              {
+                "name": "UiNodeDescriptor",
+                "typedoc": "UiNodeDescriptor",
+                "nested": [],
+                "union": false
+              },
+              {
+                "name": "None",
+                "typedoc": "None",
+                "nested": [],
+                "union": false
+              }
+            ],
+            "union": true
+          },
+          "defaultValue": "None",
+          "kind": "POSITIONAL_OR_NAMED",
+          "required": false,
+          "repr": "descriptor: UiNodeDescriptor | None = None"
+        },
+        {
+          "name": "",
+          "type": null,
+          "defaultValue": null,
+          "kind": "NAMED_ONLY_MARKER",
+          "required": false,
+          "repr": "*"
+        },
+        {
+          "name": "clicks",
+          "type": {
+            "name": "int",
+            "typedoc": "integer",
+            "nested": [],
+            "union": false
+          },
+          "defaultValue": "2",
+          "kind": "NAMED_ONLY",
+          "required": false,
+          "repr": "clicks: int = 2"
+        },
+        {
+          "name": "button",
+          "type": {
+            "name": "PointerButtonLike",
+            "typedoc": null,
+            "nested": [],
+            "union": false
+          },
+          "defaultValue": "LEFT",
+          "kind": "NAMED_ONLY",
+          "required": false,
+          "repr": "button: PointerButtonLike = LEFT"
+        },
+        {
+          "name": "x",
+          "type": {
+            "name": "Union",
+            "typedoc": null,
+            "nested": [
+              {
+                "name": "float",
+                "typedoc": "float",
+                "nested": [],
+                "union": false
+              },
+              {
+                "name": "None",
+                "typedoc": "None",
+                "nested": [],
+                "union": false
+              }
+            ],
+            "union": true
+          },
+          "defaultValue": "None",
+          "kind": "NAMED_ONLY",
+          "required": false,
+          "repr": "x: float | None = None"
+        },
+        {
+          "name": "y",
+          "type": {
+            "name": "Union",
+            "typedoc": null,
+            "nested": [
+              {
+                "name": "float",
+                "typedoc": "float",
+                "nested": [],
+                "union": false
+              },
+              {
+                "name": "None",
+                "typedoc": "None",
+                "nested": [],
+                "union": false
+              }
+            ],
+            "union": true
+          },
+          "defaultValue": "None",
+          "kind": "NAMED_ONLY",
+          "required": false,
+          "repr": "y: float | None = None"
+        },
+        {
+          "name": "overrides",
+          "type": {
+            "name": "Union",
+            "typedoc": null,
+            "nested": [
+              {
+                "name": "PointerOverridesLike",
+                "typedoc": null,
+                "nested": [],
+                "union": false
+              },
+              {
+                "name": "None",
+                "typedoc": "None",
+                "nested": [],
+                "union": false
+              }
+            ],
+            "union": true
+          },
+          "defaultValue": "None",
+          "kind": "NAMED_ONLY",
+          "required": false,
+          "repr": "overrides: PointerOverridesLike | None = None"
+        },
+        {
+          "name": "activate",
+          "type": {
+            "name": "Union",
+            "typedoc": null,
+            "nested": [
+              {
+                "name": "bool",
+                "typedoc": "boolean",
+                "nested": [],
+                "union": false
+              },
+              {
+                "name": "None",
+                "typedoc": "None",
+                "nested": [],
+                "union": false
+              }
+            ],
+            "union": true
+          },
+          "defaultValue": "None",
+          "kind": "NAMED_ONLY",
+          "required": false,
+          "repr": "activate: bool | None = None"
+        }
+      ],
+      "returnType": null,
+      "doc": "<p>Perform multiple clicks at absolute or element-relative screen coordinates.</p>\n<p>Args: descriptor: Optional node to target. When provided:</p>\n<ul>\n<li>If x/y are omitted: uses ActivationPoint if present, otherwise the center of Bounds.</li>\n<li>If x/y are given: they are offsets relative to the node's top-left Bounds. clicks: Number of clicks to perform. Defaults to 2 (double-click). button: Mouse button to use. Defaults to LEFT. x: X coordinate. Absolute if no descriptor is provided; otherwise a relative offset. y: Y coordinate. Absolute if no descriptor is provided; otherwise a relative offset. activate: Whether to bring the element's window to the foreground before clicking. If None, the library-level <code>auto_activate</code> setting is used.</li>\n</ul>\n<p>Raises: ValueError: If only one of x or y is provided; or if neither coordinates nor a resolvable descriptor location are available.</p>\n<p>Examples:</p>\n<table border=\"1\">\n<tr>\n<td>Pointer Multi Click</td>\n<td>//control:ListItem[@Name=\"Open\"]</td>\n<td></td>\n<td></td>\n</tr>\n<tr>\n<td>Pointer Multi Click</td>\n<td></td>\n<td>x=${100}</td>\n<td>y=${200}</td>\n</tr>\n<tr>\n<td>Pointer Multi Click</td>\n<td>//control:Text[@Name=\"File\"]</td>\n<td>clicks=${3}</td>\n<td></td>\n</tr>\n</table>",
+      "shortdoc": "Perform multiple clicks at absolute or element-relative screen coordinates.",
+      "tags": [],
+      "source": "/home/many/workspace/robotframework-agentskills/.venv/lib/python3.12/site-packages/PlatynUI/BareMetal/__init__.py",
+      "lineno": 401
+    },
+    {
+      "name": "Pointer Press",
+      "args": [
+        {
+          "name": "descriptor",
+          "type": {
+            "name": "Union",
+            "typedoc": null,
+            "nested": [
+              {
+                "name": "UiNodeDescriptor",
+                "typedoc": "UiNodeDescriptor",
+                "nested": [],
+                "union": false
+              },
+              {
+                "name": "None",
+                "typedoc": "None",
+                "nested": [],
+                "union": false
+              }
+            ],
+            "union": true
+          },
+          "defaultValue": "None",
+          "kind": "POSITIONAL_OR_NAMED",
+          "required": false,
+          "repr": "descriptor: UiNodeDescriptor | None = None"
+        },
+        {
+          "name": "",
+          "type": null,
+          "defaultValue": null,
+          "kind": "NAMED_ONLY_MARKER",
+          "required": false,
+          "repr": "*"
+        },
+        {
+          "name": "button",
+          "type": {
+            "name": "PointerButtonLike",
+            "typedoc": null,
+            "nested": [],
+            "union": false
+          },
+          "defaultValue": "LEFT",
+          "kind": "NAMED_ONLY",
+          "required": false,
+          "repr": "button: PointerButtonLike = LEFT"
+        },
+        {
+          "name": "x",
+          "type": {
+            "name": "Union",
+            "typedoc": null,
+            "nested": [
+              {
+                "name": "float",
+                "typedoc": "float",
+                "nested": [],
+                "union": false
+              },
+              {
+                "name": "None",
+                "typedoc": "None",
+                "nested": [],
+                "union": false
+              }
+            ],
+            "union": true
+          },
+          "defaultValue": "None",
+          "kind": "NAMED_ONLY",
+          "required": false,
+          "repr": "x: float | None = None"
+        },
+        {
+          "name": "y",
+          "type": {
+            "name": "Union",
+            "typedoc": null,
+            "nested": [
+              {
+                "name": "float",
+                "typedoc": "float",
+                "nested": [],
+                "union": false
+              },
+              {
+                "name": "None",
+                "typedoc": "None",
+                "nested": [],
+                "union": false
+              }
+            ],
+            "union": true
+          },
+          "defaultValue": "None",
+          "kind": "NAMED_ONLY",
+          "required": false,
+          "repr": "y: float | None = None"
+        },
+        {
+          "name": "overrides",
+          "type": {
+            "name": "Union",
+            "typedoc": null,
+            "nested": [
+              {
+                "name": "PointerOverridesLike",
+                "typedoc": null,
+                "nested": [],
+                "union": false
+              },
+              {
+                "name": "None",
+                "typedoc": "None",
+                "nested": [],
+                "union": false
+              }
+            ],
+            "union": true
+          },
+          "defaultValue": "None",
+          "kind": "NAMED_ONLY",
+          "required": false,
+          "repr": "overrides: PointerOverridesLike | None = None"
+        },
+        {
+          "name": "activate",
+          "type": {
+            "name": "Union",
+            "typedoc": null,
+            "nested": [
+              {
+                "name": "bool",
+                "typedoc": "boolean",
+                "nested": [],
+                "union": false
+              },
+              {
+                "name": "None",
+                "typedoc": "None",
+                "nested": [],
+                "union": false
+              }
+            ],
+            "union": true
+          },
+          "defaultValue": "None",
+          "kind": "NAMED_ONLY",
+          "required": false,
+          "repr": "activate: bool | None = None"
+        }
+      ],
+      "returnType": null,
+      "doc": "<p>Press a mouse button at absolute or element-relative screen coordinates.</p>\n<p>Args: descriptor: Optional node to target. When provided:</p>\n<ul>\n<li>If x/y are omitted: uses ActivationPoint if present, otherwise the center of Bounds.</li>\n<li>If x/y are given: they are offsets relative to the node's top-left Bounds. button: Mouse button to use. Defaults to LEFT. x: X coordinate. Absolute if no descriptor is provided; otherwise a relative offset. y: Y coordinate. Absolute if no descriptor is provided; otherwise a relative offset. activate: Whether to bring the element's window to the foreground before pressing. If None, the library-level <code>auto_activate</code> setting is used.</li>\n</ul>\n<p>Raises: ValueError: If only one of x or y is provided; or if neither coordinates nor a resolvable descriptor location are available.</p>\n<p>Examples:</p>\n<table border=\"1\">\n<tr>\n<td>Pointer Press</td>\n<td>//control:Slider</td>\n<td>x=${10}</td>\n<td>y=${5}</td>\n</tr>\n</table>",
+      "shortdoc": "Press a mouse button at absolute or element-relative screen coordinates.",
+      "tags": [],
+      "source": "/home/many/workspace/robotframework-agentskills/.venv/lib/python3.12/site-packages/PlatynUI/BareMetal/__init__.py",
+      "lineno": 440
+    },
+    {
+      "name": "Pointer Release",
+      "args": [
+        {
+          "name": "descriptor",
+          "type": {
+            "name": "Union",
+            "typedoc": null,
+            "nested": [
+              {
+                "name": "UiNodeDescriptor",
+                "typedoc": "UiNodeDescriptor",
+                "nested": [],
+                "union": false
+              },
+              {
+                "name": "None",
+                "typedoc": "None",
+                "nested": [],
+                "union": false
+              }
+            ],
+            "union": true
+          },
+          "defaultValue": "None",
+          "kind": "POSITIONAL_OR_NAMED",
+          "required": false,
+          "repr": "descriptor: UiNodeDescriptor | None = None"
+        },
+        {
+          "name": "",
+          "type": null,
+          "defaultValue": null,
+          "kind": "NAMED_ONLY_MARKER",
+          "required": false,
+          "repr": "*"
+        },
+        {
+          "name": "button",
+          "type": {
+            "name": "PointerButtonLike",
+            "typedoc": null,
+            "nested": [],
+            "union": false
+          },
+          "defaultValue": "LEFT",
+          "kind": "NAMED_ONLY",
+          "required": false,
+          "repr": "button: PointerButtonLike = LEFT"
+        },
+        {
+          "name": "x",
+          "type": {
+            "name": "Union",
+            "typedoc": null,
+            "nested": [
+              {
+                "name": "float",
+                "typedoc": "float",
+                "nested": [],
+                "union": false
+              },
+              {
+                "name": "None",
+                "typedoc": "None",
+                "nested": [],
+                "union": false
+              }
+            ],
+            "union": true
+          },
+          "defaultValue": "None",
+          "kind": "NAMED_ONLY",
+          "required": false,
+          "repr": "x: float | None = None"
+        },
+        {
+          "name": "y",
+          "type": {
+            "name": "Union",
+            "typedoc": null,
+            "nested": [
+              {
+                "name": "float",
+                "typedoc": "float",
+                "nested": [],
+                "union": false
+              },
+              {
+                "name": "None",
+                "typedoc": "None",
+                "nested": [],
+                "union": false
+              }
+            ],
+            "union": true
+          },
+          "defaultValue": "None",
+          "kind": "NAMED_ONLY",
+          "required": false,
+          "repr": "y: float | None = None"
+        },
+        {
+          "name": "overrides",
+          "type": {
+            "name": "Union",
+            "typedoc": null,
+            "nested": [
+              {
+                "name": "PointerOverridesLike",
+                "typedoc": null,
+                "nested": [],
+                "union": false
+              },
+              {
+                "name": "None",
+                "typedoc": "None",
+                "nested": [],
+                "union": false
+              }
+            ],
+            "union": true
+          },
+          "defaultValue": "None",
+          "kind": "NAMED_ONLY",
+          "required": false,
+          "repr": "overrides: PointerOverridesLike | None = None"
+        },
+        {
+          "name": "activate",
+          "type": {
+            "name": "Union",
+            "typedoc": null,
+            "nested": [
+              {
+                "name": "bool",
+                "typedoc": "boolean",
+                "nested": [],
+                "union": false
+              },
+              {
+                "name": "None",
+                "typedoc": "None",
+                "nested": [],
+                "union": false
+              }
+            ],
+            "union": true
+          },
+          "defaultValue": "None",
+          "kind": "NAMED_ONLY",
+          "required": false,
+          "repr": "activate: bool | None = None"
+        }
+      ],
+      "returnType": null,
+      "doc": "<p>Release a mouse button at current or specified coordinates.</p>\n<p>If a descriptor or coordinates are provided, the pointer is moved there first, then the button is released. Without a target, the button is released at the current pointer location.</p>\n<p>Args: descriptor: Optional node to target (see pointer_click for targeting rules). button: Mouse button to release. Defaults to LEFT. x: Optional X coordinate (see pointer_click for rules). y: Optional Y coordinate (see pointer_click for rules). activate: Whether to bring the element's window to the foreground before releasing. If None, the library-level <code>auto_activate</code> setting is used.</p>\n<p>Raises: ValueError: If only one of x or y is provided when targeting a location.</p>\n<p>Examples:</p>\n<table border=\"1\">\n<tr>\n<td>Pointer Release</td>\n<td></td>\n<td></td>\n<td></td>\n</tr>\n<tr>\n<td>Pointer Release</td>\n<td>//control:Canvas</td>\n<td>x=${50}</td>\n<td>y=${50}</td>\n</tr>\n</table>",
+      "shortdoc": "Release a mouse button at current or specified coordinates.",
+      "tags": [],
+      "source": "/home/many/workspace/robotframework-agentskills/.venv/lib/python3.12/site-packages/PlatynUI/BareMetal/__init__.py",
+      "lineno": 475
+    },
+    {
+      "name": "Query",
+      "args": [
+        {
+          "name": "expression",
+          "type": {
+            "name": "str",
+            "typedoc": "string",
+            "nested": [],
+            "union": false
+          },
+          "defaultValue": null,
+          "kind": "POSITIONAL_OR_NAMED",
+          "required": true,
+          "repr": "expression: str"
+        },
+        {
+          "name": "root",
+          "type": {
+            "name": "Union",
+            "typedoc": null,
+            "nested": [
+              {
+                "name": "UiNode",
+                "typedoc": null,
+                "nested": [],
+                "union": false
+              },
+              {
+                "name": "None",
+                "typedoc": "None",
+                "nested": [],
+                "union": false
+              }
+            ],
+            "union": true
+          },
+          "defaultValue": "None",
+          "kind": "POSITIONAL_OR_NAMED",
+          "required": false,
+          "repr": "root: UiNode | None = None"
+        },
+        {
+          "name": "only_first",
+          "type": {
+            "name": "bool",
+            "typedoc": "boolean",
+            "nested": [],
+            "union": false
+          },
+          "defaultValue": "False",
+          "kind": "POSITIONAL_OR_NAMED",
+          "required": false,
+          "repr": "only_first: bool = False"
+        }
+      ],
+      "returnType": {
+        "name": "Any",
+        "typedoc": "Any",
+        "nested": [],
+        "union": false
+      },
+      "doc": "<p>Evaluate a PlatynUI XPath-like expression against the UI tree.</p>\n<p>Args: expression: XPath-like selector/expression to evaluate. Examples: //control:Button[@Name=\"OK\"], count(//control:Text). root: Optional evaluation root. If None, the runtime default context is used (e.g., desktop or current application). only_first: If True, return only the first match (or <code>None</code> when there is no match). If False, return all matches or the computed value of the expression.</p>\n<p>Returns: Any: A single node/value when only_first is True; otherwise a list/sequence of nodes/values as produced by the runtime. Errors from the native runtime are propagated.</p>\n<p>Examples:</p>\n<table border=\"1\">\n<tr>\n<td>${buttons}=    Query    //control:Button</td>\n</tr>\n<tr>\n<td>${ok}=         Query    //control:Button[@Name=\"OK\"]    only_first=${True}</td>\n</tr>\n<tr>\n<td>${count}=      Query    count(//control:Button)</td>\n</tr>\n</table>\n<p>Notes:</p>\n<ul>\n<li>Namespaces follow PlatynUI defaults (e.g., control); qualify names when needed.</li>\n<li>Read-only: This keyword does not modify UI state.</li>\n</ul>",
+      "shortdoc": "Evaluate a PlatynUI XPath-like expression against the UI tree.",
+      "tags": [],
+      "source": "/home/many/workspace/robotframework-agentskills/.venv/lib/python3.12/site-packages/PlatynUI/BareMetal/__init__.py",
+      "lineno": 243
+    },
+    {
+      "name": "Resize Window",
+      "args": [
+        {
+          "name": "descriptor",
+          "type": {
+            "name": "UiNodeDescriptor",
+            "typedoc": "UiNodeDescriptor",
+            "nested": [],
+            "union": false
+          },
+          "defaultValue": null,
+          "kind": "POSITIONAL_OR_NAMED",
+          "required": true,
+          "repr": "descriptor: UiNodeDescriptor"
+        },
+        {
+          "name": "width",
+          "type": {
+            "name": "float",
+            "typedoc": "float",
+            "nested": [],
+            "union": false
+          },
+          "defaultValue": null,
+          "kind": "POSITIONAL_OR_NAMED",
+          "required": true,
+          "repr": "width: float"
+        },
+        {
+          "name": "height",
+          "type": {
+            "name": "float",
+            "typedoc": "float",
+            "nested": [],
+            "union": false
+          },
+          "defaultValue": null,
+          "kind": "POSITIONAL_OR_NAMED",
+          "required": true,
+          "repr": "height: float"
+        }
+      ],
+      "returnType": null,
+      "doc": "<p>Resize a window to the specified dimensions.</p>\n<p>Operates through the element's <code>Resizable</code> pattern. Raises <code>PatternError</code> if the element doesn't support <code>Resizable</code>.</p>\n<p>Args: descriptor: The window element to resize. width: The target width. height: The target height.</p>\n<p>Examples:</p>\n<table border=\"1\">\n<tr>\n<td>Resize Window</td>\n<td>//control:Window[@Name=\"Editor\"]</td>\n<td>800</td>\n<td>600</td>\n</tr>\n</table>",
+      "shortdoc": "Resize a window to the specified dimensions.",
+      "tags": [],
+      "source": "/home/many/workspace/robotframework-agentskills/.venv/lib/python3.12/site-packages/PlatynUI/BareMetal/__init__.py",
+      "lineno": 672
+    },
+    {
+      "name": "Restore Window",
+      "args": [
+        {
+          "name": "descriptor",
+          "type": {
+            "name": "UiNodeDescriptor",
+            "typedoc": "UiNodeDescriptor",
+            "nested": [],
+            "union": false
+          },
+          "defaultValue": null,
+          "kind": "POSITIONAL_OR_NAMED",
+          "required": true,
+          "repr": "descriptor: UiNodeDescriptor"
+        }
+      ],
+      "returnType": null,
+      "doc": "<p>Restore a window from minimized or maximized state.</p>\n<p>Operates through the element's <code>Restorable</code> pattern. Raises <code>PatternError</code> if the element doesn't support <code>Restorable</code>.</p>\n<p>Args: descriptor: The window element to restore.</p>\n<p>Examples:</p>\n<table border=\"1\">\n<tr>\n<td>Restore Window</td>\n<td>//control:Window[@Name=\"Settings\"]</td>\n</tr>\n</table>",
+      "shortdoc": "Restore a window from minimized or maximized state.",
+      "tags": [],
+      "source": "/home/many/workspace/robotframework-agentskills/.venv/lib/python3.12/site-packages/PlatynUI/BareMetal/__init__.py",
+      "lineno": 574
+    },
+    {
+      "name": "Set Root",
+      "args": [
+        {
+          "name": "descriptor",
+          "type": {
+            "name": "Union",
+            "typedoc": null,
+            "nested": [
+              {
+                "name": "UiNodeDescriptor",
+                "typedoc": "UiNodeDescriptor",
+                "nested": [],
+                "union": false
+              },
+              {
+                "name": "None",
+                "typedoc": "None",
+                "nested": [],
+                "union": false
+              }
+            ],
+            "union": true
+          },
+          "defaultValue": null,
+          "kind": "POSITIONAL_OR_NAMED",
+          "required": true,
+          "repr": "descriptor: UiNodeDescriptor | None"
+        }
+      ],
+      "returnType": {
+        "name": "Union",
+        "typedoc": null,
+        "nested": [
+          {
+            "name": "UiNodeDescriptor",
+            "typedoc": "UiNodeDescriptor",
+            "nested": [],
+            "union": false
+          },
+          {
+            "name": "None",
+            "typedoc": "None",
+            "nested": [],
+            "union": false
+          }
+        ],
+        "union": true
+      },
+      "doc": "<p>Set the root UiNode for subsequent queries.</p>\n<p>Args: descriptor: A UiNodeDescriptor representing the node to set as the new root.</p>\n<p>Examples:</p>\n<table border=\"1\">\n<tr>\n<td>${window}=</td>\n<td>Query</td>\n<td>//control:Window[@Name=\"Settings\"]</td>\n<td>only_first=${True}</td>\n</tr>\n<tr>\n<td>Set Root</td>\n<td>${window}</td>\n<td></td>\n<td></td>\n</tr>\n</table>",
+      "shortdoc": "Set the root UiNode for subsequent queries.",
+      "tags": [],
+      "source": "/home/many/workspace/robotframework-agentskills/.venv/lib/python3.12/site-packages/PlatynUI/BareMetal/__init__.py",
+      "lineno": 221
+    },
+    {
+      "name": "Take Screenshot",
+      "args": [
+        {
+          "name": "descriptor",
+          "type": {
+            "name": "Union",
+            "typedoc": null,
+            "nested": [
+              {
+                "name": "UiNodeDescriptor",
+                "typedoc": "UiNodeDescriptor",
+                "nested": [],
+                "union": false
+              },
+              {
+                "name": "None",
+                "typedoc": "None",
+                "nested": [],
+                "union": false
+              }
+            ],
+            "union": true
+          },
+          "defaultValue": "None",
+          "kind": "POSITIONAL_OR_NAMED",
+          "required": false,
+          "repr": "descriptor: UiNodeDescriptor | None = None"
+        },
+        {
+          "name": "filename",
+          "type": {
+            "name": "Union",
+            "typedoc": null,
+            "nested": [
+              {
+                "name": "Literal",
+                "typedoc": "Literal",
+                "nested": [
+                  {
+                    "name": "'EMBED'",
+                    "typedoc": null,
+                    "nested": [],
+                    "union": false
+                  }
+                ],
+                "union": false
+              },
+              {
+                "name": "str",
+                "typedoc": "string",
+                "nested": [],
+                "union": false
+              }
+            ],
+            "union": true
+          },
+          "defaultValue": "platynui-screenshot-{index}.png",
+          "kind": "POSITIONAL_OR_NAMED",
+          "required": false,
+          "repr": "filename: Literal['EMBED'] | str = platynui-screenshot-{index}.png"
+        },
+        {
+          "name": "rect",
+          "type": {
+            "name": "Union",
+            "typedoc": null,
+            "nested": [
+              {
+                "name": "RectLike",
+                "typedoc": null,
+                "nested": [],
+                "union": false
+              },
+              {
+                "name": "None",
+                "typedoc": "None",
+                "nested": [],
+                "union": false
+              }
+            ],
+            "union": true
+          },
+          "defaultValue": "None",
+          "kind": "POSITIONAL_OR_NAMED",
+          "required": false,
+          "repr": "rect: RectLike | None = None"
+        }
+      ],
+      "returnType": {
+        "name": "str",
+        "typedoc": "string",
+        "nested": [],
+        "union": false
+      },
+      "doc": "<p>Take a screenshot of the entire screen or a specific element.</p>\n<p>Args: descriptor: Optional element to capture. If None, captures the full screen. filename: Literal['EMBED'] or path to save the screenshot image. rect: Optional rectangle area to capture. If provided, captures this area</p>\n<p>Examples:</p>\n<table border=\"1\">\n<tr>\n<td>Take Screenshot</td>\n<td></td>\n<td>file_path=screenshots/full_desktop.png</td>\n</tr>\n<tr>\n<td>Take Screenshot</td>\n<td>//control:Window[@Name=\"Settings\"]</td>\n<td>file_path=screenshots/settings_window.png</td>\n</tr>\n</table>",
+      "shortdoc": "Take a screenshot of the entire screen or a specific element.",
+      "tags": [],
+      "source": "/home/many/workspace/robotframework-agentskills/.venv/lib/python3.12/site-packages/PlatynUI/BareMetal/__init__.py",
+      "lineno": 821
+    }
+  ],
+  "typedocs": [
+    {
+      "type": "Standard",
+      "name": "Any",
+      "doc": "<p>Any value is accepted. No conversion is done.</p>",
+      "usages": [
+        "Get Attribute",
+        "Get Pointer Position",
+        "Query"
+      ],
+      "accepts": [
+        "Any"
+      ]
+    },
+    {
+      "type": "Enum",
+      "name": "AssertionOperator",
+      "doc": "<p>Currently supported assertion operators are:</p>\n<table border=\"1\">\n<tr>\n<th>Operator</th>\n<th>Alternative Operators</th>\n<th>Description</th>\n<th>Validate Equivalent</th>\n</tr>\n<tr>\n<td><code>==</code></td>\n<td><code>equal</code>, <code>equals</code>, <code>should be</code></td>\n<td>Checks if returned value is equal to expected value.</td>\n<td><code>value == expected</code></td>\n</tr>\n<tr>\n<td><code>!=</code></td>\n<td><code>inequal</code>, <code>should not be</code></td>\n<td>Checks if returned value is not equal to expected value.</td>\n<td><code>value != expected</code></td>\n</tr>\n<tr>\n<td><code>&gt;</code></td>\n<td><code>greater than</code></td>\n<td>Checks if returned value is greater than expected value.</td>\n<td><code>value &gt; expected</code></td>\n</tr>\n<tr>\n<td><code>&gt;=</code></td>\n<td></td>\n<td>Checks if returned value is greater than or equal to expected value.</td>\n<td><code>value &gt;= expected</code></td>\n</tr>\n<tr>\n<td><code>&lt;</code></td>\n<td><code>less than</code></td>\n<td>Checks if returned value is less than expected value.</td>\n<td><code>value &lt; expected</code></td>\n</tr>\n<tr>\n<td><code>&lt;=</code></td>\n<td></td>\n<td>Checks if returned value is less than or equal to expected value.</td>\n<td><code>value &lt;= expected</code></td>\n</tr>\n<tr>\n<td><code>*=</code></td>\n<td><code>contains</code></td>\n<td>Checks if returned value contains expected value as substring.</td>\n<td><code>expected in value</code></td>\n</tr>\n<tr>\n<td></td>\n<td><code>not contains</code></td>\n<td>Checks if returned value does not contain expected value as substring.</td>\n<td><code>expected in value</code></td>\n</tr>\n<tr>\n<td><code>^=</code></td>\n<td><code>should start with</code>, <code>starts</code></td>\n<td>Checks if returned value starts with expected value.</td>\n<td><code>re.search(f\"^{expected}\", value)</code></td>\n</tr>\n<tr>\n<td><code>$=</code></td>\n<td><code>should end with</code>, <code>ends</code></td>\n<td>Checks if returned value ends with expected value.</td>\n<td><code>re.search(f\"{expected}$\", value)</code></td>\n</tr>\n<tr>\n<td><code>matches</code></td>\n<td></td>\n<td>Checks if given RegEx matches minimum once in returned value.</td>\n<td><code>re.search(expected, value)</code></td>\n</tr>\n<tr>\n<td><code>validate</code></td>\n<td></td>\n<td>Checks if given Python expression evaluates to <code>True</code>.</td>\n<td></td>\n</tr>\n<tr>\n<td><code>evaluate</code></td>\n<td><code>then</code></td>\n<td>When using this operator, the keyword does return the evaluated Python expression.</td>\n<td></td>\n</tr>\n</table>\n<p>Currently supported formatters for assertions are:</p>\n<table border=\"1\">\n<tr>\n<th>Formatter</th>\n<th>Description</th>\n</tr>\n<tr>\n<td><code>normalize spaces</code></td>\n<td>Substitutes multiple spaces to single space from the value</td>\n</tr>\n<tr>\n<td><code>strip</code></td>\n<td>Removes spaces from the beginning and end of the value</td>\n</tr>\n<tr>\n<td><code>case insensitive</code></td>\n<td>Converts value to lower case before comparing</td>\n</tr>\n<tr>\n<td><code>apply to expected</code></td>\n<td>Applies rules also for the expected value</td>\n</tr>\n</table>\n<p>Formatters are applied to the value before assertion is performed and keywords returns a value where rule is applied. Formatter is only applied to the value which keyword returns and not all rules are valid for all assertion operators. If <code>apply to expected</code> formatter is defined, then formatters are then formatter are also applied to expected value.</p>",
+      "usages": [
+        "Get Attribute",
+        "Get Pointer Position"
+      ],
+      "accepts": [
+        "string"
+      ],
+      "members": [
+        {
+          "name": "equal",
+          "value": "=="
+        },
+        {
+          "name": "equals",
+          "value": "=="
+        },
+        {
+          "name": "==",
+          "value": "=="
+        },
+        {
+          "name": "should be",
+          "value": "=="
+        },
+        {
+          "name": "inequal",
+          "value": "!="
+        },
+        {
+          "name": "!=",
+          "value": "!="
+        },
+        {
+          "name": "should not be",
+          "value": "!="
+        },
+        {
+          "name": "less than",
+          "value": "<"
+        },
+        {
+          "name": "<",
+          "value": "<"
+        },
+        {
+          "name": "greater than",
+          "value": ">"
+        },
+        {
+          "name": ">",
+          "value": ">"
+        },
+        {
+          "name": "<=",
+          "value": "<="
+        },
+        {
+          "name": ">=",
+          "value": ">="
+        },
+        {
+          "name": "contains",
+          "value": "*="
+        },
+        {
+          "name": "not contains",
+          "value": "not contains"
+        },
+        {
+          "name": "*=",
+          "value": "*="
+        },
+        {
+          "name": "starts",
+          "value": "^="
+        },
+        {
+          "name": "^=",
+          "value": "^="
+        },
+        {
+          "name": "should start with",
+          "value": "^="
+        },
+        {
+          "name": "ends",
+          "value": "$="
+        },
+        {
+          "name": "should end with",
+          "value": "$="
+        },
+        {
+          "name": "$=",
+          "value": "$="
+        },
+        {
+          "name": "matches",
+          "value": "$"
+        },
+        {
+          "name": "validate",
+          "value": "validate"
+        },
+        {
+          "name": "then",
+          "value": "then"
+        },
+        {
+          "name": "evaluate",
+          "value": "then"
+        }
+      ]
+    },
+    {
+      "type": "Standard",
+      "name": "boolean",
+      "doc": "<p>Strings <code>TRUE</code>, <code>YES</code>, <code>ON</code>, <code>1</code> and possible localization specific \"true strings\" are converted to Boolean <code>True</code>, the empty string, strings <code>FALSE</code>, <code>NO</code>, <code>OFF</code> and <code>0</code> and possibly localization specific \"false strings\" are converted to Boolean <code>False</code>, and the string <code>NONE</code> is converted to the Python <code>None</code> object. Other strings and all other values are passed as-is, allowing keywords to handle them specially if needed. All string comparisons are case-insensitive.</p>\n<p>Examples: <code>TRUE</code> (converted to <code>True</code>), <code>off</code> (converted to <code>False</code>), <code>example</code> (used as-is)</p>",
+      "usages": [
+        "__init__",
+        "Pointer Click",
+        "Pointer Move To",
+        "Pointer Multi Click",
+        "Pointer Press",
+        "Pointer Release",
+        "Query"
+      ],
+      "accepts": [
+        "string",
+        "integer",
+        "float",
+        "None"
+      ]
+    },
+    {
+      "type": "Standard",
+      "name": "float",
+      "doc": "<p>Conversion is done using Python's <a href=\"https://docs.python.org/library/functions.html#float\">float</a> built-in function.</p>\n<p>Spaces and underscores can be used as visual separators for digit grouping purposes.</p>\n<p>Examples: <code>3.14</code>, <code>2.9979e8</code>, <code>10 000.000 01</code></p>",
+      "usages": [
+        "Highlight",
+        "Move And Resize Window",
+        "Move Window",
+        "Pointer Click",
+        "Pointer Move To",
+        "Pointer Multi Click",
+        "Pointer Press",
+        "Pointer Release",
+        "Resize Window"
+      ],
+      "accepts": [
+        "string",
+        "Real"
+      ]
+    },
+    {
+      "type": "Standard",
+      "name": "integer",
+      "doc": "<p>Conversion is done using Python's <a href=\"https://docs.python.org/library/functions.html#int\">int</a> built-in function. Floating point numbers are accepted only if they can be represented as integers exactly. For example, <code>1.0</code> is accepted and <code>1.1</code> is not.</p>\n<p>It is possible to use hexadecimal, octal and binary numbers by prefixing values with <code>0x</code>, <code>0o</code> and <code>0b</code>, respectively. Spaces and underscores can be used as visual separators for digit grouping purposes.</p>\n<p>Examples: <code>42</code>, <code>-1</code>, <code>0b1010</code>, <code>10 000 000</code>, <code>0xBAD_C0FFEE</code></p>",
+      "usages": [
+        "Pointer Multi Click"
+      ],
+      "accepts": [
+        "string",
+        "float"
+      ]
+    },
+    {
+      "type": "Standard",
+      "name": "list",
+      "doc": "<p>Strings must be Python <a href=\"https://docs.python.org/library/stdtypes.html#list\">list</a> or <a href=\"https://docs.python.org/library/stdtypes.html#tuple\">tuple</a> literals. They are converted using the <a href=\"https://docs.python.org/library/ast.html#ast.literal_eval\">ast.literal_eval</a> function and possible tuples converted further to lists. They can contain any values <code>ast.literal_eval</code> supports, including lists and other collections.</p>\n<p>If the argument is a list, it is used without conversion. Tuples and other sequences are converted to lists.</p>\n<p>If the type has nested types like <code>list[int]</code>, items are converted to those types automatically.</p>\n<p>Examples: <code>['one', 'two']</code>, <code>[('one', 1), ('two', 2)]</code></p>\n<p>Support to convert nested types is new in Robot Framework 6.0. Support for tuple literals is new in Robot Framework 7.4.</p>",
+      "usages": [
+        "Highlight"
+      ],
+      "accepts": [
+        "string",
+        "Sequence"
+      ]
+    },
+    {
+      "type": "Standard",
+      "name": "Literal",
+      "doc": "<p>Only specified values are accepted. Values can be strings, integers, bytes, Booleans, enums and None, and used arguments are converted using the value type specific conversion logic.</p>\n<p>Strings are case, space, underscore and hyphen insensitive, but exact matches have precedence over normalized matches.</p>",
+      "usages": [
+        "Take Screenshot"
+      ],
+      "accepts": [
+        "Any"
+      ]
+    },
+    {
+      "type": "Standard",
+      "name": "None",
+      "doc": "<p>String <code>NONE</code> (case-insensitive) and the empty string are converted to the Python <code>None</code> object. Other values cause an error.</p>\n<p>Converting the empty string is new in Robot Framework 7.4.</p>",
+      "usages": [
+        "__init__",
+        "Get Attribute",
+        "Get Pointer Position",
+        "Highlight",
+        "Keyboard Press",
+        "Keyboard Release",
+        "Keyboard Type",
+        "Pointer Click",
+        "Pointer Move To",
+        "Pointer Multi Click",
+        "Pointer Press",
+        "Pointer Release",
+        "Query",
+        "Set Root",
+        "Take Screenshot"
+      ],
+      "accepts": [
+        "string"
+      ]
+    },
+    {
+      "type": "Standard",
+      "name": "string",
+      "doc": "<p>All arguments are converted to Unicode strings.</p>\n<p>Most values are converted simply by using <code>str(value)</code>. An exception is that bytes are mapped directly to Unicode code points with same ordinals. This means that, for example, <code>b\"hyv\\xe4\"</code> becomes <code>\"hyv\u00e4\"</code>.</p>\n<p>Converting bytes specially is new Robot Framework 7.4.</p>",
+      "usages": [
+        "Get Attribute",
+        "Get Pointer Position",
+        "Keyboard Press",
+        "Keyboard Release",
+        "Keyboard Type",
+        "Query",
+        "Take Screenshot"
+      ],
+      "accepts": [
+        "Any"
+      ]
+    },
+    {
+      "type": "Custom",
+      "name": "UiNodeDescriptor",
+      "doc": "<p>Descriptor wrapper allowing lazy resolution of a UiNode from a query string.</p>\n<p>The descriptor either holds a concrete UiNode or an expression string that will be evaluated using the associated BareMetal library instance when called.</p>",
+      "usages": [
+        "Activate Window",
+        "Bring To Front",
+        "Close Window",
+        "Focus",
+        "Get Attribute",
+        "Highlight",
+        "Keyboard Press",
+        "Keyboard Release",
+        "Keyboard Type",
+        "Maximize Window",
+        "Minimize Window",
+        "Move And Resize Window",
+        "Move Window",
+        "Pointer Click",
+        "Pointer Move To",
+        "Pointer Multi Click",
+        "Pointer Press",
+        "Pointer Release",
+        "Resize Window",
+        "Restore Window",
+        "Set Root",
+        "Take Screenshot"
+      ],
+      "accepts": [
+        "string",
+        "UiNode"
+      ]
+    }
+  ]
+}

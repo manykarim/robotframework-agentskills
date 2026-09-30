@@ -1,0 +1,3 @@
+# RF 7.0+ example: robot --variablefile variables/staging.yaml tests   (needs PyYAML: uv add pyyaml)
+BASE_URL: https://staging.example.com
+ENVIRONMENT: staging

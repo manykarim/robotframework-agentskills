@@ -1,1 +1,0 @@
-../../robotframework-libdoc-search/scripts/rf_libdoc.py

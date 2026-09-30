@@ -5,15 +5,15 @@
     "email": "manykarim@users.noreply.github.com"
   },
   "metadata": {
-    "description": "Robot Framework agent skills for Claude Code - web, API, mobile testing, asset generation, and RF analysis tools",
-    "version": "1.2.0"
+    "description": "Robot Framework agent skills for Claude Code - web, API, mobile and desktop testing, environment setup, and RF analysis tools",
+    "version": "2.0.0"
   },
   "plugins": [
     {
       "name": "rf-agentskills",
       "source": "./plugins/rf-agentskills",
-      "description": "Complete Robot Framework skills suite: 11 skills for web/API/mobile testing, keyword/test/resource generation, and libdoc/results tools. Includes 4 specialized agents and automated .robot validation.",
-      "version": "1.2.0",
+      "description": "Complete Robot Framework skills suite: library references for web/API/mobile/desktop testing, setup and robotcode CLI guidance, and libdoc/results tools. Includes 4 specialized agents and automated .robot validation.",
+      "version": "2.0.0",
       "author": {
         "name": "manykarim"
       },

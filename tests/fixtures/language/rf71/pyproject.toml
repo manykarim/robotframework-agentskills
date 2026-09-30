@@ -1,0 +1,5 @@
+[project]
+name = "rf71"
+version = "0.0.1"
+requires-python = ">=3.10"
+dependencies = ["robotframework==7.1.1"]

@@ -16,8 +16,15 @@ PLUGIN_FILES="$CODEX/rf-agentskills-files"
 case "${1:-}" in
 --post-install)
     # Skills at the canonical cross-vendor location
-    need_file "$AGENTS_SKILLS/libdoc-search/SKILL.md" "^name: libdoc-search$"
-    need_file "$AGENTS_SKILLS/keyword-builder/SKILL.md"
+    need_file "$AGENTS_SKILLS/rf-libdoc/SKILL.md" "^name: rf-libdoc$"
+    # Merged into libdoc (content 2.0.0): the old libdoc skills are not shipped
+    need_no_file "$AGENTS_SKILLS/libdoc-search/SKILL.md"
+    need_no_file "$AGENTS_SKILLS/libdoc-explain/SKILL.md"
+    need_no_file "$AGENTS_SKILLS/libdoc/SKILL.md"   # renamed to rf-libdoc in content 2.0.0
+    need_file "$AGENTS_SKILLS/rf-results/SKILL.md"
+    need_file "$AGENTS_SKILLS/rf-language/scripts/rf_conventions.py"
+    need_file "$AGENTS_SKILLS/rf-python-library/scripts/check_library.py"
+    need_no_file "$AGENTS_SKILLS/keyword-builder/SKILL.md"   # retired in content 2.0.0
     # Subagents transformed to TOML
     need_file "$CODEX/agents/rf-test-architect.toml"
     need_toml_key "$CODEX/agents/rf-test-architect.toml" 'name'
@@ -52,7 +59,7 @@ case "${1:-}" in
     ;;
 
 --post-uninstall)
-    need_no_file "$AGENTS_SKILLS/libdoc-search/SKILL.md"
+    need_no_file "$AGENTS_SKILLS/rf-libdoc/SKILL.md"
     need_no_file "$CODEX/agents/rf-test-architect.toml"
     need_no_file "$CODEX/hooks.json"
     if [ -f "$CODEX/config.toml" ]; then
@@ -78,7 +85,7 @@ sys.exit(1 if 'rf-tools' in d.get('mcp_servers', {}) else 0)
         skip "no OpenRouter/OpenAI token in env"
     fi
     # Use Codex's session rollout to verify skill discovery.
-    if [ ! -f "$AGENTS_SKILLS/libdoc-search/SKILL.md" ]; then
+    if [ ! -f "$AGENTS_SKILLS/rf-libdoc/SKILL.md" ]; then
         skip "no install present (--api-smoke must run before --post-uninstall)"
     fi
     codex exec --json --skip-git-repo-check "ok" >/dev/null 2>&1 || true
@@ -87,8 +94,8 @@ sys.exit(1 if 'rf-tools' in d.get('mcp_servers', {}) else 0)
         printf '  [check] no codex rollout file produced\n' >&2
         exit 1
     fi
-    if ! grep -F "/skills/libdoc-search/SKILL.md" "$ROLLOUT" >/dev/null; then
-        printf '  [check] libdoc-search SKILL.md not referenced in rollout\n' >&2
+    if ! grep -F "/skills/rf-libdoc/SKILL.md" "$ROLLOUT" >/dev/null; then
+        printf '  [check] libdoc SKILL.md not referenced in rollout\n' >&2
         exit 1
     fi
     ;;

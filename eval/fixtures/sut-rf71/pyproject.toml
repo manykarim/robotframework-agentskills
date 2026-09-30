@@ -1,0 +1,15 @@
+[project]
+name = "sut-rf71"
+version = "0.0.1"
+description = "Fixture pinned to Robot Framework 7.1.1 (rf-language adversarial typed-argument task)."
+requires-python = ">=3.10"
+dependencies = [
+  "robotframework==7.1.1",
+]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = []

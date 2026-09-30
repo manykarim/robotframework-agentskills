@@ -1,0 +1,57 @@
+id: narrow-restinstance-schema-01
+skill: rf-restinstance
+tier: narrow
+description: |
+  Write a RESTinstance test with a response-body schema assertion against the
+  local API in sut-api. Gated by robot_pass (RESTinstance must be importable in
+  the grader env; if not, the check is skipped and the run is incomplete —
+  surfaced, never hidden).
+prompt: |
+  libraries/ApiServer.py starts a small local HTTP API (see README.md): the
+  keyword `Start Api Server` sets ${API_URL}. Our API tests use RESTinstance
+  (`Library    REST`).
+
+  Write tests/user_schema.robot that starts the server in Suite Setup, stops it
+  in Suite Teardown, calls GET /users/1 and asserts:
+    - the status is 200;
+    - the body is an object whose `id` is an integer, `name` and `email` are
+      strings, and `active` is a boolean (schema-style assertions);
+    - `name` is "Alice".
+
+  Run the suite and make sure it passes.
+model: claude-haiku-4-5-20251001
+max_turns: 14
+timeout_seconds: 300
+allowed_tools:
+  - Read
+  - Write
+  - Edit
+  - Bash
+  - Glob
+  - Grep
+  - Skill
+expected_files:
+  - path: tests/user_schema.robot
+    must_contain:
+      - "REST"
+grader_checks:
+  - type: robot_pass
+    name: schema_suite_passes
+    target: tests/user_schema.robot
+    requires: [REST]
+    expected_tests: 1
+  - type: file_contains
+    name: imports_rest
+    path: tests/user_schema.robot
+    regex: '^Library\s+REST\b'
+  - type: file_contains
+    name: typed_assertions
+    path: tests/user_schema.robot
+    regex: '(?m)^\s+(Integer|String|Boolean|Object)\s{2,}response'
+  - type: tool_call_count
+    name: loaded_rf_restinstance_skill
+    tool_pattern: "(Skill|Read)"
+    input_pattern: '(rf-restinstance|/skills/rf-restinstance/SKILL\.md)'
+    min: 1
+fixture: sut-api
+primary_metric: robot_pass

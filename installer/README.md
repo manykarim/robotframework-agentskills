@@ -59,6 +59,12 @@ The uninstall manifest follows scope: project installs record it in
 `<project>/.rf-agentskills/`, user installs in the global data dir — so two
 projects never collide.
 
+Upgrading: re-run `rf-agentskills install` with the same agent and scope.
+Files the previous install wrote that the new bundle no longer ships (for
+example retired skills) are removed — only when their hash still matches,
+and only for the categories being installed; user-modified files are kept
+and reported. `--dry-run` lists them as `remove` rows first.
+
 ### Installing a pre-release
 
 Pre-releases (e.g. `0.5.0rc2`) need an opt-in: `pipx install --pip-args=--pre rf-agentskills`, or with uv `uv tool install --prerelease allow rf-agentskills` / an exact pin `rf-agentskills==0.5.0rc2`.

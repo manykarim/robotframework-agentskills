@@ -11,12 +11,15 @@ The CLI wires four moving pieces together:
 
 Subcommands implemented:
 
-* ``install``    — write files, perform config merges, update manifest.
+* ``install``    — write files, perform config merges, remove files a
+                   previous install wrote that the bundle no longer
+                   ships (hash-checked), update manifest.
 * ``uninstall``  — read manifest, remove only matching files (skipping
                    user-edited ones), revert config merges.
 * ``list``       — show the manifest.
 * ``targets``    — show which adapters detect their target on this machine.
-* ``doctor``     — combined health check (assets, manifest, adapters).
+* ``doctor``     — combined health check (assets, manifest, adapters,
+                   unowned legacy skill directories — reported, never deleted).
 * ``version``    — print bundle version.
 """
 
@@ -277,7 +280,7 @@ def cmd_install(args: argparse.Namespace) -> int:
         adapter = cls()
         plan = adapter.plan(opts)
         if opts.dry_run:
-            _render_plan_dry_run(adapter, plan)
+            _render_plan_dry_run(adapter, plan, opts, manifest_path)
             continue
         rc |= _execute_plan(adapter, plan, opts, manifest_path)
     return rc
@@ -418,6 +421,106 @@ def cmd_targets(_args: argparse.Namespace) -> int:
     return 0
 
 
+# ---------------------------------------------------------------------------
+# Legacy skill directories (content < 2.0.0)
+# ---------------------------------------------------------------------------
+
+# Directory names earlier bundles used for skills. Since content 2.0.0 every
+# skill has one identifier, ``rf-<topic>``, in every channel. Re-installing
+# prunes the old directories this installer recorded; ``doctor`` only warns
+# about the ones it does not own (e.g. copied by hand from a release tarball).
+_LEGACY_TOPICS = (
+    "appium", "browser", "keyword-builder", "libdoc-explain", "libdoc-search",
+    "platynui", "requests", "resource-architect", "restinstance", "results",
+    "robotcode", "selenium", "setup", "testcase-builder",
+)
+LEGACY_SKILL_DIRS: frozenset[str] = frozenset(
+    # old Claude Code plugin / installer short names
+    set(_LEGACY_TOPICS)
+    # old root / standalone-tarball directory names
+    | {f"robotframework-{t}-skill" for t in _LEGACY_TOPICS if t not in ("results", "libdoc-search", "libdoc-explain")}
+    | {"robotframework-results", "robotframework-libdoc-search", "robotframework-libdoc-explain"}
+)
+# ``name:`` values those directories carried (short plugin names, and the
+# rf-* names the root/standalone copies already used).
+LEGACY_SKILL_NAMES: frozenset[str] = frozenset(
+    set(_LEGACY_TOPICS) | {f"rf-{t}" for t in _LEGACY_TOPICS}
+)
+
+
+def _skill_md_name(skill_md: Path) -> str | None:
+    try:
+        text = skill_md.read_text(encoding="utf-8", errors="replace")
+    except OSError:
+        return None
+    if not text.startswith("---"):
+        return None
+    for line in text.splitlines()[1:]:
+        if line.strip() == "---":
+            break
+        if line.startswith("name:"):
+            return line.split(":", 1)[1].strip().strip("\"'")
+    return None
+
+
+def _skill_folders() -> list[Path]:
+    """Every skills folder an adapter installs into (user and project scope),
+    derived from the adapters' own plans so it never drifts from them."""
+    folders: set[Path] = set()
+    for scope in ("user", "project"):
+        opts = InstallOptions(scope=scope, project_dir=Path.cwd(), what=frozenset({"skills"}))
+        for cls in ALL_ADAPTERS:
+            try:
+                plan = cls().plan(opts)
+            except Exception:  # pragma: no cover - defensive; doctor must not crash
+                continue
+            for target in plan.targets:
+                dst = Path(target.dst)
+                if dst.name == "SKILL.md" and _m.category_for_path(dst) == "skills":
+                    folders.add(dst.parent.parent)
+    return sorted(folders)
+
+
+def _owned_paths() -> list[Path]:
+    paths: list[Path] = []
+    for mpath in (_m.default_manifest_path(), _m.manifest_path_for("project", Path.cwd())):
+        try:
+            for ins in _m.Manifest.load(mpath).iter_agents():
+                paths.extend(Path(f.path) for f in ins.files)
+        except Exception:  # pragma: no cover - unreadable manifest is reported elsewhere
+            continue
+    return paths
+
+
+def find_legacy_skill_dirs() -> list[Path]:
+    """Unowned legacy rf-agentskills skill dirs in any adapter's skills folder.
+
+    A directory is reported only if its name is a known legacy name, its
+    SKILL.md ``name:`` is one of our old names and mentions Robot Framework
+    (so someone else's ``browser`` skill is left alone), and no manifest
+    records a file inside it.
+    """
+    owned = _owned_paths()
+    found: list[Path] = []
+    for folder in _skill_folders():
+        for name in sorted(LEGACY_SKILL_DIRS):
+            d = folder / name
+            skill_md = d / "SKILL.md"
+            if not skill_md.is_file():
+                continue
+            if _skill_md_name(skill_md) not in LEGACY_SKILL_NAMES:
+                continue
+            try:
+                if "robot" not in skill_md.read_text(encoding="utf-8", errors="replace").lower():
+                    continue
+            except OSError:
+                continue
+            if any(p == d or d in p.parents for p in owned):
+                continue
+            found.append(d)
+    return found
+
+
 def cmd_doctor(_args: argparse.Namespace) -> int:
     rc = 0
     table = Table(title="rf-agentskills doctor")
@@ -462,7 +565,21 @@ def cmd_doctor(_args: argparse.Namespace) -> int:
             adapter.pretty,
         )
 
+    # 4. Legacy skill directories from pre-2.0 bundles that we do not own.
+    legacy = find_legacy_skill_dirs()
+    table.add_row(
+        "legacy skill dirs",
+        "[yellow]warn[/yellow]" if legacy else "[green]ok[/green]",
+        f"{len(legacy)} unowned pre-2.0 skill dir(s)" if legacy else "none found",
+    )
+
     console.print(table)
+    for d in legacy:
+        err_console.print(
+            f"[yellow]warn:[/yellow] {d} is a pre-2.0 rf-agentskills skill directory "
+            f"(renamed to rf-<topic> in content 2.0.0) that rf-agentskills did not install; "
+            f"remove it with: rm -r \"{d}\""
+        )
     return rc
 
 
@@ -511,7 +628,100 @@ def _bundled_content_version() -> str | None:
 # ---------------------------------------------------------------------------
 
 
-def _render_plan_dry_run(adapter: Adapter, plan: InstallPlan) -> None:
+# ---------------------------------------------------------------------------
+# stale-file pruning on re-install
+# ---------------------------------------------------------------------------
+
+
+def _partition_previous(
+    previous: _m.Installation | None,
+    plan: InstallPlan,
+    opts: InstallOptions,
+) -> tuple[list[_m.FileEntry], list[_m.FileEntry]]:
+    """Split the previous record's files into (stale, carried).
+
+    * A previous file that is a target of the new plan is neither: it is
+      re-written and re-recorded.
+    * **stale** — not in the new plan and its category is being installed
+      now (a category in ``--what``, or one the new plan writes, e.g. the
+      shared ``support`` files). The bundle no longer ships it.
+    * **carried** — its category is not part of this install (e.g. agents
+      during ``--what skills``). It stays on disk and stays tracked.
+    """
+    if previous is None:
+        return [], []
+    new_paths = {str(t.dst) for t in plan.targets}
+    in_scope = set(opts.what) | {_m.category_for_path(t.dst) for t in plan.targets}
+    stale: list[_m.FileEntry] = []
+    carried: list[_m.FileEntry] = []
+    for entry in previous.files:
+        if entry.path in new_paths:
+            continue
+        if _m.entry_category(entry) in in_scope:
+            stale.append(entry)
+        else:
+            carried.append(entry)
+    return stale, carried
+
+
+def _prune_stop(path: Path, install_root: Path | None) -> Path:
+    """Directory at which empty-parent pruning stops (exclusive).
+
+    The install root when ``path`` lives under it; otherwise the nearest
+    ``skills`` ancestor (Codex / Goose skills live outside the root, under
+    ``~/.agents/skills``); otherwise the file's own directory (no pruning).
+    """
+    if install_root is not None:
+        try:
+            path.relative_to(install_root)
+            return install_root
+        except ValueError:
+            pass
+    for parent in path.parents:
+        if parent.name == "skills":
+            return parent
+    return path.parent
+
+
+def _remove_stale(
+    stale: Sequence[_m.FileEntry],
+    install_root: Path | None,
+) -> tuple[list[str], list[str]]:
+    """Delete hash-matching stale files; return (removed, kept_user_modified)."""
+    removed: list[str] = []
+    kept: list[str] = []
+    for entry in stale:
+        p = Path(entry.path)
+        if not p.is_file():
+            continue
+        if _m.is_user_modified(entry):
+            kept.append(str(p))
+            continue
+        try:
+            p.unlink()
+            _m.prune_empty_parents(p, stop_at=_prune_stop(p, install_root))
+            removed.append(str(p))
+        except OSError as exc:
+            err_console.print(f"[yellow]warn:[/yellow] {p}: {exc}")
+    return removed, kept
+
+
+def _install_root(adapter: Adapter, opts: InstallOptions) -> Path | None:
+    getter = getattr(adapter, "install_root", None)
+    if getter is None:
+        return None
+    try:
+        return Path(getter(opts))
+    except Exception:  # pragma: no cover - defensive
+        return None
+
+
+def _render_plan_dry_run(
+    adapter: Adapter,
+    plan: InstallPlan,
+    opts: InstallOptions | None = None,
+    manifest_path: Path | None = None,
+) -> None:
     table = Table(title=f"[dry-run] {adapter.pretty} ({adapter.name})")
     table.add_column("op", style="cyan")
     table.add_column("destination")
@@ -527,6 +737,17 @@ def _render_plan_dry_run(adapter: Adapter, plan: InstallPlan) -> None:
         )
     for merge in plan.merges:
         table.add_row("merge", str(merge.path), merge.description)
+    if opts is not None and manifest_path is not None:
+        previous = _m.Manifest.load(manifest_path).for_agent(adapter.name, opts.scope)
+        stale, _carried = _partition_previous(previous, plan, opts)
+        for entry in stale:
+            p = Path(entry.path)
+            if not p.is_file():
+                continue
+            if _m.is_user_modified(entry):
+                table.add_row("keep", str(p), "no longer shipped; user-modified, kept and untracked")
+            else:
+                table.add_row("remove", str(p), "no longer shipped by this bundle")
     for note in plan.notes:
         table.add_row("note", "—", note)
     if not plan.targets and not plan.merges and not plan.notes:
@@ -594,26 +815,45 @@ def _execute_plan(
             err_console.print(f"[red]error:[/red] {merge.path}: {exc}")
             rc = max(rc, 2)
 
-    # 3. Manifest.
+    # 3. Stale files: remove what the previous install wrote but this
+    #    bundle no longer ships (same hash-based safety as uninstall).
     manifest = _m.Manifest.load(manifest_path)
+    previous = manifest.for_agent(adapter.name, opts.scope)
+    stale, carried = _partition_previous(previous, plan, opts)
+    stale_removed, stale_kept = _remove_stale(stale, _install_root(adapter, opts))
+    # Config merges not re-performed this time (e.g. hooks/MCP during a
+    # `--what skills` re-install) stay tracked so uninstall can revert them.
+    redone = {(m.path, m.kind, tuple(m.key_path)) for m in config_merges}
+    carried_merges = [
+        m for m in (previous.config_merges if previous else [])
+        if (m.path, m.kind, tuple(m.key_path)) not in redone
+    ]
+
+    # 4. Manifest.
     manifest.upsert(_m.Installation(
         agent=adapter.name,
         scope=opts.scope,
         installed_at=_m.now_iso(),
         bundle_version=__version__,
-        files=files_written,
-        config_merges=config_merges,
+        files=files_written + carried,
+        config_merges=config_merges + carried_merges,
         notes=list(plan.notes),
     ))
     manifest.save(manifest_path)
 
-    # 4. Post-install nudges.
+    # 5. Post-install nudges.
     table = Table(title=f"installed {adapter.pretty}")
     table.add_column("op", style="cyan")
     table.add_column("destination")
     table.add_row("files", f"{len(files_written)} written")
     table.add_row("merges", f"{len(config_merges)} performed")
+    table.add_row("stale", f"{len(stale_removed)} removed (no longer shipped)")
     console.print(table)
+    for path in stale_kept:
+        err_console.print(
+            f"[yellow]warn:[/yellow] {path} is no longer shipped but was "
+            f"modified by you — kept and no longer tracked."
+        )
     for note in adapter.post_install(opts):
         console.print(f"  [dim]→[/dim] {note}")
 

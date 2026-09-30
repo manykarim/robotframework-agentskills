@@ -154,6 +154,11 @@ class AdapterBase:
     name: str = "?"
     pretty: str = "?"
 
+    # Whether the agent substitutes ${CLAUDE_SKILL_DIR} in SKILL.md content
+    # itself (Claude Code does). When False, installed skill text files get
+    # the absolute installed skill dir written in (transforms.substitute_skill_dir).
+    expands_skill_dir: bool = False
+
     # Default user-config root if --prefix is not set. Overridden per
     # adapter (e.g. ~/.claude or ~/.codex).
     user_root_subpath: tuple[str, ...] = ()
@@ -173,3 +178,28 @@ class AdapterBase:
     def filtered(items: Iterable[Any], what: frozenset[str], category: str) -> list[Any]:
         """Filter helper for ``--what`` selectivity."""
         return list(items) if category in what else []
+
+    def render_skill_dir(self, payload: bytes, src: Path, skill_dir_dst: Path) -> bytes:
+        """Apply ``${CLAUDE_SKILL_DIR}`` substitution for non-expanding agents."""
+        from .. import transforms as _x  # local import: transforms has no adapter deps
+
+        if self.expands_skill_dir or not _x.is_substitution_candidate(src):
+            return payload
+        return _x.substitute_skill_dir_bytes(
+            payload, _x.to_native_path_string(skill_dir_dst.resolve())
+        )
+
+
+def skill_script_files(src_root: Path) -> list[Path]:
+    """Every file under ``skills/<skill>/scripts/`` of the bundled plugin tree.
+
+    Adapters that ship the rf-tools MCP server stage these under
+    ``rf-agentskills-files/skills/<skill>/scripts/`` too: the server resolves
+    scripts relative to its own location
+    (``<plugin_root>/skills/<skill>/scripts/<name>.py``), independent of where
+    the agent's skills are installed.
+    """
+    return [
+        f for f in sorted(src_root.glob("skills/*/scripts/**/*"))
+        if f.is_file() and "__pycache__" not in f.parts
+    ]

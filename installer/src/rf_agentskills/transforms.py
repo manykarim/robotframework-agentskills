@@ -50,6 +50,41 @@ def substitute_plugin_root_bytes(data: bytes, plugin_root_abs: str) -> bytes:
                         plugin_root_abs.encode("utf-8"))
 
 
+# ---------------------------------------------------------------------------
+# ${CLAUDE_SKILL_DIR} substitution (agents that do not expand it)
+# ---------------------------------------------------------------------------
+
+SKILL_DIR_TOKEN = "${CLAUDE_SKILL_DIR}"
+# A relative bundled-script command (root/VS Code form): `python scripts/x.py`
+# or `uv run --script scripts/x.py`.
+_RELATIVE_SCRIPT_CMD = re.compile(r"(python3?|--script) scripts/([A-Za-z0-9_]+\.py)")
+
+
+def substitute_skill_dir(text: str, abs_skill_dir: str) -> str:
+    """Render skill script paths as absolute paths of the installed skill.
+
+    Claude Code substitutes ``${CLAUDE_SKILL_DIR}`` in SKILL.md content;
+    other agents (Codex, Cursor, Copilot, Goose, OpenCode) do not. For them
+    the installer replaces the token with ``abs_skill_dir`` and also turns a
+    relative ``python scripts/<name>.py`` command into
+    ``python "<abs_skill_dir>/scripts/<name>.py"``, so the documented command
+    works from any working directory.
+    """
+    text = text.replace(SKILL_DIR_TOKEN, abs_skill_dir)
+    return _RELATIVE_SCRIPT_CMD.sub(
+        lambda m: f'{m.group(1)} "{abs_skill_dir}/scripts/{m.group(2)}"', text
+    )
+
+
+def substitute_skill_dir_bytes(data: bytes, abs_skill_dir: str) -> bytes:
+    """Bytes variant; non-UTF-8 payloads pass through unchanged."""
+    try:
+        text = data.decode("utf-8")
+    except UnicodeDecodeError:
+        return data
+    return substitute_skill_dir(text, abs_skill_dir).encode("utf-8")
+
+
 def is_substitution_candidate(path: Path) -> bool:
     """Whether to attempt substitution on a file based on its suffix."""
     return path.suffix.lower() in {

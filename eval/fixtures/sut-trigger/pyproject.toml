@@ -1,0 +1,15 @@
+[project]
+name = "sut-trigger"
+version = "0.0.1"
+description = "Neutral Robot Framework project used as the working directory of trigger evals."
+requires-python = ">=3.10"
+dependencies = [
+  "robotframework>=7.0",
+]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = []

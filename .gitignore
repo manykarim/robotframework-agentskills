@@ -17,12 +17,14 @@ env/
 eval/runs/
 eval/reports/
 # Anchored to repo root: the unanchored `results/` also matched the
-# legitimate skill dir `skills/results/`, silently dropping its SKILL.md
+# plugin skill dir `skills/results/` (pre-2.0 name, now rf-results), dropping its SKILL.md
 # from the packaged wheel (hatchling honors .gitignore for the sdist).
 /results/
 
 # Test output
 .pytest_cache/
+# Robocop cache (hooks and documented commands pass --no-cache; older runs leave it behind)
+.robocop_cache/
 output.xml
 log.html
 report.html

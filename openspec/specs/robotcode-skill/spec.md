@@ -8,11 +8,11 @@ Provide a Robot Framework agent skill that teaches AI agents to use the `robotco
 
 ### Requirement: robotcode skill exists and follows the house structure
 
-The repository SHALL provide a skill at `skills/robotframework-robotcode-skill/` with a `SKILL.md` whose frontmatter has `name: rf-robotcode` and a non-empty `description`, a `references/` directory and an `assets/examples/` directory.
+The repository SHALL provide a skill at `skills/rf-robotcode/` with a `SKILL.md` whose frontmatter has `name: rf-robotcode` (matching its directory) and a non-empty `description`, a `references/` directory and an `assets/examples/` directory.
 
 #### Scenario: Skill directory and frontmatter
 - **WHEN** the repository is inspected
-- **THEN** `skills/robotframework-robotcode-skill/SKILL.md` exists with frontmatter `name: rf-robotcode` and a non-empty `description` that mentions robotcode and at least discovery, debugging and results
+- **THEN** `skills/rf-robotcode/SKILL.md` exists with frontmatter `name: rf-robotcode` and a non-empty `description` that mentions robotcode and at least discovery, debugging and results
 - **AND** `references/` and `assets/examples/` exist and each contain at least one file
 
 #### Scenario: Marketplace validation passes
@@ -86,16 +86,17 @@ Every `robotcode` subcommand and long option the skill documents SHALL exist in 
 
 ### Requirement: rf-robotcode complements the script-based skills
 
-The skill SHALL tell agents to check once whether `robotcode` is available and prefer it when it is, and to use `rf-results`, `rf-libdoc-search` and `rf-libdoc-explain` when it is not. Each of those three skills SHALL point back to `rf-robotcode`. None of them SHALL be deprecated or have their behaviour changed.
+The skill SHALL tell agents to check once whether `robotcode` is available and prefer it when it is, and to use `rf-results` and `rf-libdoc` when it is not. Each of those two skills SHALL point back to `rf-robotcode`. Neither of them SHALL be deprecated or have its script behaviour changed.
 
 #### Scenario: Fallback guidance in rf-robotcode
 - **WHEN** `SKILL.md` of `rf-robotcode` is read
-- **THEN** it has a companion section that names `rf-results` as the fallback for result analysis and `rf-libdoc-search` / `rf-libdoc-explain` as the fallback for keyword search and docs when `robotcode` is not installed
+- **THEN** it has a companion section that names `rf-results` as the fallback for result analysis and `rf-libdoc` as the fallback for keyword search and keyword docs when `robotcode` is not installed
+- **AND** it does not name `rf-libdoc-search` or `rf-libdoc-explain`
 
 #### Scenario: Cross-links from the script-based skills
-- **WHEN** the `SKILL.md` of `rf-results`, `rf-libdoc-search` and `rf-libdoc-explain` is read
+- **WHEN** the `SKILL.md` of `rf-results` and `rf-libdoc` is read
 - **THEN** each mentions `rf-robotcode` as the preferred option when `robotcode` is on PATH
-- **AND** their existing instructions and script usage are unchanged
+- **AND** each still documents its script usage
 
 ### Requirement: robotcode prompts trigger skill context injection
 
@@ -111,11 +112,11 @@ The `UserPromptSubmit` context-injection hook SHALL treat mentions of `robotcode
 
 ### Requirement: Skill is distributed without drift
 
-The skill SHALL be registered in the sync tooling so the Claude Code plugin, VS Code extension and installer channels are generated from the root skill, and the drift check SHALL pass.
+The skill SHALL be registered in the sync tooling so the Claude Code plugin, VS Code extension and installer channels are generated from the root skill under the same `rf-robotcode` identifier, and the drift check SHALL pass.
 
 #### Scenario: Sync registers the skill
 - **WHEN** `scripts/sync-skills.sh` runs
-- **THEN** the skill is propagated to `plugins/rf-agentskills/skills/robotcode/` with `name: robotcode`, and to `vscode-extension/skills/rf-robotcode/`, and `vscode-extension/package.json` lists it
+- **THEN** the skill is propagated to `plugins/rf-agentskills/skills/rf-robotcode/` with `name: rf-robotcode`, and to `vscode-extension/skills/rf-robotcode/`, and `vscode-extension/package.json` lists it
 
 #### Scenario: Drift check passes
 - **WHEN** `scripts/check-drift.sh` runs after sync

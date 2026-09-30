@@ -1,0 +1,51 @@
+id: narrow-language-bdd-01
+skill: rf-language
+tier: narrow
+description: |
+  Write Given/When/Then scenarios that reuse the prefix-free calculator step
+  keywords. Gated by a green run of 3 scenarios, BDD-prefixed steps in the
+  test file and no Given/When/Then/And/But-prefixed keyword definitions in
+  resources/calc.resource.
+prompt: |
+  Write tests/calculator.robot with three Given/When/Then scenarios for our
+  calculator, using the step keywords in resources/calc.resource:
+    1. adding 2 and 3 gives 5,
+    2. multiplying 4 by 5 gives 20,
+    3. adding 0 and 0 gives 0.
+  Each scenario starts from a cleared calculator. Run the suite and make sure
+  all three scenarios pass.
+model: claude-haiku-4-5-20251001
+max_turns: 14
+timeout_seconds: 300
+allowed_tools:
+  - Read
+  - Write
+  - Edit
+  - Bash
+  - Glob
+  - Grep
+  - Skill
+grader_checks:
+  - type: robot_pass
+    name: scenarios_pass
+    target: tests/calculator.robot
+    expected_tests: 3
+    expected_tests_exact: true
+    gating: true
+  - type: file_contains
+    name: bdd_prefixed_steps
+    path: tests/calculator.robot
+    regex: '(?m)^\s+(Given|When|Then|And)\s'
+    gating: true
+  - type: file_not_contains
+    name: steps_defined_without_prefix
+    path: resources/calc.resource
+    regex: '(?mi)^(Given|When|Then|And|But)\s'
+    gating: true
+  - type: tool_call_count
+    name: loaded_rf_language_skill
+    tool_pattern: "(Skill|Read)"
+    input_pattern: '(rf-language|/skills/rf-language/SKILL\.md)'
+    min: 1
+fixture: sut-language-tests
+primary_metric: robot_pass

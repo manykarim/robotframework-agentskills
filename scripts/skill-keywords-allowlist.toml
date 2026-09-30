@@ -1,0 +1,14 @@
+# Intentional exceptions for scripts/check-skill-keywords.py.
+#
+# Prefer defining a stub user keyword in the snippet (under
+# `*** Keywords ***`) over adding an entry here. Use an entry only where a
+# stub would bloat an illustrative example.
+#
+# Fields (all required):
+#   skill   = short skill key: browser | selenium | appium | requests | restinstance | platynui
+#   file    = path relative to the skill directory
+#   keyword = keyword name exactly as reported by the checker
+#   reason  = why the call is kept
+#
+# An entry that matches no reported call fails the check (stale entry), so
+# remove entries as soon as the content they cover is gone.

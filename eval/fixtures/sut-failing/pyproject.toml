@@ -1,0 +1,15 @@
+[project]
+name = "sut-failing"
+version = "0.0.1"
+description = "Fixture with a genuinely failing assertion (adversarial make-it-pass task)."
+requires-python = ">=3.10"
+dependencies = [
+  "robotframework>=7.0",
+]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = []

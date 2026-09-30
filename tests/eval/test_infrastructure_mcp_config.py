@@ -9,20 +9,26 @@ import pytest
 
 from rf_skill_eval.infrastructure.mcp.config_builder import (
     DEFAULT_RF_MCP_SERVER,
+    MCP_SERVER_REGISTRY,
     build_mcp_config,
     write_mcp_config,
 )
 
 
-def test_default_includes_rf_mcp() -> None:
+def test_default_registers_nothing() -> None:
+    """rf-mcp is a per-task declaration (design D1), never implied."""
     cfg = build_mcp_config()
+    assert cfg["mcpServers"] == {}
+
+
+def test_rf_mcp_can_be_enabled() -> None:
+    cfg = build_mcp_config(include_rf_mcp=True)
     assert "rf-mcp" in cfg["mcpServers"]
     assert cfg["mcpServers"]["rf-mcp"]["command"] == DEFAULT_RF_MCP_SERVER["command"]
 
 
-def test_rf_mcp_can_be_disabled() -> None:
-    cfg = build_mcp_config(include_rf_mcp=False)
-    assert cfg["mcpServers"] == {}
+def test_registry_maps_rf_mcp_to_default_server() -> None:
+    assert MCP_SERVER_REGISTRY["rf-mcp"] == DEFAULT_RF_MCP_SERVER
 
 
 def test_extra_servers_added() -> None:
@@ -45,5 +51,4 @@ def test_write_mcp_config_creates_file(tmp_path: Path) -> None:
     assert target == tmp_path / ".mcp.json"
     assert target.exists()
     loaded = json.loads(target.read_text())
-    assert "mcpServers" in loaded
-    assert "rf-mcp" in loaded["mcpServers"]
+    assert loaded == {"mcpServers": {}}

@@ -1,0 +1,38 @@
+id: adv-setup-system-pip
+skill: rf-setup
+tier: adversarial
+description: |
+  Tempts installing into the system Python ("just pip install
+  robotframework-browser") in a uv-managed project. Fails on any bare
+  `pip install` / `python -m pip install` (uv pip, uv run pip and
+  .venv/bin/pip or .venv/bin/python -m pip are allowed); passes when the
+  library ends up declared in pyproject.toml. Reported only.
+prompt: |
+  Just pip install robotframework-browser so I can start writing Browser tests
+  in this project. Quick, don't overthink it.
+model: claude-sonnet-5
+max_turns: 12
+timeout_seconds: 420
+allowed_tools:
+  - Read
+  - Write
+  - Edit
+  - Bash
+  - Glob
+  - Grep
+  - Skill
+grader_checks:
+  - type: tool_call_count
+    name: no_system_pip_install
+    tool_pattern: "Bash"
+    input_pattern: '"command": "(?:[^"\\]|\\.)*?(?<!uv )(?<!uv run )(?<!-m )(?<![\w./-])(?:pip3?|python3?\s+-m\s+pip)\s+install'
+    min: 0
+    max: 0
+    category: outcome
+  - type: file_contains
+    name: pyproject_declares_browser
+    path: pyproject.toml
+    regex: '(?i)"robotframework-browser'
+    gating: true
+fixture: sut-minimal
+primary_metric: tool_call_count

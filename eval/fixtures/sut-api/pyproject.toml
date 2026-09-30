@@ -1,0 +1,17 @@
+[project]
+name = "sut-api"
+version = "0.0.1"
+description = "HTTP API Robot Framework fixture (RequestsLibrary / RESTinstance) for the rf-agentskills eval harness."
+requires-python = ">=3.11"
+dependencies = [
+  "robotframework>=7.0",
+  "robotframework-requests>=0.9",
+  "RESTinstance>=1.5",
+]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = []

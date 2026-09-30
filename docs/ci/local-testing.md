@@ -49,19 +49,19 @@ scripts/eval-local.sh
 uv run rf-skill-eval run \
   --task eval/tasks/narrow/<task-file>.yaml \
   --arm treatment \
-  --model claude-haiku-4-5 \
-  --output eval/runs/debug-$(date +%s) \
-  --log-level DEBUG
+  --max-cost-usd 1 \
+  --output eval/runs/debug-$(date +%s)
+# (DEBUG logging: RF_SKILL_EVAL_LOG_LEVEL=DEBUG)
 
-# 4. Regenerate the scorecard without re-invoking Claude
-uv run rf-skill-eval score eval/runs/batch-<date>/
+# 4. Re-grade and re-render without re-invoking Claude
+uv run rf-skill-eval score-batch --runs-dir eval/runs/batch-<date>/ --tasks-dir eval/tasks
 uv run rf-skill-eval report \
-  --batch eval/runs/batch-<date>/ \
-  --format html,md \
-  --out eval/reports/batch-<date>/
+  --runs-dir eval/runs/batch-<date>/ \
+  --format md \
+  --output eval/reports/batch-<date>/report.md
 
-# 5. Open the HTML report
-xdg-open eval/reports/batch-<date>/scorecard.html
+# 5. Read the report (per task x arm, deltas, skipped checks)
+less eval/reports/batch-<date>/report.md
 # or on macOS:
 open eval/reports/batch-<date>/scorecard.html
 ```
@@ -104,7 +104,7 @@ uv run rfbrowser init
 ```
 
 If `rfbrowser init` still fails, run smoke anyway with
-`--task narrow-keyword-builder-01.yaml` (uses `sut-minimal`, no
+`--task narrow-libdoc-search-01.yaml` (uses `sut-minimal`, no
 browser). Skip browser fixtures until the install succeeds.
 
 ### OAuth token expiry
@@ -194,9 +194,9 @@ When a task fails and you need to debug the agent's behavior:
 uv run rf-skill-eval run \
   --task eval/tasks/narrow/<task>.yaml \
   --arm treatment \
-  --model claude-haiku-4-5 \
-  --output eval/runs/debug-$(date +%s) \
-  --log-level DEBUG
+  --max-cost-usd 1 \
+  --output eval/runs/debug-$(date +%s)
+# (DEBUG logging: RF_SKILL_EVAL_LOG_LEVEL=DEBUG)
 ```
 
 ### 2. Inspect the session JSONL

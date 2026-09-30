@@ -1,0 +1,49 @@
+id: narrow-language-data-driven-01
+skill: rf-language
+tier: narrow
+description: |
+  Convert six copy-pasted invalid-login tests into a data-driven suite. Gated
+  by a real run with exactly 6 passing tests (one test per data row, not one
+  test holding six rows), a template setting, and the repeated step sequence
+  gone from tests/login.robot.
+prompt: |
+  tests/login.robot has six invalid-login tests that repeat the same steps
+  with different credentials. Restructure it as a data-driven suite: keep six
+  tests with the same names, one per credential pair, and move the repeated
+  steps into one keyword in resources/login.resource. Run the suite and make
+  sure all six tests pass.
+model: claude-haiku-4-5-20251001
+max_turns: 14
+timeout_seconds: 300
+allowed_tools:
+  - Read
+  - Write
+  - Edit
+  - Bash
+  - Glob
+  - Grep
+  - Skill
+grader_checks:
+  - type: robot_pass
+    name: six_templated_tests_pass
+    target: tests/login.robot
+    expected_tests: 6
+    expected_tests_exact: true
+    gating: true
+  - type: file_contains
+    name: uses_template
+    path: tests/login.robot
+    regex: '(?m)^(Test Template\s|\s+\[Template\]\s)'
+    gating: true
+  - type: file_not_contains
+    name: repeated_steps_removed
+    path: tests/login.robot
+    regex: '(Submit Credentials[\s\S]*){2}'
+    gating: true
+  - type: tool_call_count
+    name: loaded_rf_language_skill
+    tool_pattern: "(Skill|Read)"
+    input_pattern: '(rf-language|/skills/rf-language/SKILL\.md)'
+    min: 1
+fixture: sut-language-tests
+primary_metric: robot_pass

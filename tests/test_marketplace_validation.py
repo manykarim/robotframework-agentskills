@@ -1,6 +1,6 @@
 """Tests for marketplace structural integrity."""
+import importlib.util
 import json
-import os
 from pathlib import Path
 
 ROOT = Path(__file__).parent.parent
@@ -57,17 +57,9 @@ def test_plugin_names_unique():
 
 
 def test_skill_md_frontmatter():
-    skills_dir = PLUGIN_ROOT / "skills"
-    for entry in sorted(skills_dir.iterdir()):
-        if not entry.is_dir():
-            continue
-        skill_md = entry / "SKILL.md"
-        if not skill_md.exists():
-            continue
-        content = skill_md.read_text(encoding="utf-8")
-        assert content.startswith("---"), f"{entry.name}/SKILL.md missing frontmatter"
-        end = content.find("---", 3)
-        assert end != -1, f"{entry.name}/SKILL.md unclosed frontmatter"
-        fm = content[3:end]
-        assert "name:" in fm, f"{entry.name}/SKILL.md frontmatter missing name"
-        assert "description:" in fm, f"{entry.name}/SKILL.md frontmatter missing description"
+    """Delegates to scripts/validate-skills.py so there is one rule set."""
+    spec = importlib.util.spec_from_file_location("validate_skills", ROOT / "scripts" / "validate-skills.py")
+    validator = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(validator)
+    violations = validator.validate(ROOT, ["root", "plugin", "vscode"])
+    assert not violations, "\n".join(violations)

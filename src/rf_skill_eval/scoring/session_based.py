@@ -56,12 +56,8 @@ def _compile_pattern(pattern: str, field: str) -> re.Pattern[str]:
 
 
 def _no_transcript_verdict(run: Run, name: str) -> Verdict:
-    return Verdict(
-        run_id=run.id,
-        check_name=name,
-        passed=False,
-        score=0.0,
-        details="no session transcript (stdout.stream.jsonl missing)",
+    return Verdict.skipped(
+        run.id, name, "no session transcript (stdout.stream.jsonl missing)"
     )
 
 
@@ -125,7 +121,7 @@ def check_tool_call_count(run: Run, name: str, params: dict[str, Any]) -> Verdic
     return Verdict(
         run_id=run.id,
         check_name=name,
-        passed=passed,
+        status="passed" if passed else "failed",
         score=1.0 if passed else 0.0,
         details=" ".join(details_parts),
     )
@@ -201,7 +197,7 @@ def check_tool_result_count(run: Run, name: str, params: dict[str, Any]) -> Verd
     return Verdict(
         run_id=run.id,
         check_name=name,
-        passed=passed,
+        status="passed" if passed else "failed",
         score=1.0 if passed else 0.0,
         details=details,
     )
@@ -243,7 +239,7 @@ def check_tool_call_sequence(run: Run, name: str, params: dict[str, Any]) -> Ver
     return Verdict(
         run_id=run.id,
         check_name=name,
-        passed=passed,
+        status="passed" if passed else "failed",
         score=1.0 if passed else 0.0,
         details=details,
     )

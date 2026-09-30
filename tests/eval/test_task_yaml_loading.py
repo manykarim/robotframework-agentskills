@@ -36,14 +36,45 @@ def test_task_yaml_parses(yaml_path: pathlib.Path) -> None:
     task = Task(**payload)
     assert task.id
     assert task.skill
-    # Plugin short names: no rf- prefix. Task YAMLs must track the
-    # identifier the running agent actually sees.
-    assert not task.skill.startswith("rf-"), (
-        f"{yaml_path}: skill '{task.skill}' still uses rf- prefix; "
-        "align with plugin short name"
+    # One identifier per skill (skill-metadata-conformance spec): task YAMLs
+    # use the rf-<topic> id the running agent sees in every channel, or
+    # `plugin` for bundle-level canaries (skill-eval-harness spec).
+    assert task.skill == "plugin" or task.skill.startswith("rf-"), (
+        f"{yaml_path}: skill '{task.skill}' must be the canonical rf-<topic> id or 'plugin'"
     )
 
 
 def test_task_yaml_directory_is_populated() -> None:
     # Guard against the parametrize silently collecting zero cases.
     assert _task_yaml_paths(), "expected at least one task YAML under eval/tasks/"
+
+
+_PLUGIN_SKILLS_DIR = _REPO_ROOT / "plugins" / "rf-agentskills" / "skills"
+
+
+@pytest.mark.parametrize(
+    "yaml_path",
+    _task_yaml_paths(),
+    ids=lambda p: p.relative_to(_REPO_ROOT).as_posix(),
+)
+def test_task_skill_is_shipped(yaml_path: pathlib.Path) -> None:
+    """Every task targets a skill the plugin actually ships (skill-catalog spec)."""
+    payload = yaml.safe_load(yaml_path.read_text(encoding="utf-8"))
+    skill = payload["skill"]
+    if skill == "plugin":
+        return
+    assert (_PLUGIN_SKILLS_DIR / skill).is_dir(), (
+        f"{yaml_path}: skill '{skill}' is not a directory in plugins/rf-agentskills/skills/"
+    )
+
+
+def test_smoke_script_runs_a_shipped_task() -> None:
+    import re
+
+    text = (_REPO_ROOT / "scripts" / "eval-smoke.sh").read_text(encoding="utf-8")
+    match = re.search(r'^TASK="([^"]+)"', text, re.MULTILINE)
+    assert match, "scripts/eval-smoke.sh must define TASK=..."
+    task_path = _REPO_ROOT / match.group(1)
+    assert task_path.is_file(), f"smoke task {task_path} does not exist"
+    skill = yaml.safe_load(task_path.read_text(encoding="utf-8"))["skill"]
+    assert (_PLUGIN_SKILLS_DIR / skill).is_dir()

@@ -20,6 +20,7 @@ class JsonReportWriter:
                     "pass_rate": sc.pass_rate,
                     "total_score": sc.total_score,
                     "all_passed": sc.all_passed,
+                    "gate_result": sc.gate_result,
                 }
                 for sc in scorecards
             ],

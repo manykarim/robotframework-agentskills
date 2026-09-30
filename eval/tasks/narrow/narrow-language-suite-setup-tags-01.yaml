@@ -1,0 +1,61 @@
+id: narrow-language-suite-setup-tags-01
+skill: rf-language
+tier: narrow
+description: |
+  Add a suite-wide setup for tests/api/ in an init file (keyword from a
+  resource, no keywords defined in the init file) and a smoke tag on three
+  tests. Gated by the init file content, a dry run of the root suite with
+  --include smoke selecting exactly 3 tests, and no Force Tags.
+prompt: |
+  Our API suites in tests/api/ each open and close the API session
+  themselves. Open the session once for the whole tests/api/ directory
+  instead, using the existing Open Api Session and Close Api Session
+  keywords from resources/api.resource. Also tag three tests as smoke:
+  Create User, Delete User and Create Order. Running
+  robot --include smoke tests must select exactly those three tests.
+model: claude-haiku-4-5-20251001
+max_turns: 14
+timeout_seconds: 300
+allowed_tools:
+  - Read
+  - Write
+  - Edit
+  - Bash
+  - Glob
+  - Grep
+  - Skill
+grader_checks:
+  - type: file_contains
+    name: init_suite_setup
+    path: tests/api/__init__.robot
+    regex: '(?m)^Suite Setup\s+Open Api Session\s*$'
+    gating: true
+  - type: file_not_contains
+    name: init_defines_no_keywords
+    path: tests/api/__init__.robot
+    regex: '\*\*\*\s*Keywords?\s*\*\*\*'
+    gating: true
+  - type: robot_dryrun
+    name: smoke_selects_three
+    target: tests
+    args: [--include, smoke]
+    expected_tests: 3
+    expected_tests_exact: true
+    gating: true
+  - type: file_not_contains
+    name: no_force_tags
+    path: "tests/**/*.robot"
+    regex: '(?mi)^Force\s+Tags'
+    gating: true
+  - type: robot_pass
+    name: api_suites_pass
+    target: tests/api
+    expected_tests: 5
+    expected_tests_exact: true
+  - type: tool_call_count
+    name: loaded_rf_language_skill
+    tool_pattern: "(Skill|Read)"
+    input_pattern: '(rf-language|/skills/rf-language/SKILL\.md)'
+    min: 1
+fixture: sut-language-tests
+primary_metric: robot_dryrun

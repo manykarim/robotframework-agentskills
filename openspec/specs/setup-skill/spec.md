@@ -8,11 +8,11 @@ Provide a Robot Framework agent skill that guides AI agents to install Robot Fra
 
 ### Requirement: Setup skill exists and follows the house structure
 
-The repository SHALL provide a skill at `skills/robotframework-setup-skill/` with a `SKILL.md` whose frontmatter has `name: rf-setup` and a non-empty `description`, a `references/` directory and an `assets/examples/` directory.
+The repository SHALL provide a skill at `skills/rf-setup/` with a `SKILL.md` whose frontmatter has `name: rf-setup` (matching its directory) and a non-empty `description`, a `references/` directory and an `assets/examples/` directory.
 
 #### Scenario: Skill directory and frontmatter
 - **WHEN** the repository is inspected
-- **THEN** `skills/robotframework-setup-skill/SKILL.md` exists with frontmatter `name: rf-setup` and a description that mentions installing Robot Framework and uv, venv/pip and poetry
+- **THEN** `skills/rf-setup/SKILL.md` exists with frontmatter `name: rf-setup` and a description that mentions installing Robot Framework and uv, venv/pip and poetry
 - **AND** `references/` and `assets/examples/` exist and each contain at least one file
 
 #### Scenario: Marketplace validation passes
@@ -111,12 +111,35 @@ The `UserPromptSubmit` context text SHALL list the setup skill, the SessionStart
 
 ### Requirement: Setup skill is distributed without drift
 
-The skill SHALL be registered in the sync tooling so the Claude Code plugin, VS Code extension and installer channels are generated from the root skill, and the drift check SHALL pass.
+The skill SHALL be registered in the sync tooling so the Claude Code plugin, VS Code extension and installer channels are generated from the root skill under the same `rf-setup` identifier, and the drift check SHALL pass.
 
 #### Scenario: Sync registers the skill
 - **WHEN** `scripts/sync-skills.sh` runs
-- **THEN** the skill is propagated to `plugins/rf-agentskills/skills/setup/` with `name: setup`, and to `vscode-extension/skills/rf-setup/`, and `vscode-extension/package.json` lists it
+- **THEN** the skill is propagated to `plugins/rf-agentskills/skills/rf-setup/` with `name: rf-setup`, and to `vscode-extension/skills/rf-setup/`, and `vscode-extension/package.json` lists it
 
 #### Scenario: Drift check passes
 - **WHEN** `scripts/check-drift.sh` runs after sync
 - **THEN** it reports no drift
+
+### Requirement: Project layout reference points to current skills and states variable-file rules
+
+The rf-setup `references/project-layout.md` SHALL do the following:
+- point to `rf-language` for keyword, resource-file and variable-file design, and name no retired skill;
+- describe `libraries/` as the place for project Python keyword libraries, and state that it is put on the python-path (`python-path` in `robot.toml`, `--pythonpath` for plain `robot`);
+- state that YAML variable files under `variables/` need PyYAML in the project environment (`uv add pyyaml`, with the non-uv equivalent), and that JSON variable files need no extra package;
+- state that plain `robot` does not read `robot.toml`, so options such as `--variablefile variables/<env>.yaml` and `--pythonpath` have to be passed on the command line unless the run goes through robotcode with a profile.
+
+The rf-setup `SKILL.md` Companion Skills table SHALL have a row for `rf-language` and no row for a retired skill.
+
+#### Scenario: Layout reference names the keyword design skill
+- **WHEN** `references/project-layout.md` is read
+- **THEN** it names `rf-language` for resource and keyword conventions
+- **AND** it does not contain `rf-resource-architect`
+
+#### Scenario: YAML variable files need PyYAML
+- **WHEN** `references/project-layout.md` describes `variables/dev.yaml`
+- **THEN** it states that PyYAML must be added to the project environment and shows `uv add pyyaml`
+
+#### Scenario: robot.toml is not read by plain robot
+- **WHEN** `references/project-layout.md` shows how to select an environment's variable file
+- **THEN** it gives a plain `robot` command with `--variablefile` and says that `robot.toml` is only read by robotcode

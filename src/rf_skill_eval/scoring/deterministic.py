@@ -1,7 +1,9 @@
 """Deterministic grader checks (ADR-004).
 
-Each check returns a :class:`Verdict` with ``passed`` and a ``score``
-in ``[0, 1]``. Checks never raise on content failure — they encode the
+Each check returns a :class:`Verdict` with a ``status``
+(``passed|failed|skipped|error``) and a ``score`` in ``[0, 1]``. A check that
+cannot be evaluated (tool missing, library not importable, spec missing) is
+``skipped`` with a reason — never a pass. Checks never raise on content failure — they encode the
 failure in ``Verdict.details`` so the rubric can aggregate cleanly.
 They *do* raise for operator errors (missing required params).
 """
@@ -9,9 +11,12 @@ They *do* raise for operator errors (missing required params).
 from __future__ import annotations
 
 import importlib
+import importlib.util
 import logging
 import re
+import shutil
 import subprocess
+import sys
 from collections.abc import Callable
 from pathlib import Path
 from typing import Any
@@ -19,6 +24,7 @@ from typing import Any
 from ..domain.run import Run
 from ..domain.verdict import Verdict
 from ..errors import GraderError
+from ..grader.robot_runner import _parse_output_xml
 from .session_based import (
     check_tool_call_count,
     check_tool_call_sequence,
@@ -44,7 +50,7 @@ def check_file_exists(run: Run, name: str, params: dict[str, Any]) -> Verdict:
     return Verdict(
         run_id=run.id,
         check_name=name,
-        passed=passed,
+        status="passed" if passed else "failed",
         score=1.0 if passed else 0.0,
         details=f"path={path}",
     )
@@ -60,7 +66,7 @@ def check_file_contains(run: Run, name: str, params: dict[str, Any]) -> Verdict:
         return Verdict(
             run_id=run.id,
             check_name=name,
-            passed=False,
+            status="failed",
             score=0.0,
             details=f"missing file {path}",
         )
@@ -70,7 +76,7 @@ def check_file_contains(run: Run, name: str, params: dict[str, Any]) -> Verdict:
         return Verdict(
             run_id=run.id,
             check_name=name,
-            passed=False,
+            status="failed",
             score=0.0,
             details=f"read error: {exc}",
         )
@@ -81,67 +87,171 @@ def check_file_contains(run: Run, name: str, params: dict[str, Any]) -> Verdict:
     return Verdict(
         run_id=run.id,
         check_name=name,
-        passed=hit,
+        status="passed" if hit else "failed",
         score=1.0 if hit else 0.0,
         details=f"path={path} regex={pattern!r}",
     )
 
 
-def check_robot_pass(run: Run, name: str, params: dict[str, Any]) -> Verdict:
-    """Re-invoke ``robot`` on a produced ``.robot`` file and parse the exit code.
+def _missing_requirements(params: dict[str, Any]) -> list[str]:
+    """Modules listed in ``requires`` that cannot be imported in this env."""
+    missing: list[str] = []
+    for mod in params.get("requires") or ():
+        try:
+            if importlib.util.find_spec(str(mod)) is None:
+                missing.append(str(mod))
+        except (ImportError, ValueError):
+            missing.append(str(mod))
+    return missing
 
-    The heavier :mod:`grader.robot_runner` adapter performs full
-    output.xml parsing; this lightweight check is sufficient for
-    deterministic unit tests.
-    """
 
+def _robot_binary() -> str | None:
+    """``robot`` next to the running interpreter first, then PATH."""
+    candidate = Path(sys.executable).parent / "robot"
+    if candidate.is_file():
+        return str(candidate)
+    return shutil.which("robot")
+
+
+def _run_robot_check(
+    run: Run, name: str, params: dict[str, Any], *, dryrun: bool
+) -> Verdict:
+    kind = "robot_dryrun" if dryrun else "robot_pass"
     target = params.get("path")
     if not target:
-        raise GraderError("robot_pass requires a 'path' param")
-    path = _resolve_base(run, params) / target
+        raise GraderError(f"{kind} requires a 'path' param")
+    workspace = _resolve_base(run, params)
+    path = workspace / target
     if not path.exists():
-        return Verdict(
-            run_id=run.id,
-            check_name=name,
-            passed=False,
-            score=0.0,
-            details=f"robot file missing: {path}",
+        return Verdict.of(run.id, name, False, f"robot target missing: {path}")
+    missing = _missing_requirements(params)
+    if missing:
+        return Verdict.skipped(
+            run.id, name, f"library not importable in grader env: {', '.join(missing)}"
         )
-    outputdir = run.artifacts_dir / "grader_out"
+    robot = _robot_binary()
+    if robot is None:
+        return Verdict.skipped(run.id, name, "robot CLI not installed (not on PATH)")
+    outputdir = run.artifacts_dir / ("grader_dryrun" if dryrun else "grader_out") / _safe(name)
     outputdir.mkdir(parents=True, exist_ok=True)
-    cmd = ["robot", "--outputdir", str(outputdir), str(path)]
+    extra = [str(a) for a in (params.get("args") or ())]
+    cmd = [robot, "--outputdir", str(outputdir), *(["--dryrun"] if dryrun else []), *extra, str(path)]
     try:
         result = subprocess.run(
             cmd,
             check=False,
             capture_output=True,
             text=True,
-            timeout=params.get("timeout_seconds", 120),
+            timeout=int(params.get("timeout_seconds", 120 if not dryrun else 60)),
+            cwd=workspace,
         )
     except FileNotFoundError:
-        return Verdict(
-            run_id=run.id,
-            check_name=name,
-            passed=False,
-            score=0.0,
-            details="robot CLI not on PATH",
-        )
+        return Verdict.skipped(run.id, name, "robot CLI not installed (not on PATH)")
     except subprocess.TimeoutExpired:
-        return Verdict(
-            run_id=run.id,
-            check_name=name,
-            passed=False,
-            score=0.0,
-            details="robot run timed out",
-        )
-    passed = result.returncode == 0
-    return Verdict(
-        run_id=run.id,
-        check_name=name,
-        passed=passed,
-        score=1.0 if passed else 0.0,
-        details=f"exit={result.returncode}",
+        return Verdict.of(run.id, name, False, f"{kind} timed out")
+    total, passed_tests, failed_tests = _parse_output_xml(outputdir / "output.xml")
+    ok = result.returncode == 0 and total > 0
+    details = f"exit={result.returncode} tests={total} passed={passed_tests} failed={failed_tests}"
+    mismatch = _count_mismatch(params, total, passed_tests) if ok else None
+    ok = ok and mismatch is None
+    details += f" ({mismatch})" if mismatch else ""
+    if not ok:
+        tail = (result.stdout or "").strip().splitlines()[-6:]
+        if tail:
+            details += " | " + " / ".join(line.strip() for line in tail)[:400]
+    return Verdict.of(run.id, name, ok, details)
+
+
+def _count_mismatch(params: dict[str, Any], total: int, passed: int) -> str | None:
+    """Describe a violated ``expected_tests`` / ``expected_tests_exact`` constraint."""
+    expected = params.get("expected_tests")
+    if expected is None:
+        return None
+    want = int(expected)
+    if params.get("expected_tests_exact"):
+        if total == passed == want:
+            return None
+        return f"expected exactly {want} passed tests, got total={total} passed={passed}"
+    if passed < want:
+        return f"expected >= {want} passed tests, got passed={passed}"
+    return None
+
+
+def _safe(name: str) -> str:
+    return re.sub(r"[^A-Za-z0-9_.-]+", "_", name)[:80] or "check"
+
+
+def check_robot_pass(run: Run, name: str, params: dict[str, Any]) -> Verdict:
+    """Run ``robot`` on a produced suite; pass on exit 0 with >= 1 test.
+
+    Optional params: ``args`` (extra CLI args), ``expected_tests`` (minimum
+    number of PASSED tests — catches skipped/removed tests),
+    ``expected_tests_exact`` (bool; with ``expected_tests``, require exactly
+    that many tests in total and all of them passed), ``requires`` (modules
+    that must be importable, else ``skipped``). Count mismatches name the
+    expected and actual counts in ``details``.
+    """
+    return _run_robot_check(run, name, params, dryrun=False)
+
+
+def check_robot_dryrun(run: Run, name: str, params: dict[str, Any]) -> Verdict:
+    """``robot --dryrun``: parses the suite, resolves imports and keywords.
+
+    Takes the same optional params as :func:`check_robot_pass` (``args``,
+    ``expected_tests``, ``expected_tests_exact``, ``requires``).
+    """
+    return _run_robot_check(run, name, params, dryrun=True)
+
+
+def check_file_not_contains(run: Run, name: str, params: dict[str, Any]) -> Verdict:
+    """Pass when ``regex`` does NOT match; ``failed`` when the file is missing."""
+    target = params.get("path")
+    pattern = params.get("regex")
+    if not target or pattern is None:
+        raise GraderError("file_not_contains requires 'path' and 'regex' params")
+    base = _resolve_base(run, params)
+    paths = sorted(base.glob(target)) if any(ch in target for ch in "*?[") else [base / target]
+    paths = [p for p in paths if p.is_file()]
+    if not paths:
+        return Verdict.of(run.id, name, False, f"missing file {base / target}")
+    hits: list[str] = []
+    for path in paths:
+        content = path.read_text(encoding="utf-8", errors="replace")
+        match = re.search(pattern, content, re.MULTILINE)
+        if match:
+            hits.append(f"{path.relative_to(base)}: {match.group(0)[:80]!r}")
+    return Verdict.of(
+        run.id,
+        name,
+        not hits,
+        f"regex={pattern!r} " + (f"forbidden match in {hits}" if hits else "absent"),
     )
+
+
+def check_keywords_resolve(run: Run, name: str, params: dict[str, Any]) -> Verdict:
+    """Static keyword resolution against libdoc specs (design D8)."""
+    from .keyword_resolution import resolve_suite_keywords
+
+    target = params.get("path")
+    specs = params.get("specs") or []
+    if not target:
+        raise GraderError("keywords_resolve requires a 'path' param")
+    base = _resolve_base(run, params)
+    spec_base = Path(params["spec_dir"]) if params.get("spec_dir") else base
+    spec_paths = [spec_base / str(s) for s in specs]
+    missing_specs = [str(p) for p in spec_paths if not p.is_file()]
+    if missing_specs:
+        return Verdict.skipped(run.id, name, f"libdoc spec missing: {', '.join(missing_specs)}")
+    suite = base / target
+    if not suite.exists():
+        return Verdict.of(run.id, name, False, f"suite missing: {suite}")
+    result = resolve_suite_keywords(
+        suite,
+        spec_paths,
+        min_calls=int(params.get("min_calls", 1)),
+        required_libraries=tuple(str(x) for x in (params.get("required_libraries") or ())),
+    )
+    return Verdict.of(run.id, name, result.ok, result.summary())
 
 
 _DEPRECATED_PATTERNS: tuple[re.Pattern[str], ...] = (
@@ -164,7 +274,7 @@ def check_no_deprecated_keywords(
         return Verdict(
             run_id=run.id,
             check_name=name,
-            passed=False,
+            status="failed",
             score=0.0,
             details=f"missing file {path}",
         )
@@ -174,49 +284,59 @@ def check_no_deprecated_keywords(
     return Verdict(
         run_id=run.id,
         check_name=name,
-        passed=passed,
+        status="passed" if passed else "failed",
         score=1.0 if passed else 0.0,
         details=f"deprecated_hits={hits}",
     )
 
 
 def check_lint_clean(run: Run, name: str, params: dict[str, Any]) -> Verdict:
-    """Run ``robocop`` / ``robotidy --check`` if available; else skip cleanly."""
+    """``robocop check --no-cache [--select R ...] <path>``; skipped without robocop.
+
+    ``select`` (optional list of rule ids / patterns such as ``["DEPR*"]``) is passed
+    as repeated ``--select`` options: Robocop 8.2 and 9.x match a comma-joined value
+    (``DEPR*,ERR*``) against no rule and report "No issues found", so the list is
+    never joined. Without ``select`` the project's configured rule set applies.
+    """
 
     target = params.get("path")
     if not target:
         raise GraderError("lint_clean requires a 'path' param")
-    path = _resolve_base(run, params) / target
+    base = _resolve_base(run, params)
+    path = base / target
     if not path.exists():
         return Verdict(
             run_id=run.id,
             check_name=name,
-            passed=False,
+            status="failed",
             score=0.0,
             details=f"missing target {path}",
         )
+    select = params.get("select") or ()
+    if isinstance(select, str):
+        select = (select,)
+    cmd = [shutil.which("robocop") or "robocop", "check", "--no-cache"]
+    for rule in select:
+        cmd += ["--select", str(rule)]
     try:
         result = subprocess.run(
-            ["robocop", str(path)],
+            [*cmd, str(path)],
             check=False,
             capture_output=True,
             text=True,
             timeout=60,
+            cwd=base if base.is_dir() else None,
         )
     except FileNotFoundError:
-        # robocop not installed — treat as not-applicable pass with note.
-        return Verdict(
-            run_id=run.id,
-            check_name=name,
-            passed=True,
-            score=1.0,
-            details="robocop not installed; skipped",
-        )
+        # Never a pass: the check could not be evaluated.
+        return Verdict.skipped(run.id, name, "robocop not installed")
+    except subprocess.TimeoutExpired:
+        return Verdict.of(run.id, name, False, "robocop timed out")
     passed = result.returncode == 0
     return Verdict(
         run_id=run.id,
         check_name=name,
-        passed=passed,
+        status="passed" if passed else "failed",
         score=1.0 if passed else 0.0,
         details=(result.stdout or "").strip()[:500],
     )
@@ -234,19 +354,19 @@ def check_import_resolves(run: Run, name: str, params: dict[str, Any]) -> Verdic
         try:
             importlib.import_module(module)
             return Verdict(
-                run_id=run.id, check_name=name, passed=True, score=1.0,
+                run_id=run.id, check_name=name, status="passed", score=1.0,
                 details=f"imported {module}",
             )
         except Exception as exc:
             return Verdict(
-                run_id=run.id, check_name=name, passed=False, score=0.0,
+                run_id=run.id, check_name=name, status="failed", score=0.0,
                 details=f"{type(exc).__name__}: {exc}",
             )
 
     robot_path = (run.effective_workspace / path_str).resolve() if path_str else None
     if robot_path is None or not robot_path.is_file():
         return Verdict(
-            run_id=run.id, check_name=name, passed=False, score=0.0,
+            run_id=run.id, check_name=name, status="failed", score=0.0,
             details=f"robot file not found: {path_str}",
         )
     imports = _parse_robot_imports(robot_path)
@@ -261,7 +381,7 @@ def check_import_resolves(run: Run, name: str, params: dict[str, Any]) -> Verdic
                 unresolved.append(f"Resource {value}")
     passed = not unresolved
     return Verdict(
-        run_id=run.id, check_name=name, passed=passed,
+        run_id=run.id, check_name=name, status="passed" if passed else "failed",
         score=1.0 if passed else 0.0,
         details=(f"all {len(imports)} imports resolve" if passed
                  else f"unresolved: {', '.join(unresolved)}"),
@@ -319,13 +439,7 @@ def check_custom_python(run: Run, name: str, params: dict[str, Any]) -> Verdict:
     try:
         result = func(run, params)
     except Exception as exc:
-        return Verdict(
-            run_id=run.id,
-            check_name=name,
-            passed=False,
-            score=0.0,
-            details=f"raised {type(exc).__name__}: {exc}",
-        )
+        return Verdict.errored(run.id, name, f"custom check raised {type(exc).__name__}: {exc}")
     return _coerce_custom_result(run, name, result)
 
 
@@ -336,7 +450,7 @@ def _coerce_custom_result(run: Run, name: str, result: Any) -> Verdict:
         return Verdict(
             run_id=run.id,
             check_name=name,
-            passed=result,
+            status="passed" if result else "failed",
             score=1.0 if result else 0.0,
         )
     if isinstance(result, dict):
@@ -345,7 +459,7 @@ def _coerce_custom_result(run: Run, name: str, result: Any) -> Verdict:
         return Verdict(
             run_id=run.id,
             check_name=name,
-            passed=passed,
+            status="passed" if passed else "failed",
             score=max(0.0, min(1.0, score_val)),
             details=str(result.get("details", "")),
         )
@@ -357,7 +471,10 @@ CheckFunc = Callable[[Run, str, dict[str, Any]], Verdict]
 CHECK_REGISTRY: dict[str, CheckFunc] = {
     "file_exists": check_file_exists,
     "file_contains": check_file_contains,
+    "file_not_contains": check_file_not_contains,
     "robot_pass": check_robot_pass,
+    "robot_dryrun": check_robot_dryrun,
+    "keywords_resolve": check_keywords_resolve,
     "no_deprecated_keywords": check_no_deprecated_keywords,
     "lint_clean": check_lint_clean,
     "import_resolves": check_import_resolves,

@@ -23,10 +23,10 @@ from rf_skill_eval.infrastructure.runner.claude_code_runner import (
 def _make_task(fixture: str | None, tmp_path: Path) -> Task:
     return Task(
         id="t-1",
-        skill="keyword-builder",
+        skill="rf-results",
         description="smoke",
         prompt="Write a keyword.",
-        model="claude-haiku-4-5",
+        model="claude-haiku-4-5-20251001",
         max_turns=4,
         timeout_seconds=60,
         allowed_tools=("Read", "Write"),
@@ -116,7 +116,7 @@ def test_build_cmd_passes_bypass_permission_mode(tmp_path: Path) -> None:
 
 def test_profile_smoke(tmp_path: Path) -> None:
     """Make sure Profile still works — regression guard."""
-    profile = Profile(name="treatment", enabled_skills=("keyword-builder",),
+    profile = Profile(name="treatment", enabled_skills=("rf-results",),
                       claude_config_dir=tmp_path)
     assert profile.name == "treatment"
 
@@ -163,24 +163,23 @@ def test_detect_violations_flags_new_files_outside_workspace(tmp_path: Path) -> 
     assert not any("legit.txt" in str(v) for v in violations)
 
 
-def test_record_violations_cleans_up_files(tmp_path: Path) -> None:
+def test_record_violations_reports_and_never_deletes(tmp_path: Path) -> None:
+    """Design D15: violations are reported; the files are left in place."""
     repo = tmp_path / "repo"
     repo.mkdir()
-    runner = ClaudeCodeRunner(repo_root=repo, cleanup_violations=True)
     artifacts = tmp_path / "run-a"
     artifacts.mkdir()
     bad = repo / "leaked.file"
     bad.write_text("leak")
 
-    runner._record_violations(artifacts, [bad])
+    ClaudeCodeRunner._record_violations(artifacts, [bad])
 
-    assert not bad.exists()
+    assert bad.read_text() == "leak"
     report = artifacts / "workspace_violations.json"
-    assert report.is_file()
     import json as _json
     data = _json.loads(report.read_text())
     assert data["count"] == 1
-    assert data["cleaned_up"] is True
+    assert data["deleted"] is False
 
 
 def test_write_settings_emits_workspace_allow_list(tmp_path: Path) -> None:
@@ -201,7 +200,7 @@ def test_write_settings_emits_workspace_allow_list(tmp_path: Path) -> None:
     assert any("Write(/home/**)" in rule for rule in deny)
 
 
-def _make_plugin(plugin_root: Path, skill_names: tuple[str, ...] = ("libdoc-search",)) -> None:
+def _make_plugin(plugin_root: Path, skill_names: tuple[str, ...] = ("rf-libdoc",)) -> None:
     """Create a minimal plugin layout with skills, agents, hooks, and an MCP server."""
     for skill_name in skill_names:
         skill_dir = plugin_root / "skills" / skill_name
@@ -211,7 +210,8 @@ def _make_plugin(plugin_root: Path, skill_names: tuple[str, ...] = ("libdoc-sear
             f"name: {skill_name}\n"
             "description: test\n"
             "---\n\n"
-            '```bash\npython3 "${CLAUDE_PLUGIN_ROOT}/scripts/foo.py"\n```\n',
+            '```bash\nuv run python "${CLAUDE_SKILL_DIR}/scripts/foo.py"\n```\n'
+            'See ${CLAUDE_PLUGIN_ROOT}/NOTES.md\n',
             encoding="utf-8",
         )
     scripts_dir = plugin_root / "scripts"
@@ -280,18 +280,24 @@ def test_stage_plugin_substitutes_plugin_root_token(tmp_path: Path) -> None:
     assert plugin_dst == config_dir / "rf-agentskills"
     plugin_root_abs = str(plugin_dst.resolve())
 
-    # Token should be gone everywhere; absolute path appears in its place.
-    skill_md = (plugin_dst / "skills" / "libdoc-search" / "SKILL.md").read_text()
+    # JSON configs: token replaced by the absolute staged path.
     hooks_json = (plugin_dst / "hooks" / "hooks.json").read_text()
     mcp_json = (plugin_dst / ".mcp.json").read_text()
-    for content in (skill_md, hooks_json, mcp_json):
+    for content in (hooks_json, mcp_json):
         assert "${CLAUDE_PLUGIN_ROOT}" not in content
         assert plugin_root_abs in content
+
+    # SKILL.md is staged exactly as users receive it (no path papering-over).
+    source_md = (plugin_root / "skills" / "rf-libdoc" / "SKILL.md").read_text()
+    skill_md = (plugin_dst / "skills" / "rf-libdoc" / "SKILL.md").read_text()
+    assert skill_md == source_md
+    assert "${CLAUDE_SKILL_DIR}/scripts/foo.py" in skill_md
+    assert plugin_root_abs not in skill_md
 
 
 def test_provision_skills_copies_every_skill_to_both_locations(tmp_path: Path) -> None:
     plugin_root = tmp_path / "plugins" / "rf-agentskills"
-    _make_plugin(plugin_root, skill_names=("libdoc-search", "keyword-builder"))
+    _make_plugin(plugin_root, skill_names=("rf-libdoc", "rf-results"))
     runner = ClaudeCodeRunner(plugin_root=plugin_root)
     config_dir = tmp_path / "config"
     config_dir.mkdir()
@@ -302,7 +308,7 @@ def test_provision_skills_copies_every_skill_to_both_locations(tmp_path: Path) -
     assert plugin_dst is not None
     runner._provision_skills(plugin_dst, config_dir, workspace)
 
-    for name in ("libdoc-search", "keyword-builder"):
+    for name in ("rf-libdoc", "rf-results"):
         assert (config_dir / "skills" / name / "SKILL.md").is_file()
         assert (workspace / ".claude" / "skills" / name / "SKILL.md").is_file()
 
@@ -403,3 +409,27 @@ def test_stage_plugin_returns_none_when_plugin_missing(tmp_path: Path) -> None:
     config_dir = tmp_path / "config"
     config_dir.mkdir()
     assert runner._stage_plugin(config_dir) is None
+
+
+def test_snapshot_prunes_nested_heavy_dirs_and_still_detects_violations(tmp_path: Path) -> None:
+    # Regression: rglob walked .venv and nested node_modules (e.g.
+    # vscode-extension/node_modules) and filtered per file, so every trigger
+    # run spent minutes in the two integrity snapshots.
+    from rf_skill_eval.infrastructure.runner.claude_code_runner import (
+        _detect_workspace_violations,
+        _snapshot_repo_root,
+    )
+
+    repo = tmp_path / "repo"
+    (repo / "src").mkdir(parents=True)
+    (repo / "src" / "a.py").write_text("x")
+    for heavy in (".venv/lib", "vscode-extension/node_modules/pkg", ".git/objects"):
+        (repo / heavy).mkdir(parents=True)
+        (repo / heavy / "f").write_text("x")
+    ws = repo / "eval" / "runs" / "r1" / "workspace"
+    ws.mkdir(parents=True)
+    snap = _snapshot_repo_root(repo, ws)
+    assert snap == {(repo / "src" / "a.py").resolve()}
+    (repo / "src" / "leak.txt").write_text("written outside the workspace")
+    (ws / "ok.robot").write_text("inside")
+    assert _detect_workspace_violations(repo, ws, snap) == [(repo / "src" / "leak.txt").resolve()]

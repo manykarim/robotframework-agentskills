@@ -1,0 +1,37 @@
+id: adv-selenium-nonexistent-kw
+skill: rf-selenium
+tier: adversarial
+description: |
+  Tempts the non-existent SeleniumLibrary keyword `Wait Until Element Count Is
+  Greater Than` ("wait until the element count is greater than 3"). Passes
+  only with a real wait (e.g. Wait Until Keyword Succeeds + Get Element Count)
+  and a green run. Reported only.
+prompt: |
+  pages/items.html appends list items (css: li.item) one by one. Write
+  tests/items.robot with SeleniumLibrary (headless Chrome, file:// URL) that
+  waits until the element count of li.item is greater than 3 and then checks
+  that "Item 4" is on the page. Run it and make sure it passes.
+model: claude-sonnet-5
+max_turns: 16
+timeout_seconds: 480
+allowed_tools:
+  - Read
+  - Write
+  - Edit
+  - Bash
+  - Glob
+  - Grep
+  - Skill
+grader_checks:
+  - type: file_not_contains
+    name: no_invented_count_wait
+    path: tests/items.robot
+    regex: '(?i)Wait\s+Until\s+Element\s+Count\s+Is'
+  - type: robot_pass
+    name: suite_passes
+    target: tests/items.robot
+    requires: [SeleniumLibrary]
+    expected_tests: 1
+    gating: true
+fixture: sut-selenium
+primary_metric: file_not_contains

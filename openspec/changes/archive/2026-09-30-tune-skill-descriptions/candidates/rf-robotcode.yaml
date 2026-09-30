@@ -1,0 +1,116 @@
+# Candidate descriptions for rf-robotcode (tune-skill-descriptions D5/D6).
+# Train numbers: skill loads over 3 runs per query (Haiku 4.5); selection uses the train split only.
+# 'listing' says whether the run used Claude Code's default skill-listing budget or
+# SLASH_COMMAND_TOOL_CHAR_BUDGET=40000 (every description visible); see design.md Implementation Notes.
+skill: rf-robotcode
+selected: 1
+iterations:
+- iteration: 0
+  text: 'Drives the robotcode CLI for Robot Framework projects: test discovery (tests, tags), keyword
+    docs via robotcode libdoc, runs with robot.toml profiles, non-interactive REPL sessions, debugging
+    failing tests with robot-debug, results analysis of output.xml (summary, failures, stats, diffs) and
+    static checks with robotcode analyze code. Use when robotcode is installed or a robot.toml exists,
+    or the user mentions robotcode, robot.toml profiles or robot-debug. Without robotcode, use rf-results
+    and rf-libdoc.'
+  listing: 'default budget (Haiku: 8000 chars)'
+  train_pos_loads: 10
+  train_pos_runs: 21
+  train_query_recall: 3/7
+  train_neg_loads: 1
+  variant_id: 25e6b4b2b5f8
+  run: evidence/rebaseline.json (re-baseline, train split)
+  listed_with_description: false
+  rationale: Current shipped description (re-baseline). Claude Code listed this skill by name only in
+    these sessions (skill-listing budget), so the model never saw this text.
+- iteration: 1
+  text: 'Use this skill whenever a Robot Framework project uses the robotcode CLI or a robot.toml, and
+    load it first, before reading robot.toml or exploring the tests: it runs suites with robot.toml profiles,
+    discovers tests and tags, debugs a failing test step by step with robot-debug, tries keywords in a
+    non-interactive REPL, shows keyword docs (robotcode libdoc), analyses output.xml results (summary,
+    failures, diffs) and runs static checks (robotcode analyze code). Use when the user wants to run a
+    robot.toml profile, debug a test step by step, try out keywords before writing a test, or mentions
+    robotcode, robot.toml or robot-debug. Not for settings of the RobotCode VS Code extension. Without
+    robotcode, use rf-results and rf-libdoc.'
+  listing: SLASH_COMMAND_TOOL_CHAR_BUDGET=40000
+  train_pos_loads: 21
+  train_pos_runs: 21
+  train_query_recall: 7/7
+  train_neg_loads: 0
+  variant_id: db66b599b97b
+  spent_usd: 1.053
+  run: scratchpad tune/runs/rf-robotcode-it1
+  rationale: 'Re-baseline (name only): Read robot.toml first; robot-debug/REPL requests explored. Imperative
+    intent, ''load it first, before reading robot.toml or exploring the tests'', user-phrased intents
+    (run a profile, debug step by step, try out keywords), explicit exclusion of the VS Code extension
+    settings. Stop rule met.'
+
+# Compact candidates (D11/D13): <= 160 characters each, all 12 listing lines <= 1700,
+# tuned together on the train split under the DEFAULT listing budget (no override).
+# Iterations are set iterations: iteration k of every skill was staged together in variant k
+# (iteration 2 re-ran rf-language, rf-robotcode, rf-libdoc, rf-results; iteration 3 rf-robotcode only).
+compact:
+  rebaseline_train:
+    train_pos_loads: 10
+    train_pos_runs: 21
+    train_query_recall: 3/7
+    train_neg_loads: 1
+    train_neg_accuracy: 6/6
+    note: current long description, default listing budget
+  selected: 3
+  iterations:
+  - iteration: 1
+    text: 'Use first when a Robot Framework project uses robotcode or robot.toml: run profiles, discover
+      tests, debug, REPL, analyze.'
+    chars: 122
+    listing: default budget (no override)
+    all_12_descriptions_visible: true
+    train_pos_loads: 21
+    train_pos_runs: 21
+    train_query_recall: 7/7
+    train_neg_loads: 3
+    train_neg_accuracy: 5/6
+    variant_id: b7a14079b54d
+    run: scratchpad tune/runs/compact-it1
+    rationale: 'Rich candidate 1 shortened: robotcode or robot.toml as the signal (misses were robot.toml/debug/REPL
+      queries), capabilities as verbs.'
+  - iteration: 2
+    text: 'Use first when a Robot Framework project uses robotcode or robot.toml: profiles, discover,
+      debug, REPL. Not VS Code settings.'
+    chars: 125
+    listing: default budget (no override)
+    all_12_descriptions_visible: true
+    train_pos_loads: 19
+    train_pos_runs: 21
+    train_query_recall: 6/7
+    train_neg_loads: 2
+    train_neg_accuracy: 5/6
+    variant_id: 89165185ac66
+    run: scratchpad tune/runs/compact-it2
+    rationale: Iteration 1 loaded on the RobotCode VS Code extension negative (rc-n04, 3/3), a loss of
+      negative accuracy. Added 'Not VS Code settings.' and shortened the capability list to fit.
+  - iteration: 3
+    text: 'Use first for the robotcode CLI and robot.toml in Robot Framework: profiles, discover, debug,
+      REPL. Not VS Code extension.'
+    chars: 122
+    listing: default budget (no override)
+    all_12_descriptions_visible: true
+    train_pos_loads: 20
+    train_pos_runs: 21
+    train_query_recall: 7/7
+    train_neg_loads: 0
+    train_neg_accuracy: 6/6
+    variant_id: 7cfa7e52981c
+    run: scratchpad tune/runs/compact-it3
+    rationale: Iteration 2 still loaded on rc-n04 (2/3). Leads with 'the robotcode CLI' and says 'Not
+      VS Code extension.' (the word the query uses).
+# '## When to use' body block (D12), drafted from the selected rich candidate; shipped by task 6.1.
+when_to_use: |
+  ## When to use
+
+  Load this skill first, before reading robot.toml or exploring the tests, when a Robot Framework project uses the robotcode CLI or a robot.toml:
+
+  - run suites with robot.toml profiles, discover tests and tags without running them;
+  - debug a failing test step by step with robot-debug, or try keywords in a non-interactive REPL;
+  - keyword docs (`robotcode libdoc`), result summaries, failures and diffs of output.xml (`robotcode results`), static checks (`robotcode analyze code`).
+
+  Not this skill: settings of the RobotCode VS Code extension. Without robotcode, use `rf-results` for output.xml and `rf-libdoc` for keyword docs.
