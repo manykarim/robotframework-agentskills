@@ -16,6 +16,8 @@ rf-agentskills install --agent copilot
 
 ## 2.0.0 (unreleased)
 
+- rf-language: concrete embedded-argument recipe (`${team:\S+}`, text between arguments is literal) and the "No keyword with name … for an `[Arguments]` keyword" gotcha.
+
 Breaking content release. Later changes in this release cycle add their
 entries here.
 

@@ -16,6 +16,7 @@ before release.
   entry and VS Code extension move in lockstep).
 
 ### Added
+- **Plugin hook `rf_error_hints.mjs`** (PostToolUse on Bash): the first time a Robot Framework error such as `No keyword with name`, `Multiple keywords with name`, `Invalid argument syntax`, a failing variable or a failed library import appears in a session, it injects a short hint naming the skill to load and the fix. It never blocks.
 - **Deprecated-syntax warnings on edit (plugin hooks):** `validate_robot.mjs`
   now classifies its single Robocop pass by rule ID. Error-severity findings
   still block exactly as before (exit 2); deprecations (`DEPR03/04/07–11`:

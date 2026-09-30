@@ -16,8 +16,8 @@ prompt: |
   libraries/Selections.py. Do not change tests/teams.robot. Run the suite and
   make sure it passes.
 model: claude-haiku-4-5-20251001
-max_turns: 14
-timeout_seconds: 300
+max_turns: 25
+timeout_seconds: 600
 allowed_tools:
   - Read
   - Write

@@ -14,6 +14,7 @@ is gated only on whether ``node`` is on PATH — most CI agents have it.
 from __future__ import annotations
 
 import json
+import uuid
 import os
 import shutil
 import subprocess
@@ -38,6 +39,7 @@ PLUGIN_SCRIPTS = (
 )
 INJECT_SCRIPT = PLUGIN_SCRIPTS / "maybe_inject_rf_context.mjs"
 REMIND_SCRIPT = PLUGIN_SCRIPTS / "maybe_remind_robot_tests.mjs"
+HINTS_SCRIPT = PLUGIN_SCRIPTS / "rf_error_hints.mjs"
 VALIDATE_SCRIPT = PLUGIN_SCRIPTS / "validate_robot.mjs"
 VALIDATE_PROJECT_SCRIPT = PLUGIN_SCRIPTS / "validate_robot_project.mjs"
 CHECK_ENV_SCRIPT = PLUGIN_SCRIPTS / "check_rf_environment.mjs"
@@ -1051,10 +1053,13 @@ def test_file_dryrun_reports_unknown_keyword(tmp_path: Path) -> None:
 def test_hooks_json_declares_timeouts() -> None:
     hooks = json.loads((PLUGIN_ROOT / "hooks" / "hooks.json").read_text(encoding="utf-8"))["hooks"]
     expected = {"PostToolUse": 45, "UserPromptSubmit": 15, "SessionStart": 15}
+    # Per-script overrides: the Bash error-hint hook only scans text.
+    per_script = {"rf_error_hints.mjs": 10}
     for event, timeout in expected.items():
         for entry in hooks[event]:
             for hook in entry["hooks"]:
-                assert hook.get("timeout") == timeout, (event, hook)
+                script = next((s for s in per_script if s in hook["command"]), None)
+                assert hook.get("timeout") == per_script.get(script, timeout), (event, hook)
     # 45 s covers Robocop check (10) + format (10) + opt-in dry run (20) + probes.
     assert expected["PostToolUse"] >= 10 + 10 + 20
 
@@ -1302,3 +1307,66 @@ def test_hooks_readme_documents_modes_and_variables() -> None:
     assert re.search(r"exit 0 is not\s+sufficient", readme)
     # The comma-select trap is documented, never recommended.
     assert not re.search(r"--select '[^']*,", readme.replace("(`--select 'DEPR*,ERR*'`)", ""))
+
+
+# ── rf_error_hints.mjs (PostToolUse on Bash) ────────────────────────────────
+
+
+def _bash_event(output: str, session: str | None = None) -> dict:
+    event: dict = {"tool_name": "Bash", "tool_input": {"command": "robot tests"},
+                   "tool_response": {"stdout": output, "stderr": ""}}
+    if session:
+        event["session_id"] = session
+    return event
+
+
+def _hint(stdout: str) -> str:
+    return json.loads(stdout)["hookSpecificOutput"]["additionalContext"] if stdout.strip() else ""
+
+
+def test_error_hint_for_keyword_with_values_in_name(tmp_path) -> None:
+    out = ("Select A Team | FAIL |\nNo keyword with name 'Select team Los Angeles Lakers' found. "
+           "Did you try using keyword 'teams.Select team' and forgot to use enough whitespace")
+    stdout, _err, rc = _run(HINTS_SCRIPT, _bash_event(out, f"s-{uuid.uuid4().hex}"))
+    hint = _hint(stdout)
+    assert rc == 0
+    assert "embedded-argument" in hint and "${team:\\S+}" in hint and "literal" in hint
+    assert "rf-language" in hint and len(hint) <= 400
+
+
+@pytest.mark.parametrize(
+    ("output", "expected"),
+    [
+        ("Multiple keywords with name 'Open App' found", "rf-language"),
+        ("Invalid argument syntax '${count}: int'", "${count: int}"),
+        ("Resolving variable '${missing}' failed: Variable not found", "rf-language"),
+        ("Importing library 'Browser' failed: ModuleNotFoundError", "rf-setup"),
+    ],
+)
+def test_error_hint_kinds(tmp_path, output: str, expected: str) -> None:
+    stdout, _err, rc = _run(HINTS_SCRIPT, _bash_event(output))
+    assert rc == 0 and expected in _hint(stdout)
+    assert len(_hint(stdout)) <= 400
+
+
+def test_error_hint_once_per_session(tmp_path) -> None:
+    session = f"once-{uuid.uuid4().hex}"
+    first, _e, _r = _run(HINTS_SCRIPT, _bash_event("No keyword with name 'A b c' found", session))
+    second, _e2, rc = _run(HINTS_SCRIPT, _bash_event("No keyword with name 'X y' found", session))
+    assert _hint(first) and not second.strip() and rc == 0
+
+
+def test_error_hint_ignores_unrelated_output() -> None:
+    stdout, _err, rc = _run(HINTS_SCRIPT, _bash_event("2 tests, 2 passed, 0 failed"))
+    assert rc == 0 and not stdout.strip()
+
+
+@pytest.mark.parametrize("stdin", ["", "not json", "[]", '{"tool_response": null}'])
+def test_error_hint_never_blocks_on_bad_input(stdin: str) -> None:
+    stdout, _err, rc = _run(HINTS_SCRIPT, stdin=stdin)
+    assert rc == 0 and not stdout.strip()
+
+
+def test_error_hint_bounds_long_names() -> None:
+    stdout, _err, _rc = _run(HINTS_SCRIPT, _bash_event("No keyword with name '" + "x" * 500 + "' found"))
+    assert len(_hint(stdout)) <= 400

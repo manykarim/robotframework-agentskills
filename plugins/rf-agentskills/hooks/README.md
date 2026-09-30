@@ -22,6 +22,7 @@ rather than written-and-broken.
 |---|---|---|---|---|---|
 | `SessionStart` | `scripts/check_rf_environment.mjs` | yes | — | ~0.5–1 s (import probes) | 15 s |
 | `PostToolUse` (matcher: `Write\|Edit`) | `scripts/validate_robot.mjs` | only on Write/Edit | ~30ms (file extension check) | ~1–1.5 s on a 500-line file (one Robocop check + format check); +0.4 s or more with the opt-in dry run | 45 s |
+| `PostToolUse` (matcher: `Bash`) | `scripts/rf_error_hints.mjs` | only on Bash | ~30 ms (text scan) | ~30 ms | 10 s |
 | `UserPromptSubmit` | `scripts/maybe_inject_rf_context.mjs` | always invoked, conditional injection | ~30ms (regex over prompt) | same (≤ 450-character text) | 15 s |
 | `Stop` | `scripts/maybe_remind_robot_tests.mjs` | always invoked, conditional reminder | ~30ms (chunked grep over transcript) | same | default |
 | `Stop` | `scripts/validate_robot_project.mjs` | only when `RF_AGENTSKILLS_PROJECT_VALIDATION` is set | ~0ms (env-flag check) | project dry run + find-unused (120 s cap each) | default |
@@ -170,6 +171,20 @@ edit→validate→feed-back→self-correct loop. So they exit 2 *specifically an
 only* on a confirmed Robot Framework error, and exit 0 in every other case
 (tool missing, tool timeout or unparsable output, non-Robot file, no
 findings, formatting-only difference, deprecation findings of any class).
+
+## How `rf_error_hints.mjs` decides
+
+After every Bash command it scans the output (first 20 000 characters) for Robot Framework error messages. The first time each kind appears in a session, it injects one hint of at most 400 characters, naming the skill to load and the fix:
+
+| Error message | Hint |
+|---|---|
+| `No keyword with name '…' found` | embedded arguments (`Select team ${city} ${team:\S+}`; text between arguments is literal), rf-language; exact names via rf-libdoc |
+| `Multiple keywords with name '…' found` | qualify the call or use `Set Library Search Order` (rf-language) |
+| `Invalid argument syntax '…'` | typed arguments `${count: int}` need RF 7.3+ (rf-language) |
+| `Resolving variable '…' failed` | scope, import order, `$var` in expressions (rf-language) |
+| `Importing library '…' failed` | install into the project environment (rf-setup) |
+
+It never blocks. It always exits 0, and unrelated or malformed input produces no output.
 
 ## Python interpreter resolution
 
