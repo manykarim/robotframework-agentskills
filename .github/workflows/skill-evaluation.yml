@@ -211,7 +211,9 @@ jobs:
     needs: preflight
     if: ${{ github.event_name == 'pull_request' && needs.preflight.outputs.run_evals == 'true' && needs.preflight.outputs.has_credentials == 'true' }}
     runs-on: ubuntu-latest
-    timeout-minutes: 90
+    # A harness-wide PR selects the full narrow tier (66 sequential sessions)
+    # plus trigger evals for every changed description; 90 min was not enough.
+    timeout-minutes: 180
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -293,6 +295,7 @@ jobs:
             --skills "${TRIGGER_SKILLS}" \
             --split validation \
             --model "${HAIKU_MODEL}" \
+            --concurrency 2 \
             --max-cost-usd "${PR_TRIGGER_CAP_USD}" \
             --output eval/runs/triggers
           code=$?
