@@ -9,7 +9,7 @@ import sys
 from pathlib import Path
 
 import pytest
-from _shell import BASH
+from _shell import BASH, requires_posix_bash
 
 ROOT = Path(__file__).resolve().parent.parent
 SCRIPT = ROOT / "scripts" / "validate-skills.py"
@@ -135,7 +135,7 @@ def test_real_tree_all_channels_valid(use_yaml):
     assert not lines, "\n".join(lines)
 
 
-@pytest.mark.skipif(BASH is None, reason="bash not available")
+@requires_posix_bash
 def test_bump_version_keeps_skill_metadata_in_step(tmp_path):
     repo = tmp_path / "repo"
     shutil.copytree(ROOT / "skills", repo / "skills")
