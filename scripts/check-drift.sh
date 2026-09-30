@@ -6,6 +6,10 @@
 set -euo pipefail
 
 REPO_ROOT="${REPO_ROOT:-$(cd "$(dirname "$0")/.." && pwd)}"
+# Python and a root path it can open: on Windows (Git Bash) python3 may not
+# exist and /d/a/... paths are not valid for a native Windows Python.
+PY="$(command -v python3 || command -v python)"
+if command -v cygpath >/dev/null 2>&1; then PY_ROOT="$(cygpath -m "$REPO_ROOT")"; else PY_ROOT="$REPO_ROOT"; fi
 DRIFT_FOUND=0
 
 # ── Derived from root: every non-symlink skills/*/scripts/*.py ───────────────
@@ -155,7 +159,7 @@ fi
 # `poetry run python`, a venv interpreter path (`.venv/bin/python`).
 echo ""
 echo "=== Checking script command form in SKILL.md (all channels) ==="
-FORM_OUT=$(REPO_ROOT="$REPO_ROOT" python3 - <<'PY'
+FORM_OUT=$(REPO_ROOT="$PY_ROOT" "$PY" - <<'PY'
 import os, re, sys
 from pathlib import Path
 root = Path(os.environ["REPO_ROOT"])

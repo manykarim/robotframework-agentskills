@@ -9,6 +9,7 @@ import sys
 from pathlib import Path
 
 import pytest
+from _shell import BASH
 
 ROOT = Path(__file__).resolve().parent.parent
 SCRIPT = ROOT / "scripts" / "validate-skills.py"
@@ -134,7 +135,7 @@ def test_real_tree_all_channels_valid(use_yaml):
     assert not lines, "\n".join(lines)
 
 
-@pytest.mark.skipif(shutil.which("bash") is None, reason="bash not available")
+@pytest.mark.skipif(BASH is None, reason="bash not available")
 def test_bump_version_keeps_skill_metadata_in_step(tmp_path):
     repo = tmp_path / "repo"
     shutil.copytree(ROOT / "skills", repo / "skills")
@@ -145,7 +146,7 @@ def test_bump_version_keeps_skill_metadata_in_step(tmp_path):
                 "vscode-extension/package.json"):
         (repo / rel).parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2(ROOT / rel, repo / rel)
-    res = subprocess.run(["bash", str(repo / "scripts" / "bump-version.sh"), "patch"], capture_output=True,
+    res = subprocess.run([BASH, str(repo / "scripts" / "bump-version.sh"), "patch"], capture_output=True,
                          text=True, env={"REPO_ROOT": str(repo), "PATH": "/usr/bin:/bin"})
     assert res.returncode == 0, res.stdout + res.stderr
     new = (repo / "VERSION").read_text().strip()

@@ -6,6 +6,7 @@ import subprocess
 from pathlib import Path
 
 import pytest
+from _shell import BASH
 
 ROOT = Path(__file__).resolve().parent.parent
 PLUGIN_SCRIPTS = ROOT / "plugins" / "rf-agentskills" / "scripts"
@@ -63,18 +64,18 @@ def scratch_repo(tmp_path: Path) -> Path:
 
 def _drift(repo: Path) -> subprocess.CompletedProcess:
     return subprocess.run(
-        ["bash", str(repo / "scripts" / "check-drift.sh")],
+        [BASH, str(repo / "scripts" / "check-drift.sh")],
         capture_output=True, text=True, env={"REPO_ROOT": str(repo), "PATH": "/usr/bin:/bin"},
     )
 
 
-@pytest.mark.skipif(shutil.which("bash") is None, reason="bash not available")
+@pytest.mark.skipif(BASH is None, reason="bash not available")
 def test_drift_check_clean_tree_passes(scratch_repo: Path):
     res = _drift(scratch_repo)
     assert res.returncode == 0, res.stdout + res.stderr
 
 
-@pytest.mark.skipif(shutil.which("bash") is None, reason="bash not available")
+@pytest.mark.skipif(BASH is None, reason="bash not available")
 @pytest.mark.parametrize(
     "orphan",
     [
@@ -93,11 +94,11 @@ def test_drift_check_names_orphan(scratch_repo: Path, orphan: str):
     assert f"ORPHAN: {expected}" in res.stdout
 
 
-@pytest.mark.skipif(shutil.which("bash") is None, reason="bash not available")
+@pytest.mark.skipif(BASH is None, reason="bash not available")
 def test_sync_prunes_removed_root_skill(scratch_repo: Path):
     shutil.rmtree(scratch_repo / "skills" / "rf-results")
     subprocess.run(
-        ["bash", str(scratch_repo / "scripts" / "sync-skills.sh")],
+        [BASH, str(scratch_repo / "scripts" / "sync-skills.sh")],
         check=True, capture_output=True, text=True,
     )
     assert not (scratch_repo / "plugins/rf-agentskills/skills/rf-results").exists()
@@ -109,7 +110,7 @@ def test_sync_prunes_removed_root_skill(scratch_repo: Path):
     assert _drift(scratch_repo).returncode == 0
 
 
-@pytest.mark.skipif(shutil.which("bash") is None, reason="bash not available")
+@pytest.mark.skipif(BASH is None, reason="bash not available")
 @pytest.mark.parametrize(
     "tree",
     [
@@ -128,7 +129,7 @@ def test_drift_check_rejects_symlinks(scratch_repo: Path, tree: str):
     assert f"SYMLINK: {tree}/linked.md" in res.stdout
 
 
-@pytest.mark.skipif(shutil.which("bash") is None, reason="bash not available")
+@pytest.mark.skipif(BASH is None, reason="bash not available")
 def test_drift_check_compares_vscode_script_copy(scratch_repo: Path):
     copy = scratch_repo / "vscode-extension/skills/rf-libdoc/scripts/rf_libdoc.py"
     copy.write_text(copy.read_text() + "# drift\n")
@@ -139,7 +140,7 @@ def test_drift_check_compares_vscode_script_copy(scratch_repo: Path):
 
 def _sync(repo: Path) -> subprocess.CompletedProcess:
     return subprocess.run(
-        ["bash", str(repo / "scripts" / "sync-skills.sh")], capture_output=True, text=True,
+        [BASH, str(repo / "scripts" / "sync-skills.sh")], capture_output=True, text=True,
     )
 
 
@@ -152,7 +153,7 @@ def test_channels_use_root_dir_names():
     assert all(name.startswith("rf-") for name in root), root
 
 
-@pytest.mark.skipif(shutil.which("bash") is None, reason="bash not available")
+@pytest.mark.skipif(BASH is None, reason="bash not available")
 def test_sync_renamed_root_skill_leaves_no_stale_copy(scratch_repo: Path):
     old, new = scratch_repo / "skills" / "rf-results", scratch_repo / "skills" / "rf-run-results"
     old.rename(new)
@@ -166,7 +167,7 @@ def test_sync_renamed_root_skill_leaves_no_stale_copy(scratch_repo: Path):
     assert _drift(scratch_repo).returncode == 0
 
 
-@pytest.mark.skipif(shutil.which("bash") is None, reason="bash not available")
+@pytest.mark.skipif(BASH is None, reason="bash not available")
 def test_sync_rejects_name_dir_mismatch(scratch_repo: Path):
     md = scratch_repo / "skills" / "rf-results" / "SKILL.md"
     md.write_text(md.read_text().replace("name: rf-results", "name: results", 1))
@@ -178,7 +179,7 @@ def test_sync_rejects_name_dir_mismatch(scratch_repo: Path):
     assert "NAME MISMATCH: skills/rf-results/SKILL.md" in drift.stdout
 
 
-@pytest.mark.skipif(shutil.which("bash") is None, reason="bash not available")
+@pytest.mark.skipif(BASH is None, reason="bash not available")
 @pytest.mark.parametrize(
     ("path", "expected"),
     [
@@ -198,7 +199,7 @@ def test_drift_check_compares_skill_content(scratch_repo: Path, path: str, expec
     assert expected in res.stdout
 
 
-@pytest.mark.skipif(shutil.which("bash") is None, reason="bash not available")
+@pytest.mark.skipif(BASH is None, reason="bash not available")
 def test_drift_check_reports_missing_channel_copy(scratch_repo: Path):
     shutil.rmtree(scratch_repo / "plugins/rf-agentskills/skills/rf-browser")
     res = _drift(scratch_repo)
@@ -206,7 +207,7 @@ def test_drift_check_reports_missing_channel_copy(scratch_repo: Path):
     assert "MISSING: plugins/rf-agentskills/skills/rf-browser/" in res.stdout
 
 
-@pytest.mark.skipif(shutil.which("bash") is None, reason="bash not available")
+@pytest.mark.skipif(BASH is None, reason="bash not available")
 def test_drift_check_compares_plugin_script_copy(scratch_repo: Path):
     copy = scratch_repo / "plugins/rf-agentskills/skills/rf-results/scripts/rf_results.py"
     copy.write_text(copy.read_text() + "# drift\n")
@@ -216,7 +217,7 @@ def test_drift_check_compares_plugin_script_copy(scratch_repo: Path):
             "plugins/rf-agentskills/skills/rf-results/scripts/rf_results.py") in res.stdout
 
 
-@pytest.mark.skipif(shutil.which("bash") is None, reason="bash not available")
+@pytest.mark.skipif(BASH is None, reason="bash not available")
 def test_sync_copies_scripts_per_skill_and_rewrites_commands(scratch_repo: Path):
     flat = scratch_repo / "plugins/rf-agentskills/scripts/rf_libdoc.py"
     flat.write_text("# stale flat copy\n")
@@ -237,7 +238,7 @@ def _append_line(repo: Path, rel: str, line: str) -> None:
     md.write_text(md.read_text() + "\n" + line + "\n")
 
 
-@pytest.mark.skipif(shutil.which("bash") is None, reason="bash not available")
+@pytest.mark.skipif(BASH is None, reason="bash not available")
 @pytest.mark.parametrize(
     ("rel", "line", "expected"),
     [
@@ -262,7 +263,7 @@ def test_drift_check_rejects_wrong_command_form(scratch_repo: Path, rel: str, li
     assert expected in res.stdout
 
 
-@pytest.mark.skipif(shutil.which("bash") is None, reason="bash not available")
+@pytest.mark.skipif(BASH is None, reason="bash not available")
 def test_drift_check_accepts_project_env_command_forms(scratch_repo: Path):
     for line in (
         "uv run python scripts/rf_results.py --output output.xml",

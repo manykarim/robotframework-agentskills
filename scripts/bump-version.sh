@@ -10,6 +10,10 @@
 set -euo pipefail
 
 REPO_ROOT="${REPO_ROOT:-$(cd "$(dirname "$0")/.." && pwd)}"
+# Python and a root path it can open: on Windows (Git Bash) python3 may not
+# exist and /d/a/... paths are not valid for a native Windows Python.
+PY="$(command -v python3 || command -v python)"
+if command -v cygpath >/dev/null 2>&1; then PY_ROOT="$(cygpath -m "$REPO_ROOT")"; else PY_ROOT="$REPO_ROOT"; fi
 BUMP_TYPE="${1:-patch}"
 VERSION_FILE="$REPO_ROOT/VERSION"
 
@@ -34,7 +38,7 @@ esac
 NEW_VERSION="${MAJOR}.${MINOR}.${PATCH}"
 echo "$NEW_VERSION" > "$VERSION_FILE"
 
-python3 - "$REPO_ROOT" "$NEW_VERSION" <<'PY'
+"$PY" - "$PY_ROOT" "$NEW_VERSION" <<'PY'
 import json
 import re
 import sys
