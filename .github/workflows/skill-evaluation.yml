@@ -87,7 +87,7 @@ env:
   HAIKU_MODEL: claude-haiku-4-5-20251001
   # Initial caps (design D9 open question) - tune after the first weekly run.
   PR_NARROW_CAP_USD: "6"
-  PR_TRIGGER_CAP_USD: "8"
+  PR_TRIGGER_CAP_USD: "12"
   WEEKLY_NARROW_CAP_USD: "12"
   WEEKLY_REALISTIC_CAP_USD: "12"
   WEEKLY_ADVERSARIAL_CAP_USD: "8"
@@ -334,6 +334,8 @@ jobs:
 
       - name: Upload evaluation artifacts
         if: always()
+        # Agent-created workspace venvs/node_modules made this artifact 5 GB;
+        # transcripts, verdicts and configs are what matter for debugging.
         uses: actions/upload-artifact@v4
         with:
           name: skill-eval-pr-${{ github.run_id }}
@@ -343,6 +345,8 @@ jobs:
             eval-report.md
             gate.txt
             trigger-gate.txt
+            !eval/runs/**/workspace/.venv
+            !eval/runs/**/workspace/node_modules
           # v4 silently strips dotfiles by default. We need .mcp.json,
           # .claude/, and other hidden config artifacts visible for
           # post-run debugging.
@@ -526,6 +530,8 @@ jobs:
             eval/runs/full
             eval-report.md
             gate.txt
+            !eval/runs/**/workspace/.venv
+            !eval/runs/**/workspace/node_modules
           include-hidden-files: true
           if-no-files-found: ignore
           retention-days: 30
