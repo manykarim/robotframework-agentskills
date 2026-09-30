@@ -53,10 +53,16 @@ def test_clean_fixture_passes(capsys, browser):
 def test_deprecated_keyword_fails(capsys, browser):
     code, out = run(capsys, FIXTURES / "deprecated")
     assert code == 1
-    assert "browser SKILL.md:4 DEPRECATED Wait Until Network Is Idle" in out
-    assert "Wait For Load State" in out  # libdoc deprecation text names the replacement
+    # Browser marked this keyword deprecated, and newer releases removed it
+    # entirely (then it is UNKNOWN). Either way the checker must fail it.
+    if "DEPRECATED Wait Until Network Is Idle" in out:
+        assert "Wait For Load State" in out  # libdoc deprecation text names the replacement
+        kind = "DEPRECATED"
+    else:
+        kind = "UNKNOWN"
+    assert f"browser SKILL.md:4 {kind} Wait Until Network Is Idle" in out
     # wrapped keyword name on a "..." continuation row is checked too
-    assert "browser SKILL.md:5 DEPRECATED Wait Until Network Is Idle" in out
+    assert f"browser SKILL.md:5 {kind} Wait Until Network Is Idle" in out
 
 
 # (c)

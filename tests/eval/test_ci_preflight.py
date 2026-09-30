@@ -12,7 +12,12 @@ from rf_skill_eval import cli
 from rf_skill_eval.application.preflight import frontmatter_description, map_changed_paths
 
 _REPO = Path(__file__).resolve().parents[2]
-_DIRS = {"rf-browser": "rf-browser", "rf-selenium": "rf-selenium", "rf-requests": "rf-requests"}
+_DIRS = {
+    "rf-browser": "rf-browser",
+    "rf-selenium": "rf-selenium",
+    "rf-requests": "rf-requests",
+    "rf-restinstance": "rf-restinstance",
+}
 _TASKS = {"eval/tasks/narrow/narrow-browser-login-01.yaml": "rf-browser"}
 _FIXTURES = {"sut-api": {"rf-requests", "rf-restinstance"}}
 runner = CliRunner()
@@ -156,3 +161,22 @@ def test_manual_dispatch_inputs() -> None:
     assert {"model", "runs", "allow_opus"} <= set(inputs)
     assert "claude-opus-5-5" in inputs["model"]["options"]
     assert "schedule" in on
+
+
+def test_deleted_or_renamed_skill_dirs_are_ignored() -> None:
+    # Regression (PR #13): a PR that renamed skills/robotframework-appium-skill/
+    # to skills/rf-appium/ made preflight request evals for the old dir name.
+    res = _map(
+        [
+            "skills/robotframework-appium-skill/SKILL.md",
+            "plugins/rf-agentskills/skills/appium/SKILL.md",
+            "eval/triggers/rf-keyword-builder.yaml",
+            "skills/rf-browser/SKILL.md",
+        ],
+        changed={"skills/robotframework-appium-skill/SKILL.md"},
+    )
+    assert "robotframework-appium-skill" not in res.skills
+    assert "appium" not in res.skills
+    assert "rf-browser" in res.skills
+    assert not ({"robotframework-appium-skill", "rf-keyword-builder"} & res.trigger_skills)
+    assert any("not shipped" in r for r in res.reasons)

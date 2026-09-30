@@ -128,7 +128,8 @@ PACKAGE_JSON="$REPO_ROOT/vscode-extension/package.json"
 if [ -f "$PACKAGE_JSON" ]; then
     echo ""
     echo "=== Updating vscode-extension/package.json chatSkills paths ==="
-    python3 -c "
+    PY="$(command -v python3 || command -v python)"
+    "$PY" -c "
 import json, os
 
 pkg = json.load(open('$PACKAGE_JSON'))

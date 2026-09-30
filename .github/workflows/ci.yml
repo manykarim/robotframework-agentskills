@@ -91,6 +91,11 @@ jobs:
           python ../../scripts/check_library.py ExampleLibrary.py converters.py ResultListener.py --json-out "$out/check_library.json"
           python -c "import json, sys; s = json.load(open(sys.argv[1]))['summary']; print(s); sys.exit(1 if s['error'] or s['warning'] else 0)" "$out/check_library.json"
         shell: bash
+      # vscode-extension/skills/ is gitignored build output; generate it so
+      # checks that read every channel see it.
+      - name: Generate VS Code channel (gitignored build output)
+        shell: bash
+        run: bash scripts/sync-skills.sh
       - name: Run tests
         # tests/eval/ is the rf-skill-eval harness suite — an INTERNAL
         # workspace package (root pyproject; "Private :: Do Not Upload")
@@ -133,6 +138,11 @@ jobs:
       # pytest-asyncio satisfies `asyncio_mode = "auto"` in pyproject
       # (pytest 9+ errors on the unknown config option without it).
       - run: pip install pytest pytest-asyncio
+      # vscode-extension/skills/ is gitignored build output; generate it so
+      # checks that read every channel see it.
+      - name: Generate VS Code channel (gitignored build output)
+        shell: bash
+        run: bash scripts/sync-skills.sh
       - name: Validate manifests and SKILL.md frontmatter
         run: python -m pytest tests/test_marketplace_validation.py -v
       - name: Validate skills in all channels
@@ -195,6 +205,19 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Sync and prove tracked copies were already in sync
+        run: |
+          bash scripts/sync-skills.sh
+          if ! git diff --exit-code --stat -- plugins/ vscode-extension/package.json; then
+            echo "::error::tracked plugin/package.json copies drifted from skills/ - run scripts/sync-skills.sh and commit"
+            exit 1
+          fi
+          untracked="$(git status --porcelain -- plugins/)"
+          if [ -n "$untracked" ]; then
+            echo "$untracked"
+            echo "::error::sync added or removed plugin files - run scripts/sync-skills.sh and commit"
+            exit 1
+          fi
       - name: Verify root/plugin/VS Code skills in sync
         run: bash scripts/check-drift.sh
 
@@ -209,6 +232,11 @@ jobs:
       # Stdlib-only: name == dir, charset/length, description <= 1024,
       # compatibility <= 500, no tags, allowed keys, license, metadata,
       # metadata.version == VERSION, same skill set in all three channels.
+      # vscode-extension/skills/ is gitignored build output; generate it so
+      # checks that read every channel see it.
+      - name: Generate VS Code channel (gitignored build output)
+        shell: bash
+        run: bash scripts/sync-skills.sh
       - name: Validate all channels
         run: python scripts/validate-skills.py --channel all
       # Non-blocking cross-check against the reference implementation, so we

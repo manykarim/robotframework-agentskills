@@ -8,9 +8,20 @@ from pathlib import Path
 
 import pytest
 
+from rf_skill_eval.config import get_settings
 from rf_skill_eval.domain.profile import Profile
 from rf_skill_eval.domain.run import Run
 from rf_skill_eval.domain.task import GraderCheck, Task
+
+
+@pytest.fixture(autouse=True)
+def _fresh_settings() -> Iterator[None]:
+    # get_settings() is lru_cached: without this, a test that ran without auth
+    # leaves a cached "no auth" and later tests that monkeypatch a token (e.g.
+    # the doctor ping tests) silently skip the ping. Locally a .env token hid it.
+    get_settings.cache_clear()
+    yield
+    get_settings.cache_clear()
 
 
 @pytest.fixture

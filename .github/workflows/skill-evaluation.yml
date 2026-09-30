@@ -86,8 +86,8 @@ permissions:
 env:
   HAIKU_MODEL: claude-haiku-4-5-20251001
   # Initial caps (design D9 open question) - tune after the first weekly run.
-  PR_NARROW_CAP_USD: "3"
-  PR_TRIGGER_CAP_USD: "2"
+  PR_NARROW_CAP_USD: "6"
+  PR_TRIGGER_CAP_USD: "8"
   WEEKLY_NARROW_CAP_USD: "12"
   WEEKLY_REALISTIC_CAP_USD: "12"
   WEEKLY_ADVERSARIAL_CAP_USD: "8"

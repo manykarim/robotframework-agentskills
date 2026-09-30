@@ -87,6 +87,7 @@ def _run(script: Path, payload: dict | None = None, *,
         input=stdin,
         capture_output=True,
         text=True,
+        encoding="utf-8",  # Node writes UTF-8 (e.g. "×"); not the Windows code page
         timeout=30,
         env=env,
     )

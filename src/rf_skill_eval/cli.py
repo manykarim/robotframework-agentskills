@@ -56,7 +56,7 @@ from .application.catalog import (
     validate_tasks,
 )
 from .application.evaluation_service import EvaluationService
-from .application.gate import GateReport, gate_cost, gate_tasks, gate_triggers
+from .application.gate import GateFinding, GateReport, gate_cost, gate_tasks, gate_triggers
 from .application.ports import SkillRunner
 from .application.preflight import frontmatter_description, map_changed_paths
 from .application.trigger_eval import (
@@ -1068,7 +1068,16 @@ def gate(
             token_budget=token_budget,
         )
         spent += sum(r.run.usage.total_cost_usd for r in results if r.run.usage)
-    if trigger_results is not None:
+    if trigger_results is not None and not trigger_results.is_file():
+        # The trigger step failed before writing results: fail clearly, don't crash.
+        report_obj.findings.append(
+            GateFinding(
+                "incomplete",
+                "triggers",
+                f"trigger results missing: {trigger_results} (trigger eval did not run or crashed)",
+            )
+        )
+    elif trigger_results is not None:
         current = TriggerEvalResult.from_json(json.loads(trigger_results.read_text("utf-8")))
         spent += current.spent_usd
         gate_triggers(current, load_json(trigger_baseline), report_obj)

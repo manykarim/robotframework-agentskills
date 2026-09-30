@@ -237,3 +237,16 @@ def test_cli_baseline_update_gate_and_report(tmp_path: Path, monkeypatch: pytest
 def test_committed_baseline_dir_exists_with_readme() -> None:
     root = Path(__file__).resolve().parents[2] / "eval" / "baselines"
     assert (root / "README.md").is_file()
+
+
+def test_gate_with_missing_trigger_results_fails_cleanly(tmp_path: Path) -> None:
+    # Regression (PR #13): the trigger step crashed before writing results and
+    # the gate raised FileNotFoundError instead of reporting.
+    base = tmp_path / "triggers.json"
+    base.write_text("{}", encoding="utf-8")
+    result = runner.invoke(
+        cli.app,
+        ["gate", "--trigger-results", str(tmp_path / "missing.json"), "--trigger-baseline", str(base)],
+    )
+    assert result.exit_code == 1, result.output
+    assert "trigger results missing" in result.output

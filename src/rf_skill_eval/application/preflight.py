@@ -144,4 +144,15 @@ def map_changed_paths(
             result.reasons.append(f"{path}: harness change -> full narrow tier")
         elif not _skill_dir_hit(parts, path, dir_to_skill, description_changed, result):
             _eval_content_hit(parts, path, task_skill, fixture_skills, result)
+    # Deleted or renamed skill dirs (and trigger sets of retired skills) show up
+    # in the diff too; only skills that still ship can be evaluated.
+    shipped = set(dir_to_skill.values())
+    if shipped:
+        for attr in ("skills", "trigger_skills"):
+            selected: set[str] = getattr(result, attr)
+            allowed = shipped | ({PLUGIN_SKILL} if attr == "skills" else set())
+            dropped = sorted(selected - allowed)
+            if dropped:
+                selected.intersection_update(allowed)
+                result.reasons.append(f"not shipped (deleted or renamed), ignored: {', '.join(dropped)}")
     return result

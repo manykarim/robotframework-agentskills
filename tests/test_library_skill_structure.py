@@ -510,11 +510,23 @@ def test_examples_listed_in_skill_md(key):
 EXAMPLE_PARAMS = [_param(k, k, e, id=f"{k}-{e.name}") for k in KEYS for e in examples(k)]
 
 
+def _browser_initialized(spec) -> bool:
+    """True when Browser's Node wrapper deps exist (``rfbrowser init``/``install`` ran)."""
+    for location in spec.submodule_search_locations or ():
+        if (Path(location) / "wrapper" / "node_modules").is_dir():
+            return True
+    return False
+
+
 @pytest.mark.parametrize("key,example", EXAMPLE_PARAMS)
 def test_examples_dryrun(key, example, tmp_path):
     pytest.importorskip("robot")
-    if importlib.util.find_spec(LIBRARIES[key]) is None:
+    spec = importlib.util.find_spec(LIBRARIES[key])
+    if spec is None:
         pytest.skip(f"{LIBRARIES[key]} is not importable; dry run skipped (not passed)")
+    if LIBRARIES[key] == "Browser" and not _browser_initialized(spec):
+        pytest.skip("Browser installed without its Node dependencies (run `rfbrowser init` or "
+                    "`rfbrowser install`); dry run skipped (not passed)")
     result = subprocess.run(
         [sys.executable, "-m", "robot", "--dryrun", "--output", "NONE", "--report", "NONE", "--log", "NONE",
          "--outputdir", str(tmp_path), str(example)],
