@@ -45,7 +45,7 @@ from typing import Iterable
 
 from .. import _assets
 from .. import transforms as _x
-from ._base import AdapterBase, ConfigMergeOp, InstallOptions, InstallPlan, InstallTarget
+from ._base import AdapterBase, ConfigMergeOp, InstallOptions, InstallPlan, InstallTarget, skill_script_files
 
 
 PLUGIN_FILES_SUBDIR = "rf-agentskills-files"
@@ -129,7 +129,10 @@ class CursorAdapter(AdapterBase):
                     rel = f.relative_to(skills_src)
                     yield InstallTarget(
                         dst=root / "skills" / rel,
-                        payload=self._read_with_substitution(f, plugin_root_abs),
+                        payload=self.render_skill_dir(
+                            self._read_with_substitution(f, plugin_root_abs),
+                            f, root / "skills" / rel.parts[0],
+                        ),
                         transform_name="plugin_root_substitution",
                     )
 
@@ -166,6 +169,14 @@ class CursorAdapter(AdapterBase):
             # Pin the install-time Python interpreter so hook .mjs scripts
             # target the env that has robotframework. See claude_code.py
             # for the rationale.
+            # Per-skill scripts for the MCP server (<plugin_dst>/skills/<skill>/scripts/).
+            for f in skill_script_files(src_root):
+                rel = f.relative_to(src_root)
+                yield InstallTarget(
+                    dst=plugin_dst / rel,
+                    payload=f.read_bytes(),
+                    transform_name="skill_script_for_mcp_server",
+                )
             yield InstallTarget(
                 dst=plugin_dst / "scripts" / "python_runtime.json",
                 payload=_x.python_runtime_config_bytes(),

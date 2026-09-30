@@ -44,6 +44,8 @@ from .claude_code import ClaudeCodeAdapter
 class CopilotAdapter(ClaudeCodeAdapter):
     name: str = "copilot"
     pretty: str = "GitHub Copilot (VS Code)"
+    # VS Code does not document ${CLAUDE_SKILL_DIR} substitution.
+    expands_skill_dir: bool = False
 
     def detect(self) -> bool:
         # VS Code on PATH OR a known per-OS Code config dir exists.

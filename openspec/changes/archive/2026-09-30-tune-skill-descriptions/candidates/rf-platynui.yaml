@@ -1,0 +1,84 @@
+# Candidate descriptions for rf-platynui (tune-skill-descriptions D5/D6).
+# Train numbers: skill loads over 3 runs per query (Haiku 4.5); selection uses the train split only.
+# 'listing' says whether the run used Claude Code's default skill-listing budget or
+# SLASH_COMMAND_TOOL_CHAR_BUDGET=40000 (every description visible); see design.md Implementation Notes.
+skill: rf-platynui
+selected: 1
+iterations:
+- iteration: 0
+  text: 'Writes and fixes Robot Framework native desktop UI tests with PlatynUI (PlatynUI.BareMetal, new_core)
+    over Windows UIA and Linux AT-SPI2: XPath queries over the desktop tree, window scoping, pointer and
+    keyboard input, platynui-cli and the inspector for locators. Use when the user wants to automate a
+    desktop application (Calculator, Notepad, a Qt/GTK/WPF/WinForms app) with Robot Framework or mentions
+    PlatynUI. For mobile apps use rf-appium; for web browsers use rf-browser or rf-selenium.'
+  listing: 'default budget (Haiku: 8000 chars)'
+  train_pos_loads: 19
+  train_pos_runs: 21
+  train_query_recall: 6/7
+  train_neg_loads: 0
+  variant_id: 25e6b4b2b5f8
+  run: evidence/rebaseline.json (re-baseline, train split)
+  listed_with_description: false
+  rationale: Current shipped description (re-baseline). Claude Code listed this skill by name only in
+    these sessions (skill-listing budget), so the model never saw this text.
+- iteration: 1
+  text: 'Use this skill whenever a Robot Framework test drives a native desktop application with PlatynUI
+    (Windows UIA, Linux AT-SPI2), and load it first, before exploring the project or answering from memory:
+    finding windows, dialogs, menus and controls with XPath over the desktop tree, clicking, typing and
+    keyboard shortcuts, reading control text, and platynui-cli or the inspector for locators. Use when
+    a desktop test cannot find a button, menu or dialog, when the user wants to automate Calculator, Notepad
+    or a Qt/GTK/WPF/WinForms app, or edits a suite that imports PlatynUI, even if they only say "desktop
+    app" and never name the library. For mobile apps use rf-appium; for web browsers use rf-browser or
+    rf-selenium.'
+  listing: SLASH_COMMAND_TOOL_CHAR_BUDGET=40000
+  train_pos_loads: 20
+  train_pos_runs: 21
+  train_query_recall: 7/7
+  train_neg_loads: 0
+  variant_id: e64845bb7466
+  spent_usd: 1.149
+  run: scratchpad tune/runs/rf-platynui-it1
+  rationale: 'Re-baseline (name only): loads when PlatynUI is named, misses ''desktop''/''dialog'' symptoms
+    and file edits (Read first). Imperative intent (native desktop app), load-first nudge, symptoms (cannot
+    find a button, menu or dialog), app examples, ''even if they only say desktop app''. Stop rule met.'
+
+# Compact candidates (D11/D13): <= 160 characters each, all 12 listing lines <= 1700,
+# tuned together on the train split under the DEFAULT listing budget (no override).
+# Iterations are set iterations: iteration k of every skill was staged together in variant k
+# (iteration 2 re-ran rf-language, rf-robotcode, rf-libdoc, rf-results; iteration 3 rf-robotcode only).
+compact:
+  rebaseline_train:
+    train_pos_loads: 19
+    train_pos_runs: 21
+    train_query_recall: 6/7
+    train_neg_loads: 0
+    train_neg_accuracy: 6/6
+    note: current long description, default listing budget
+  selected: 1
+  iterations:
+  - iteration: 1
+    text: 'Use first, before exploring or answering, for Robot Framework desktop app tests with PlatynUI:
+      windows, dialogs, XPath locators.'
+    chars: 128
+    listing: default budget (no override)
+    all_12_descriptions_visible: true
+    train_pos_loads: 21
+    train_pos_runs: 21
+    train_query_recall: 7/7
+    train_neg_loads: 0
+    train_neg_accuracy: 6/6
+    variant_id: b7a14079b54d
+    run: scratchpad tune/runs/compact-it1
+    rationale: 'Rich candidate 1 shortened: ''desktop app'' is the query word that missed at the re-baseline;
+      windows/dialogs/XPath locators as intent words.'
+# '## When to use' body block (D12), drafted from the selected rich candidate; shipped by task 6.1.
+when_to_use: |
+  ## When to use
+
+  Load this skill first, before exploring the project or answering from memory, when a Robot Framework test drives a native desktop application with PlatynUI (Windows UIA, Linux AT-SPI2):
+
+  - windows, dialogs, menus and controls found with XPath over the desktop tree; clicking, typing, keyboard shortcuts, reading control text;
+  - platynui-cli or the inspector to build locators;
+  - a desktop test cannot find a button, menu or dialog, or the user automates Calculator, Notepad or a Qt/GTK/WPF/WinForms app, even if they only say "desktop app".
+
+  Not this skill: mobile apps use `rf-appium`; web browsers use `rf-browser` or `rf-selenium`; installing PlatynUI pre-releases uses `rf-setup`.

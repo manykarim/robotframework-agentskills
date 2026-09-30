@@ -14,8 +14,15 @@ PLUGIN_FILES="$OPENCODE/rf-agentskills-files"
 case "${1:-}" in
 --post-install)
     # Native skill placement (verbatim copy)
-    need_file "$OPENCODE/skills/libdoc-search/SKILL.md" "^name: libdoc-search$"
-    need_file "$OPENCODE/skills/keyword-builder/SKILL.md"
+    need_file "$OPENCODE/skills/rf-libdoc/SKILL.md" "^name: rf-libdoc$"
+    # Merged into libdoc (content 2.0.0): the old libdoc skills are not shipped
+    need_no_file "$OPENCODE/skills/libdoc-search/SKILL.md"
+    need_no_file "$OPENCODE/skills/libdoc-explain/SKILL.md"
+    need_no_file "$OPENCODE/skills/libdoc/SKILL.md"   # renamed to rf-libdoc in content 2.0.0
+    need_file "$OPENCODE/skills/rf-results/SKILL.md"
+    need_file "$OPENCODE/skills/rf-language/scripts/rf_conventions.py"
+    need_file "$OPENCODE/skills/rf-python-library/scripts/check_library.py"
+    need_no_file "$OPENCODE/skills/keyword-builder/SKILL.md"   # retired in content 2.0.0
     # Native subagent placement
     need_file "$OPENCODE/agents/rf-test-architect.md" "^name: rf-test-architect$"
     # MCP server registered under "mcp" (not "mcpServers" — OpenCode shape)
@@ -30,10 +37,10 @@ case "${1:-}" in
     # API-FREE introspection: opencode ships `opencode debug skill`
     # which walks every skill discovery path and emits JSON. No LLM call.
     if opencode debug skill 2>/dev/null > /tmp/opencode-debug-skill.txt; then
-        if grep -qF "$OPENCODE/skills/libdoc-search/SKILL.md" /tmp/opencode-debug-skill.txt; then
-            printf '  [check] opencode debug skill sees libdoc-search\n' >&2
+        if grep -qF "$OPENCODE/skills/rf-libdoc/SKILL.md" /tmp/opencode-debug-skill.txt; then
+            printf '  [check] opencode debug skill sees libdoc\n' >&2
         else
-            printf '  [check] opencode debug skill did NOT find libdoc-search\n' >&2
+            printf '  [check] opencode debug skill did NOT find libdoc\n' >&2
             head -20 /tmp/opencode-debug-skill.txt >&2 || true
             exit 1
         fi
@@ -44,7 +51,7 @@ case "${1:-}" in
     ;;
 
 --post-uninstall)
-    need_no_file "$OPENCODE/skills/libdoc-search/SKILL.md"
+    need_no_file "$OPENCODE/skills/rf-libdoc/SKILL.md"
     need_no_file "$OPENCODE/agents/rf-test-architect.md"
     if [ -f "$OPENCODE/opencode.json" ]; then
         if jq -e '.mcp."rf-tools"' "$OPENCODE/opencode.json" >/dev/null 2>&1; then
@@ -58,7 +65,7 @@ case "${1:-}" in
     if [ -z "${OPENROUTER_API_KEY:-}" ]; then
         skip "no OpenRouter token in env"
     fi
-    if [ ! -f "$OPENCODE/skills/libdoc-search/SKILL.md" ]; then
+    if [ ! -f "$OPENCODE/skills/rf-libdoc/SKILL.md" ]; then
         skip "no install present"
     fi
     # opencode debug skill is itself the cleanest non-API verification,

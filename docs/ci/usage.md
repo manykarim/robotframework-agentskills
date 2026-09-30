@@ -10,11 +10,14 @@ same machinery on every PR.
 - [Prerequisites](#prerequisites)
 - [One-time Setup](#one-time-setup)
 - [Running Evaluations](#running-evaluations)
+  - [Validate before you spend anything](#validate-before-you-spend-anything)
   - [Smoke run](#smoke-run-fastest-feedback)
-  - [Local full run](#local-full-run-pre-push-check)
-  - [Manual one-off](#manual-one-off-targeted-debugging)
-  - [Batch runs](#batch-runs)
-  - [Scoring and reports](#scoring-and-reports)
+  - [Local narrow run](#local-narrow-run-pre-push-check)
+  - [One task, one arm](#one-task-one-arm)
+  - [Batches: arms × replicates](#batches-arms--replicates)
+  - [Reports](#reports)
+  - [Trigger evals](#trigger-evals)
+  - [Baselines and the gate](#baselines-and-the-gate)
 - [Understanding Reports](#understanding-reports)
 - [Adding a New Task](#adding-a-new-task)
 - [CI Reference](#ci-reference)
@@ -36,8 +39,11 @@ Key properties:
 
 - **Reproducible.** Same inputs → same scorecard, bit-for-bit. See
   [ADR-004](architecture/adr/ADR-004-scoring-model.md).
-- **Tiered.** PR runs are narrow (fast, cheap). Main-merge runs add
-  realistic tasks. Weekly canary runs everything. See
+- **Paired arms.** Every task can run with the plugin (`treatment`) and
+  without it (`baseline`), N replicates each, so reports show whether a
+  skill actually helps (treatment − baseline deltas).
+- **Tiered.** PR runs are narrow, treatment-only and gated against a stored
+  baseline (fast, cheap). Weekly runs execute everything in both arms. See
   [ADR-005](architecture/adr/ADR-005-ci-integration.md).
 - **Subscription-billed by default.** CI uses a long-lived OAuth token
   tied to the maintainer's Claude Pro/Max subscription, falling back
@@ -106,7 +112,7 @@ Edit `.env` and paste your OAuth token:
 
 ```dotenv
 CLAUDE_CODE_OAUTH_TOKEN=sk-ant-oat01-your-token-here
-CLAUDE_MODEL_DEFAULT=claude-haiku-4-5
+CLAUDE_MODEL_DEFAULT=claude-haiku-4-5-20251001
 RF_SKILL_EVAL_LOG_LEVEL=INFO
 ```
 
@@ -162,301 +168,277 @@ A green doctor means you are ready to run evaluations.
 
 ## Running Evaluations
 
-There are three common entry points, from fastest to most thorough.
+> Every command below that starts Claude sessions accepts `--max-cost-usd`.
+> Use it. When the reported cost reaches the cap, no further session starts,
+> the remaining runs are recorded `incomplete` (reason `budget`) and the
+> command exits non-zero.
+
+### Validate before you spend anything
+
+```bash
+uv run rf-skill-eval validate-tasks eval/tasks   # schema, model ids, skills, fixtures, gating
+uv run rf-skill-eval coverage                    # every shipped skill has a narrow task + trigger set
+uv run rf-skill-eval doctor --tasks-dir eval/tasks --strict   # grader tools / libraries present
+uv run pytest tests/eval -q                      # harness unit tests (no API calls)
+```
 
 ### Smoke run (fastest feedback)
-
-One Haiku task against the minimal fixture. Completes in roughly
-two minutes and confirms the full pipeline works end-to-end.
 
 ```bash
 scripts/eval-smoke.sh
 ```
 
-What it does:
+Runs `eval/tasks/narrow/narrow-libdoc-search-01.yaml` once with
+`claude-haiku-4-5-20251001` in the `treatment` arm, grades it and prints the
+report.
 
-1. Loads `.env`.
-2. Runs `eval/tasks/narrow/narrow-keyword-builder-01.yaml` with
-   `claude-haiku-4-5`, arm `treatment` (skill enabled).
-3. Scores the run and prints the JSON scorecard to stdout.
-
-Use this whenever you change a skill's `SKILL.md` and want to confirm
-you did not break invocation.
-
-### Local full run (pre-push check)
-
-All narrow-tier tasks, both arms (skill on / skill off), Haiku only.
-Roughly 15–25 minutes depending on rate-limit headroom.
+### Local narrow run (pre-push check)
 
 ```bash
 scripts/eval-local.sh
 ```
 
-What it does:
+Lint + unit tests, then the narrow tier in the treatment arm with `--runs 3`
+(and optionally the realistic tier), then a report.
 
-1. Enumerates every `eval/tasks/narrow/*.yaml`.
-2. Runs each task twice (control + treatment).
-3. Writes per-run artifacts to `eval/runs/<run-id>/`.
-4. Aggregates into a scorecard at `eval/reports/<batch-id>/`.
-5. Prints PASS/ITERATE/HOLD verdicts per skill.
-
-Run this before pushing a PR that touches `skills/**`. See
-[local-testing.md](local-testing.md) for when to skip it.
-
-### Manual one-off (targeted debugging)
-
-When a specific task fails, run it directly with extra logging:
+### One task, one arm
 
 ```bash
 uv run rf-skill-eval run \
   --task eval/tasks/narrow/narrow-libdoc-search-01.yaml \
   --arm treatment \
-  --model claude-haiku-4-5 \
-  --output eval/runs/manual-$(date +%s) \
-  --log-level DEBUG
+  --max-cost-usd 1 \
+  --output eval/runs/manual-$(date +%s)
 ```
 
-Flags:
+- `--arm` — `treatment` (the plugin as shipped: skills, hooks, subagents,
+  `rf-tools`) or `baseline` (no plugin parts; everything else identical).
+  `--profile control` still works as a deprecated alias of `baseline`.
+- `--model` — override the task's model (see [Model Policy](#model-policy)).
 
-- `--task` — path to a task YAML.
-- `--arm` — `control` (skill disabled) or `treatment` (skill enabled).
-- `--model` — `claude-haiku-4-5` or `claude-sonnet-4-6` (see
-  [Model Policy](#model-policy)).
-- `--output` — directory to write artifacts into.
-- `--log-level` — `DEBUG` to see every tool call and hook event.
-
-### Batch runs
-
-Invoke many cells in one command — useful when iterating on scoring
-logic without re-running Claude:
+### Batches: arms × replicates
 
 ```bash
 uv run rf-skill-eval run-batch \
-  --plan eval/plans/narrow-haiku.json \
+  --tasks-dir eval/tasks/narrow \
+  --arms treatment,baseline \
+  --runs 3 \
+  --max-cost-usd 5 \
   --output eval/runs/batch-$(date +%Y%m%d)
 ```
 
-A plan file is JSON produced by `rf-skill-eval plan`. See the output
-of `uv run rf-skill-eval plan --help` for options.
+- `--arms` — default `treatment` only.
+- `--runs N` — replicates per task × arm (default 3), each in a fresh
+  workspace.
+- `--skills rf-browser,plugin` / `--tier narrow` — select tasks
+  (`plugin` = bundle canaries).
+- Runs are graded inline. `score-batch` re-grades an existing directory.
+- A pre-dispatch estimate (tasks × arms × runs × historical mean cost from
+  `eval/baselines/`) is printed; the batch is refused when it exceeds 1.5×
+  the cap.
+- `bench --task … --runs N` is an alias for a single-task batch that prints
+  replicate statistics.
 
-### Scoring and reports
-
-Given an existing runs directory, regenerate the scorecard without
-re-invoking Claude:
-
-```bash
-uv run rf-skill-eval score eval/runs/batch-20260414/
-uv run rf-skill-eval report \
-  --batch eval/runs/batch-20260414/ \
-  --format html,json,md \
-  --out eval/reports/batch-20260414/
-```
-
-`report` produces three files:
-
-- `scorecard.json` — machine-readable, schema-validated.
-- `scorecard.html` — human-browsable with per-task failure gallery.
-- `scorecard.md` — compact PR-comment-ready summary.
-
-### Benchmarking
-
-For timing-sensitive harness changes:
+### Reports
 
 ```bash
-uv run rf-skill-eval bench --iterations 3
+uv run rf-skill-eval report --runs-dir eval/runs/batch-20260927 --output report.md
+uv run rf-skill-eval report --runs-dir eval/runs/pr --baseline eval/baselines/narrow.json --format json --output report.json
 ```
 
-Benchmarks parser throughput, rubric evaluation, and report rendering
-against a fixed synthetic dataset. Use this when optimizing telemetry
-code.
+Per task and arm: pass rate (runs whose gate result is `pass` / runs
+attempted), outcome pass rate, incomplete runs, mean input/output tokens,
+turns, duration and cost (stdev in JSON), a flaky flag (0 < pass rate < 1),
+and the treatment − baseline delta computed from **outcome** checks only
+("unavailable" when an arm has no runs). When the baseline arm was not run,
+`--baseline` supplies its numbers from the stored file. Skipped/errored checks
+are listed with reasons; process checks (e.g. "the skill was invoked") are
+shown for the treatment arm only; adversarial tasks are marked non-gating.
+
+### Trigger evals
+
+```bash
+uv run rf-skill-eval trigger --skills rf-browser,rf-selenium --split validation --max-cost-usd 2
+```
+
+Runs each query of `eval/triggers/<skill>.yaml` (default 3 times) with the
+plugin staged but hooks off, `--max-turns 3`, and only the tools
+`Skill,Read,Glob,Grep` *available* (`claude --tools`; in bypass mode
+`--allowedTools` alone only pre-approves). Each session starts in a fresh copy
+of `eval/fixtures/sut-trigger/`, a neutral Robot Framework project that imports
+no test library. Reports TP/FP/TN/FN, precision, recall and accuracy per skill
+for train and validation (and holdout, when selected) separately, plus the
+other skills loaded for failing queries. See
+[`eval/triggers/README.md`](../../eval/triggers/README.md).
+
+| Option | Meaning |
+|---|---|
+| `--split train,validation,holdout` | Comma list; `holdout` runs only the post-tuning holdout queries. |
+| `--concurrency 1\|2` | Queries run at once (default 1; max 2, the ADR-002 OAuth cap). |
+| `--variant-root <dir>` | Stage `<dir>/plugins/rf-agentskills` instead of the shipped plugin. |
+| `--listing-budget <chars>` | Set `SLASH_COMMAND_TOOL_CHAR_BUDGET` (skill-listing budget) for the sessions; default: not set, Claude Code's own budget. |
+| `--output <dir>` | Also the resume key: re-running with the same directory skips finished queries. |
+
+**Resume.** Every finished query is appended to `<output>/outcomes.jsonl`,
+keyed by (variant id, model, listing budget, skill, query id, split). Re-run
+the same command with the same `--output` after a crash or a budget stop: only
+the missing or incomplete queries run, and `trigger-results.json` aggregates
+all of them. Keep `--output` outside the repository tree (see the
+contamination warning).
+
+**Listing budget and description visibility.** Claude Code lists skill
+descriptions only while they fit `context window × 4 × 1%` characters (about
+8000 for Haiku 4.5; bundled skills first, then the others alphabetically;
+the rest appear by name only). By default the harness leaves that budget
+alone, which is what gates. To measure the 1M-context condition:
+
+```bash
+uv run rf-skill-eval trigger --split validation --listing-budget 40000 \
+  --variant-root /tmp/variants/compact --concurrency 2 --max-cost-usd 7 \
+  --output /tmp/evalruns/compact-val
+```
+
+- The budget is recorded as `listing_budget` in the results (`null` = default)
+  and is part of the resume key, so default and `40000` batches can share one
+  `--output` without mixing: the default batch writes `trigger-results.json`
+  and `trigger-report.md`, a budget batch `trigger-results-budget-<N>.json`
+  and `trigger-report-budget-<N>.md` (`baseline update` only reads
+  `trigger-results.json`).
+- If `SLASH_COMMAND_TOOL_CHAR_BUDGET` is already exported and
+  `--listing-budget` is not given, the exported value is used and recorded
+  (a note is printed); unset it to measure the default.
+- Each run's `skill_listing` attachment in `session.jsonl` is parsed. Every
+  outcome carries `visible_descriptions` (one list per run: the rf-* skills
+  listed *with* their description), and the results carry a `visibility` map
+  per skill: `own_visible/own_listed` (sessions of the skill's own queries)
+  and `all_visible/all_listed` (every session). The report adds a
+  "Description visibility" table, e.g. `| rf-results | 0/24 | 0/288 |` means
+  the model saw only the name `rf-results`.
+
+**Run isolation.** Task runs (profiles with write-capable tools) snapshot the
+repository before and after the session. Files that appear outside the run's
+workspace are listed in `<run>/workspace_violations.json` and the run gets an
+`isolation-violation: …` error, which makes its gate result `incomplete` (not
+a pass). Nothing is deleted: the file may belong to a developer or another
+tool working in the repository at the same time. Trigger sessions have no
+write-capable tool and skip the snapshot.
+
+**Description variants.** Measure candidate descriptions without editing
+`skills/`:
+
+```bash
+uv run python scripts/build-description-variant.py \
+  --candidates openspec/changes/tune-skill-descriptions/candidates/rf-results.yaml \
+  --out /tmp/variants/rf-results-it1          # prints the variant id
+uv run rf-skill-eval trigger --skills rf-results --split train \
+  --variant-root /tmp/variants/rf-results-it1 --concurrency 2 --max-cost-usd 2 \
+  --output /tmp/evalruns/rf-results-it1
+```
+
+The variant id is a hash of every staged description (an empty candidates
+file gives the shipped id); `trigger-results.json` records `variant_id` and
+`variant_root`.
+
+### Baselines and the gate
+
+```bash
+# after a weekly-equivalent run (both arms, N=3, all tiers, triggers):
+uv run rf-skill-eval baseline update --from eval/runs/full --output-dir eval/baselines
+# compare a PR run with the stored baseline:
+uv run rf-skill-eval gate --runs-dir eval/runs/pr --baseline eval/baselines/narrow.json
+uv run rf-skill-eval gate --trigger-results eval/runs/triggers/trigger-results.json
+```
+
+`gate` exits 0 (pass), 1 (fail: pass-rate drop > 1/N, mean input tokens
++30 %, incomplete runs, trigger validation accuracy down by more than one
+query, cost over `--max-cost-usd`) or 3 (`rebaseline-needed` only: the task
+definition, fixture or model changed, or no baseline entry exists — never a
+pass). Baseline files are promoted through a reviewed PR
+([`eval/baselines/README.md`](../../eval/baselines/README.md)).
 
 ---
 
 ## Understanding Reports
 
-A scorecard summarizes one batch (one or more cells) into verdicts.
+### Verdicts and gate results
 
-### Verdicts
+Each grader check yields `passed`, `failed`, `skipped` (could not be
+evaluated — with a reason) or `error` (grader defect). Skipped/errored checks
+never count as passes. A run's gate result is `pass`, `fail` or
+`incomplete`; CI treats `incomplete` as a failure. Gating checks are those
+whose type equals the task's `primary_metric`, or that set `gating: true`.
 
-| Verdict   | Meaning                                                        |
-| --------- | -------------------------------------------------------------- |
-| `SHIP`    | At least one primary metric improves with δ ≥ 0.33, CI excludes zero, nothing regresses, cost within budget. |
-| `ITERATE` | Mixed signal — some primary metrics up, some down, or improvements small. Wait for next iteration. |
-| `HOLD`    | Any primary metric regresses with δ ≥ 0.33, or cost blows budget. Do not ship. |
-
-See [ADR-004](architecture/adr/ADR-004-scoring-model.md) for the full
-gating rule.
-
-### Primary metrics (gating)
-
-1. `first_run_test_pass_pct` — did the produced RF suite pass on first
-   `robot` invocation?
-2. `executed_before_complete` — did the agent run the test via rf-mcp
-   before claiming done?
-3. `user_interrupts_per_1k` — rate of user interrupts per 1000 tool
-   calls.
-4. `convention_violations_per_task` — lint violations from the RF
-   convention grader.
-
-All four are externally grounded (grader-derived), never model
-self-reported.
-
-### Sample scorecard JSON excerpt
-
-```json
-{
-  "batch_id": "2026-04-14T12:00:00Z",
-  "skill": "keyword-builder",
-  "verdict": "SHIP",
-  "gate_reasons": [
-    "first_run_test_pass_pct: +0.42 (δ=0.48, 95% CI [0.21, 0.63])",
-    "no primary regression",
-    "input_tokens_per_task: +18% (within 30% budget)"
-  ],
-  "metrics": {
-    "primary": [...],
-    "secondary": [...],
-    "cost": [...]
-  }
-}
-```
-
-### Sample PR comment (rendered markdown)
-
-```markdown
-### rf-skill-eval: keyword-builder — SHIP
-
-| Metric                         | control | treatment | δ     | 95% CI        |
-| ------------------------------ | ------- | --------- | ----- | ------------- |
-| first_run_test_pass_pct        | 0.41    | 0.83      | +0.48 | [0.21, 0.63]  |
-| executed_before_complete       | 0.25    | 0.75      | +0.50 | [0.28, 0.66]  |
-| convention_violations_per_task | 2.8     | 1.1       | -0.39 | [-0.58, -0.18]|
-| input_tokens_per_task          | 12.1k   | 14.3k     | +18%  | —             |
-
-Full HTML report: [scorecard.html](...)
-```
+The Mann-Whitney / Cliff's δ / SHIP-ITERATE-HOLD model in
+[ADR-004](architecture/adr/ADR-004-scoring-model.md) remains the long-term
+target; with N=3 it is underpowered, so reports show raw rates and deltas and
+the gate uses the tolerances above (see the ADR-004 amendment).
 
 ---
 
 ## Adding a New Task
 
-1. Pick a tier: `narrow/` (single skill, ~5 min), `realistic/`
-   (multi-step, ~20 min), or `adversarial/` (tests failure modes).
-2. Copy an existing task as a template:
+1. Pick a tier: `narrow/` (one skill), `realistic/` (multi-step) or
+   `adversarial/` (tempts a failure mode; never gates).
+2. Copy an existing task as a template and edit it (schema:
+   [`eval/tasks/README.md`](../../eval/tasks/README.md)).
+3. `uv run rf-skill-eval validate-tasks eval/tasks && uv run rf-skill-eval coverage`.
+4. Run it once: `uv run rf-skill-eval run --task <file> --max-cost-usd 1`.
 
-   ```bash
-   cp eval/tasks/narrow/narrow-libdoc-search-01.yaml \
-      eval/tasks/narrow/narrow-my-new-task-01.yaml
-   ```
-
-3. Edit the YAML:
-
-   ```yaml
-   id: narrow-my-new-task-01
-   tier: narrow
-   timeout_min: 8
-   fixture: sut-minimal
-   skill_scope: [libdoc-search]
-   prompt: |
-     Write a Robot Framework test that ...
-   success_criteria:
-     - type: robot_pass
-       path: tests/my_test.robot
-     - type: no_deprecated_keywords
-       path: tests/my_test.robot
-     - type: lint_clean
-       path: tests/my_test.robot
-   ```
-
-4. Validate the task schema:
-
-   ```bash
-   uv run rf-skill-eval tasks validate \
-     eval/tasks/narrow/narrow-my-new-task-01.yaml
-   ```
-
-5. Run it locally with `--arm treatment` and inspect the artifacts.
-
-See [`eval/tasks/README.md`](../../eval/tasks/README.md) for the full
-schema reference and conventions.
+A new skill needs at least one narrow task **and** a trigger set, or
+`coverage` fails and names it.
 
 ---
 
 ## CI Reference
 
-The harness is wired into GitHub Actions via a single workflow with
-three triggers.
+Workflow: `.github/workflows/skill-evaluation.yml` (tiers and caps: ADR-005
+amendment).
 
-### Workflow
+| Trigger | Jobs | Scope | Arms | N | Model | Cap |
+|---|---|---|---|---|---|---|
+| `pull_request` | `preflight` → `pr-eval` | narrow tasks of changed skills + `plugin` canaries (all narrow tasks when the harness changed); validation-split trigger evals when a SKILL.md `description` changed | treatment | 3 | `claude-haiku-4-5-20251001` | `PR_NARROW_CAP_USD`=3, `PR_TRIGGER_CAP_USD`=2 |
+| `schedule` (Sun 04:00 UTC) | `preflight` → `full-eval` | all tiers + all trigger sets | treatment, baseline | 3 | tier defaults | 12 + 12 + 8 + 8 = $40 |
+| `workflow_dispatch` | `preflight` → `full-eval` | inputs `tiers`, `arms`, `runs`, `model`, `allow_opus`, `max_cost_usd`, `triggers` | input | input | input | `max_cost_usd` per invocation |
+| all | `harness-tests` | ruff, mypy, `pytest tests/eval` (no API calls) | – | – | – | – |
 
-`.github/workflows/skill-evaluation.yml`
-
-### Triggers
-
-| Trigger             | Tier scope                         | Budget    | When                        |
-| ------------------- | ---------------------------------- | --------- | --------------------------- |
-| `pull_request`      | narrow (changed-skills only)       | ≤ 15 min  | PRs touching `skills/`, `eval/`, or the plugin |
-| `schedule`          | narrow + realistic + adversarial   | ≤ 4 hours | Sunday 04:00 UTC (weekly canary) |
-| `workflow_dispatch` | user-selected                      | varies    | Manual runs via `gh workflow run` |
-
-The PR trigger runs a narrow-tier matrix with `N=4` replicates per
-arm, scoped to only the skills changed in the PR (a preflight step
-computes this from `git diff`).
-
-### Artifacts
-
-Every matrix cell uploads:
-
-- `eval/runs/<cell_id>/` — session JSONL, hook logs, fixture end-state.
-- `eval/reports/<batch_id>/` — aggregated scorecard (HTML + JSON + MD).
-
-Retention: 30 days for PR runs, 365 days for canary.
-
-### PR comment
-
-The `summarize-pr` job posts (or updates) a single comment marker with
-the scorecard. Format matches the [sample above](#sample-pr-comment-rendered-markdown).
+- The PR job gates against `eval/baselines/narrow.json` and posts one PR
+  comment (report + gate result + trigger report).
+- The weekly job uploads the report and a `candidate-baseline-<run>`
+  artifact; a maintainer promotes it with a PR. The PR gate becomes a
+  **required** check only after two weekly baselines have been recorded.
+- Without credentials (fork PRs) the eval jobs are skipped and a `not-run`
+  job writes "not run: no credentials" to the summary — never a passing
+  result.
 
 ### Manual workflow dispatch
 
 ```bash
-# Run the weekly canary immediately:
-gh workflow run skill-evaluation.yml -f tier=canary
-
-# Run against a specific skill only:
-gh workflow run skill-evaluation.yml \
-  -f tier=narrow -f skill_filter=libdoc-search
-
-# Force API-key auth (for fork-like testing):
+# Weekly-equivalent run now:
+gh workflow run skill-evaluation.yml
+# Only the narrow tier, treatment arm, 5 replicates:
+gh workflow run skill-evaluation.yml -f tiers=narrow -f arms=treatment -f runs=5 -f max_cost_usd=10
+# Opus check (manual only; needs the opt-in and a cap):
+gh workflow run skill-evaluation.yml -f tiers=narrow -f model=claude-opus-5-5 -f allow_opus=true -f max_cost_usd=20
+# Force API-key auth:
 gh workflow run skill-evaluation.yml -f use_api_key=true
 ```
-
-See [faq.md](faq.md) for more manual-trigger recipes.
 
 ---
 
 ## Model Policy
 
-Only two models are supported:
+| Model | Default use | Why |
+| --- | --- | --- |
+| `claude-haiku-4-5-20251001` | narrow tier, trigger evals, PRs, smoke, local | Cheap, fast, low variance |
+| `claude-sonnet-5` | realistic and adversarial tiers | Higher fidelity for multi-step tasks |
+| `claude-opus-5-5` | manual runs only, explicit opt-in | Checks a skill does not *hurt* the strongest model |
 
-| Model                 | Default use             | Why                                   |
-| --------------------- | ----------------------- | ------------------------------------- |
-| `claude-haiku-4-5`    | PR narrow, smoke, local | Cheap, fast, low variance             |
-| `claude-sonnet-4-6`   | Realistic, canary       | Higher fidelity for multi-step tasks  |
-
-**Opus is explicitly blocked.** Reasons:
-
-- **Cost.** Opus is 5× Sonnet, 25× Haiku. A single canary run on Opus
-  would exceed the weekly subscription budget.
-- **Variance.** Opus's higher capability masks skill effects. A good
-  skill gets credit for work the base model would have done anyway.
-- **Rubric calibration.** The gating thresholds in
-  [ADR-004](architecture/adr/ADR-004-scoring-model.md) are calibrated
-  against Haiku/Sonnet's baseline behavior.
-
-Attempting to pass `--model claude-opus-...` fails at CLI argument
-parse time. There is no workaround — add a new ADR if you believe
-Opus inclusion is justified.
+- Task YAML and trigger sets may declare Haiku or Sonnet only.
+- Opus requires `--model claude-opus-5-5 --allow-opus --max-cost-usd <cap>`;
+  without either flag the harness refuses to start and names the missing one.
+  It never runs on PRs or the weekly schedule (≈5× Sonnet per token).
+- Retired ids (`claude-haiku-4-5`, `claude-sonnet-4-6`) are rejected with a
+  migration hint.
 
 ---
 
@@ -468,9 +450,9 @@ with prompt length and turn count.
 | Scope                      | Tasks | Arms | Replicates | Est. cost (API key) | Subscription impact |
 | -------------------------- | ----- | ---- | ---------- | ------------------- | ------------------- |
 | Smoke                      | 1     | 1    | 1          | ~$0.005             | ~1 min of 5-hr window |
-| Local full (narrow)        | ~20   | 2    | 1          | ~$0.25              | ~15 min of 5-hr window |
-| PR narrow (changed-skills) | ~4–8  | 2    | 4          | ~$0.30–0.60         | ~10 min of 5-hr window |
-| Weekly canary (all tiers)  | ~60   | 2    | 8          | ~$6 (Sonnet: ~$30)  | ~2 hours of 5-hr window |
+| Local narrow               | ~12   | 1    | 3          | ~$0.25              | ~15 min of 5-hr window |
+| PR narrow (changed-skills) | ~4–8  | 1    | 3          | ~$0.30–0.60         | ~10 min of 5-hr window |
+| Weekly (all tiers)         | ~25   | 2    | 3          | ~$6 (Sonnet: ~$30)  | ~2 hours of 5-hr window |
 
 On the OAuth/subscription path, cost is flat as long as you stay
 inside the 5-hour rolling window. On the `ANTHROPIC_API_KEY` fallback,

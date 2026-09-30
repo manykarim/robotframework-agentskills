@@ -9,7 +9,7 @@ import pytest
 SCRIPT = (
     Path(__file__).resolve().parent.parent
     / "skills"
-    / "robotframework-results"
+    / "rf-results"
     / "scripts"
     / "rf_results.py"
 )
@@ -72,7 +72,7 @@ def test_details_section():
     assert "suites" in details
     assert "failed_tests" in details
     assert "tags" in details
-    assert "criticality" in details
+    assert "criticality" not in details
     # Should have at least one suite
     assert len(details["suites"]) >= 1
     suite = details["suites"][0]

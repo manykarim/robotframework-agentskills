@@ -17,7 +17,7 @@ from rf_skill_eval.domain.task import GraderCheck, Task
 def sample_task() -> Task:
     return Task(
         id="narrow-kb-basic",
-        skill="keyword-builder",
+        skill="rf-results",
         description="Build a greeting keyword",
         prompt="Write a keyword that logs 'Hello'.",
         allowed_tools=("Read", "Write", "Edit"),
@@ -30,7 +30,7 @@ def sample_task() -> Task:
         ),
         expected_files=("keywords.resource",),
         timeout_seconds=120,
-        model="claude-haiku-4-5",
+        model="claude-haiku-4-5-20251001",
         tier="narrow",
     )
 
@@ -41,7 +41,7 @@ def sample_profile(tmp_path: Path) -> Profile:
     config_dir.mkdir(parents=True, exist_ok=True)
     return Profile(
         name="treatment",
-        enabled_skills=("keyword-builder",),
+        enabled_skills=("rf-results",),
         claude_config_dir=config_dir,
     )
 
@@ -59,7 +59,7 @@ def sample_run(tmp_path: Path) -> Run:
         finished_at=now,
         exit_code=0,
         artifacts_dir=artifacts,
-        model="claude-haiku-4-5",
+        model="claude-haiku-4-5-20251001",
     )
 
 
@@ -69,7 +69,7 @@ def task_yaml(tmp_path: Path) -> Iterator[Path]:
     path.write_text(
         """
 id: narrow-kb-basic
-skill: keyword-builder
+skill: rf-results
 description: basic
 prompt: Build a keyword
 allowed_tools:
@@ -83,7 +83,7 @@ grader_checks:
 expected_files:
   - keywords.resource
 timeout_seconds: 60
-model: claude-haiku-4-5
+model: claude-haiku-4-5-20251001
 tier: narrow
 """,
         encoding="utf-8",

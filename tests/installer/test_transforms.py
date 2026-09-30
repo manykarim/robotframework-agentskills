@@ -37,6 +37,38 @@ def test_substitute_plugin_root_bytes() -> None:
     assert out == b'cmd: /install/x'
 
 
+# ---- substitute_skill_dir ---------------------------------------------------
+
+
+def test_substitute_skill_dir_replaces_plugin_form() -> None:
+    text = 'uv run python "${CLAUDE_SKILL_DIR}/scripts/rf_libdoc.py" --library BuiltIn'
+    out = _x.substitute_skill_dir(text, "/home/u/.agents/skills/rf-libdoc")
+    assert out == 'uv run python "/home/u/.agents/skills/rf-libdoc/scripts/rf_libdoc.py" --library BuiltIn'
+
+
+@pytest.mark.parametrize(
+    ("text", "expected"),
+    [
+        ("uv run python scripts/rf_results.py --output o.xml",
+         'uv run python "/s/rf-results/scripts/rf_results.py" --output o.xml'),
+        ("`.venv/bin/python scripts/rf_results.py …`",
+         '`.venv/bin/python "/s/rf-results/scripts/rf_results.py" …`'),
+        ("uv run --script scripts/rf_results.py --output ci/output.xml",
+         'uv run --script "/s/rf-results/scripts/rf_results.py" --output ci/output.xml'),
+        ("Script paths are relative to this skill's directory; see scripts/ for sources.",
+         "Script paths are relative to this skill's directory; see scripts/ for sources."),
+    ],
+)
+def test_substitute_skill_dir_absolutises_relative_commands(text: str, expected: str) -> None:
+    assert _x.substitute_skill_dir(text, "/s/rf-results") == expected
+
+
+def test_substitute_skill_dir_bytes_passes_binary_through() -> None:
+    blob = b"\xff\xfe${CLAUDE_SKILL_DIR}"
+    assert _x.substitute_skill_dir_bytes(blob, "/x") == blob
+    assert _x.substitute_skill_dir_bytes(b"${CLAUDE_SKILL_DIR}/a", "/x") == b"/x/a"
+
+
 def test_is_substitution_candidate_by_suffix() -> None:
     assert _x.is_substitution_candidate(Path('a.sh'))
     assert _x.is_substitution_candidate(Path('a.md'))
@@ -132,7 +164,7 @@ def test_render_frontmatter_roundtrip() -> None:
 def test_skill_md_to_cursor_mdc_preserves_description() -> None:
     src = (
         '---\n'
-        'name: libdoc-search\n'
+        'name: rf-libdoc\n'
         'description: Search RF library docs\n'
         '---\n'
         'Use this skill...\n'
@@ -143,7 +175,7 @@ def test_skill_md_to_cursor_mdc_preserves_description() -> None:
     assert parsed.frontmatter["alwaysApply"] is False
     assert "**/*.robot" in parsed.frontmatter["globs"]
     # Source name preserved as comment in body
-    assert "libdoc-search" in parsed.body
+    assert "rf-libdoc" in parsed.body
 
 
 def test_skill_md_to_cursor_mdc_custom_globs() -> None:
@@ -176,7 +208,7 @@ def test_subagent_md_to_codex_toml() -> None:
 
 
 def test_skill_md_to_opencode_command_keeps_description_only() -> None:
-    src = '---\nname: libdoc-search\ndescription: blah\nextra: drop\n---\nbody'
+    src = '---\nname: rf-libdoc\ndescription: blah\nextra: drop\n---\nbody'
     out = _x.skill_md_to_opencode_command(src)
     parsed = _x.parse_frontmatter(out)
     assert parsed.frontmatter == {"description": "blah"}

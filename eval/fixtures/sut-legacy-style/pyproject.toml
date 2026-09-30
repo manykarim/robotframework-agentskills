@@ -1,0 +1,20 @@
+[project]
+name = "sut-legacy-style"
+version = "0.0.1"
+description = "Fixture for the adversarial legacy-syntax task: an order resource written in pre-RF 7 style."
+requires-python = ">=3.10"
+dependencies = [
+  "robotframework>=7.4,<8",
+]
+
+[dependency-groups]
+dev = [
+  "robotframework-robocop>=9,<10",
+]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = []

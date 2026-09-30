@@ -72,3 +72,29 @@ def test_verdict_score_bounds() -> None:
         Verdict(run_id="r1", check_name="a", passed=True, score=1.5)
     with pytest.raises(Exception):
         Verdict(run_id="r1", check_name="a", passed=True, score=-0.1)
+
+
+def test_relative_paths_are_made_absolute(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    # Regression: `--output eval/runs/x` produced relative paths; graders run
+    # robot with cwd=<workspace>, so relative paths resolved twice (exit 252).
+    monkeypatch.chdir(tmp_path)
+    run = _run(artifacts_dir=Path("runs/r1"), workspace_dir=Path("runs/r1/workspace"))
+    assert run.artifacts_dir == tmp_path / "runs/r1"
+    assert run.effective_workspace == tmp_path / "runs/r1/workspace"
+    assert run.effective_workspace.is_absolute()
+
+
+def test_robot_pass_with_relative_output_dir(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    import shutil
+
+    from rf_skill_eval.scoring.deterministic import check_robot_pass
+
+    if shutil.which("robot") is None:
+        pytest.skip("robot not installed")
+    ws = tmp_path / "runs" / "r1" / "workspace"
+    (ws / "tests").mkdir(parents=True)
+    (ws / "tests" / "t.robot").write_text("*** Test Cases ***\nT\n    Log    ok\n")
+    monkeypatch.chdir(tmp_path)
+    run = _run(artifacts_dir=Path("runs/r1"), workspace_dir=Path("runs/r1/workspace"))
+    v = check_robot_pass(run, "rp", {"path": "tests/t.robot"})
+    assert v.passed, v.details

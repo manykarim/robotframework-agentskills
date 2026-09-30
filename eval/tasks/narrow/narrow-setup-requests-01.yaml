@@ -1,0 +1,42 @@
+id: narrow-setup-requests-01
+skill: rf-setup
+tier: narrow
+description: |
+  Add RequestsLibrary to a uv-managed Robot Framework project the way the
+  project manages dependencies (uv add -> pyproject.toml + uv.lock). Gated by
+  file_contains on pyproject.toml and uv.lock.
+prompt: |
+  This Robot Framework project is managed with uv (see pyproject.toml). The
+  team wants to start writing API tests with RequestsLibrary. Add the library
+  to the project so it is installed and importable, and confirm it imports.
+model: claude-haiku-4-5-20251001
+max_turns: 12
+timeout_seconds: 420
+allowed_tools:
+  - Read
+  - Write
+  - Edit
+  - Bash
+  - Glob
+  - Grep
+  - Skill
+expected_files:
+  - path: pyproject.toml
+    must_contain:
+      - "robotframework-requests"
+grader_checks:
+  - type: file_contains
+    name: pyproject_declares_requests
+    path: pyproject.toml
+    regex: '(?i)"robotframework-requests'
+  - type: file_contains
+    name: lockfile_pins_requests
+    path: uv.lock
+    regex: '(?im)^name = "robotframework-requests"'
+  - type: tool_call_count
+    name: used_uv_add
+    tool_pattern: "Bash"
+    input_pattern: '\buv add\b'
+    min: 1
+fixture: sut-minimal
+primary_metric: file_contains

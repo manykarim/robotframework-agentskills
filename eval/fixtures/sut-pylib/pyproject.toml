@@ -1,0 +1,15 @@
+[project]
+name = "sut-pylib"
+version = "0.0.1"
+description = "Fixture for rf-python-library tasks: an empty libraries/ folder on the python-path."
+requires-python = ">=3.10"
+dependencies = [
+  "robotframework>=7.0",
+]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = []

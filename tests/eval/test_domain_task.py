@@ -18,7 +18,7 @@ from rf_skill_eval.errors import ModelNotAllowedError
 def _make(**overrides: object) -> Task:
     defaults: dict[str, object] = {
         "id": "t1",
-        "skill": "keyword-builder",
+        "skill": "rf-results",
         "prompt": "do a thing",
     }
     defaults.update(overrides)
@@ -26,13 +26,15 @@ def _make(**overrides: object) -> Task:
 
 
 def test_default_model_is_haiku() -> None:
-    assert DEFAULT_MODEL == "claude-haiku-4-5"
+    assert DEFAULT_MODEL == "claude-haiku-4-5-20251001"
     t = _make()
     assert t.model == DEFAULT_MODEL
 
 
-def test_model_allowlist_contains_only_haiku_and_sonnet() -> None:
-    assert frozenset({"claude-haiku-4-5", "claude-sonnet-4-6"}) == ALLOWED_MODELS
+def test_model_allowlist_is_the_design_d7_set() -> None:
+    assert frozenset(
+        {"claude-haiku-4-5-20251001", "claude-sonnet-5", "claude-opus-5-5"}
+    ) == ALLOWED_MODELS
 
 
 @pytest.mark.parametrize(
@@ -45,32 +47,109 @@ def test_model_allowlist_contains_only_haiku_and_sonnet() -> None:
         "",
     ],
 )
-def test_opus_and_other_models_rejected(forbidden: str) -> None:
+def test_unknown_models_rejected(forbidden: str) -> None:
     # Pydantic wraps validator-raised exceptions in ValidationError; the test
-    # asserts both that rejection happens and that the message traces back to
-    # our ModelNotAllowedError branch.
+    # asserts both that rejection happens and that the message names the
+    # permitted ids.
     with pytest.raises(ValidationError) as exc_info:
         _make(model=forbidden)
-    errors = exc_info.value.errors()
-    assert any("not allowed" in str(err["msg"]).lower() for err in errors)
+    msg = str(exc_info.value)
+    assert "not allowed" in msg.lower()
+    assert "claude-haiku-4-5-20251001" in msg and "claude-sonnet-5" in msg
+
+
+@pytest.mark.parametrize(
+    ("old", "new"),
+    [("claude-haiku-4-5", "claude-haiku-4-5-20251001"), ("claude-sonnet-4-6", "claude-sonnet-5")],
+)
+def test_retired_ids_get_a_migration_hint(old: str, new: str) -> None:
+    with pytest.raises(ValidationError) as exc_info:
+        _make(model=old)
+    msg = str(exc_info.value)
+    assert "retired id" in msg and f"use '{new}'" in msg
+    assert "Permitted:" in msg
+
+
+def test_opus_may_not_be_declared_in_task_yaml() -> None:
+    with pytest.raises(ValidationError) as exc_info:
+        _make(model="claude-opus-5-5")
+    assert "--allow-opus" in str(exc_info.value)
 
 
 def test_model_validator_raises_model_not_allowed_directly() -> None:
-    """The underlying validator raises the typed ``ModelNotAllowedError``.
-
-    Pydantic wraps validator exceptions into :class:`ValidationError`
-    when called via the model constructor, but callers can still invoke
-    the classmethod directly (e.g., from a deserialiser) and get the
-    precise exception type.
-    """
+    """The underlying validator raises the typed ``ModelNotAllowedError``."""
 
     with pytest.raises(ModelNotAllowedError):
         Task._reject_forbidden_models("claude-opus-4")  # type: ignore[arg-type]
 
 
 def test_haiku_and_sonnet_accepted() -> None:
-    _make(model="claude-haiku-4-5")
-    _make(model="claude-sonnet-4-6")
+    _make(model="claude-haiku-4-5-20251001")
+    _make(model="claude-sonnet-5")
+
+
+@pytest.mark.parametrize(
+    ("tier", "model"),
+    [
+        ("narrow", "claude-haiku-4-5-20251001"),
+        ("realistic", "claude-sonnet-5"),
+        ("adversarial", "claude-sonnet-5"),
+    ],
+)
+def test_tier_default_models(tier: str, model: str) -> None:
+    assert _make(tier=tier).model == model
+
+
+def test_gating_defaults_follow_primary_metric_and_explicit_flag() -> None:
+    task = _make(
+        primary_metric="file_contains",
+        grader_checks=[
+            {"type": "file_contains", "path": "a", "regex": "x"},
+            {"type": "file_exists", "path": "a"},
+            {"type": "file_exists", "path": "b", "gating": True},
+            {"type": "file_contains", "path": "c", "regex": "y", "gating": False},
+        ],
+    )
+    gating = [task.is_gating(c) for c in task.grader_checks]
+    assert gating == [True, False, True, False]
+    assert len(task.gating_checks) == 2
+
+
+def test_category_defaults_process_for_tool_checks() -> None:
+    task = _make(
+        grader_checks=[
+            {"type": "tool_call_count", "tool_pattern": "Skill"},
+            {"type": "tool_result_count", "tool_pattern": "Bash"},
+            {"type": "tool_call_sequence", "patterns": ["Read", "Write"]},
+            {"type": "file_exists", "path": "a"},
+            {"type": "tool_call_count", "tool_pattern": "Bash", "category": "outcome"},
+        ]
+    )
+    assert [c.effective_category for c in task.grader_checks] == [
+        "process",
+        "process",
+        "process",
+        "outcome",
+        "outcome",
+    ]
+    # gating/category are fields, not scoring params
+    assert "gating" not in task.grader_checks[0].params
+
+
+def test_mcp_servers_declared_and_validated() -> None:
+    assert _make(mcp_servers=["rf-mcp"]).mcp_servers == ("rf-mcp",)
+    with pytest.raises(ValidationError, match="unknown mcp_servers"):
+        _make(mcp_servers=["something-else"])
+
+
+def test_new_check_types_validate_fields() -> None:
+    _make(grader_checks=[{"type": "file_not_contains", "path": "a", "regex": "x"}])
+    _make(grader_checks=[{"type": "robot_dryrun", "target": "tests"}])
+    _make(grader_checks=[{"type": "keywords_resolve", "target": "t.robot", "specs": ["s.json"]}])
+    with pytest.raises(ValidationError):
+        _make(grader_checks=[{"type": "file_not_contains", "path": "a"}])
+    with pytest.raises(ValidationError):
+        _make(grader_checks=[{"type": "keywords_resolve", "target": "t.robot"}])
 
 
 def test_timeout_bounds() -> None:

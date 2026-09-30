@@ -1,0 +1,48 @@
+# Trigger query set for rf-python-library (format: eval/triggers/README.md).
+# Tune descriptions on the train split only; never edit validation queries
+# to make a description pass (rotate them only when the skill's intent changes).
+#
+# Kept out on purpose (ambiguous between rf-python-library and rf-language, so
+# it is neither a positive nor a negative in either set):
+#   "Should this be a Python keyword or a user keyword?"
+skill: rf-python-library
+model: claude-haiku-4-5-20251001
+runs: 3
+threshold: 0.5
+queries:
+  # should trigger (train): writing and fixing Python keyword libraries and listeners
+  - {id: pylib-t01, split: train, should_trigger: true, query: "Write a Python keyword library for our REST client so the Robot tests can call it"}
+  - {id: pylib-t02, split: train, should_trigger: true, note: "indirect: pasted warning", query: "My library imports fine but Robot says it contains no keywords"}
+  - {id: pylib-t03, split: train, should_trigger: true, query: "How do I make a keyword argument an enum in my Robot Framework Python library?"}
+  - {id: pylib-t04, split: train, should_trigger: true, note: "indirect: symptom only", query: "The counter in my Python keyword library resets for every robot test"}
+  - {id: pylib-t05, split: train, should_trigger: true, query: "Create a Robot Framework listener that posts the results to Slack"}
+  - {id: pylib-t06, split: train, should_trigger: true, note: "typos, user phrasing", query: "robot framewrok custom lib in python, whats the right scope for a db connection?"}
+  # should trigger (validation)
+  - {id: pylib-t07, split: validation, should_trigger: true, note: "edit existing file", query: "Add @keyword decorators to libraries/db_helpers.py so Robot can use them"}
+  - {id: pylib-t08, split: validation, should_trigger: true, note: "indirect: unexpected keyword", query: "Join shows up as a keyword from my Robot library, why?"}
+  - {id: pylib-t09, split: validation, should_trigger: true, query: "Write libdoc documentation for our custom Robot Framework library and give it a version"}
+  - {id: pylib-t10, split: validation, should_trigger: true, query: "My keyword with ROBOT_LIBRARY_SCOPE = GLOBAL keeps data between suites, how do I reset it?"}
+  # should NOT trigger (train): sibling skills and non-RF look-alikes
+  - {id: pylib-n01, split: train, should_trigger: false, note: "sibling rf-language", query: "Write a keyword in a .resource file that logs in with a username and password"}
+  - {id: pylib-n02, split: train, should_trigger: false, note: "sibling rf-requests", query: "Use RequestsLibrary to call the orders API and check the status code"}
+  - {id: pylib-n03, split: train, should_trigger: false, note: "sibling rf-setup", query: "Install robotframework-browser in our uv project"}
+  - {id: pylib-n04, split: train, should_trigger: false, note: "non-RF look-alike", query: "Write a pytest fixture that yields a database connection"}
+  - {id: pylib-n05, split: train, should_trigger: false, note: "sibling rf-language", query: "Call a Python expression inline in my robot test to compute a date"}
+  - {id: pylib-n06, split: train, should_trigger: false, note: "non-RF look-alike", query: "Write a Python decorator that logs how long a function takes"}
+  # should NOT trigger (validation)
+  - {id: pylib-n07, split: validation, should_trigger: false, note: "sibling rf-robotcode", query: "Debug the failing robot test at a breakpoint"}
+  - {id: pylib-n08, split: validation, should_trigger: false, note: "sibling rf-libdoc", query: "What arguments does Browser's Click keyword take?"}
+  - {id: pylib-n09, split: validation, should_trigger: false, note: "non-RF look-alike", query: "Write a Flask route that returns JSON"}
+  - {id: pylib-n10, split: validation, should_trigger: false, note: "non-RF look-alike", query: "Add an event listener in JavaScript that tracks button clicks"}
+  # holdout (tune-skill-descriptions task 7.1): written after the descriptions shipped;
+  # never used to tune, select or accept a description. 5 should / 5 should-not trigger.
+  - {id: pylib-h01, split: holdout, should_trigger: true, query: "Write a keyword library in Python that talks to our MQTT broker so Robot tests can publish and wait for messages"}
+  - {id: pylib-h02, split: holdout, should_trigger: true, query: "My Python keyword should fail the robot test with a clear message instead of a stack trace, how?"}
+  - {id: pylib-h03, split: holdout, should_trigger: true, query: "A keyword in my .py library takes a timeout like '10 seconds'; convert it to a timedelta automatically"}
+  - {id: pylib-h04, split: holdout, should_trigger: true, query: "Write a listener that takes a screenshot whenever a robot keyword fails"}
+  - {id: pylib-h05, split: holdout, should_trigger: true, query: "Make my Python library log an HTML table into the robot log.html"}
+  - {id: pylib-h06, split: holdout, should_trigger: false, note: "sibling rf-language", query: "Write a user keyword in keywords/orders.resource that creates an order and returns its id"}
+  - {id: pylib-h07, split: holdout, should_trigger: false, note: "sibling rf-requests", query: "Call our /payments endpoint with RequestsLibrary and check the response JSON"}
+  - {id: pylib-h08, split: holdout, should_trigger: false, note: "sibling rf-libdoc", query: "Which BuiltIn keyword evaluates a Python expression?"}
+  - {id: pylib-h09, split: holdout, should_trigger: false, note: "non-RF look-alike", query: "Write a Click CLI command in Python with two options"}
+  - {id: pylib-h10, split: holdout, should_trigger: false, note: "non-RF look-alike", query: "Package my Python module for PyPI with hatchling"}

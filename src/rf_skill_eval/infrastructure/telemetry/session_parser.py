@@ -15,6 +15,8 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from ...domain.run import RunUsage
+
 _log = logging.getLogger(__name__)
 
 
@@ -209,3 +211,58 @@ def summarise_session(path: Path) -> dict[str, int]:
     for event in parse_session_jsonl(path):
         counts[event.kind] = counts.get(event.kind, 0) + 1
     return counts
+
+
+def parse_result_usage(path: Path) -> RunUsage | None:
+    """Return usage numbers from the last stream-json ``result`` line.
+
+    Claude Code's ``--output-format stream-json`` ends with an entry like::
+
+        {"type": "result", "subtype": "success", "is_error": false,
+         "duration_ms": 12345, "num_turns": 4, "total_cost_usd": 0.0123,
+         "usage": {"input_tokens": 10, "output_tokens": 200,
+                   "cache_creation_input_tokens": 3000,
+                   "cache_read_input_tokens": 12000}}
+
+    Returns ``None`` when the file is missing or has no ``result`` entry
+    (e.g. the session was killed by the timeout).
+    """
+    if not path.is_file():
+        return None
+    last: dict[str, Any] | None = None
+    with path.open("r", encoding="utf-8", errors="replace") as fh:
+        for raw_line in fh:
+            raw_line = raw_line.strip()
+            if not raw_line or '"result"' not in raw_line:
+                continue
+            try:
+                entry = json.loads(raw_line)
+            except json.JSONDecodeError:
+                continue
+            if isinstance(entry, dict) and entry.get("type") == "result":
+                last = entry
+    if last is None:
+        return None
+    usage = last.get("usage") if isinstance(last.get("usage"), dict) else {}
+    assert isinstance(usage, dict)
+
+    def _int(value: Any) -> int:
+        try:
+            return int(value or 0)
+        except (TypeError, ValueError):
+            return 0
+
+    try:
+        cost = float(last.get("total_cost_usd") or 0.0)
+    except (TypeError, ValueError):
+        cost = 0.0
+    return RunUsage(
+        input_tokens=_int(usage.get("input_tokens")),
+        output_tokens=_int(usage.get("output_tokens")),
+        cache_creation_input_tokens=_int(usage.get("cache_creation_input_tokens")),
+        cache_read_input_tokens=_int(usage.get("cache_read_input_tokens")),
+        num_turns=_int(last.get("num_turns")),
+        duration_ms=_int(last.get("duration_ms")),
+        total_cost_usd=cost,
+        is_error=bool(last.get("is_error", False)),
+    )

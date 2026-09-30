@@ -1,0 +1,4 @@
+{"type":"system","subtype":"init","session_id":"s-4"}
+{"type":"assistant","message":{"role":"assistant","content":[{"type":"tool_use","id":"toolu_31","name":"Skill","input":{"skill":"rf-browser"}}]}}
+{"type":"user","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"toolu_31","is_error":true,"content":"Unknown skill: rf-browser"}]}}
+{"type":"result","subtype":"success","is_error":false,"duration_ms":2000,"num_turns":1,"total_cost_usd":0.001,"usage":{"input_tokens":5,"output_tokens":10}}

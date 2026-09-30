@@ -1,6 +1,6 @@
 # Robot Framework Agent Skills
 
-AI agent skills for Robot Framework test automation, distributed for **seven coding agents**: Claude Code, GitHub Copilot (VS Code), OpenAI Codex, Cursor, OpenCode, Project Goose, Claude Desktop. Includes skills for web testing (Browser/Selenium), API testing (Requests/RESTinstance), mobile testing (Appium), native desktop testing (PlatynUI, preview), asset generation, and RF analysis tools — plus 4 specialised subagents, 4 hooks, and an MCP server.
+AI agent skills for Robot Framework test automation, distributed for **seven coding agents**: Claude Code, GitHub Copilot (VS Code), OpenAI Codex, Cursor, OpenCode, Project Goose, Claude Desktop. Includes skills for the Robot Framework language (tests, keywords, resources, variables), web testing (Browser/Selenium), API testing (Requests/RESTinstance), mobile testing (Appium), native desktop testing (PlatynUI, preview), environment setup, and RF analysis tools — plus 4 specialised subagents, 4 hooks, and an MCP server.
 
 ## Install
 
@@ -28,7 +28,7 @@ rf-agentskills install --agent claude-code          # single (back-compat)
 
 Installs default to **project scope** (into the current directory, e.g. `./.claude/`); add `--scope user` for a global install under your home directory. Other commands: `uninstall`, `list`, `doctor`, `version`. Useful flags: `--scope project|user [--project DIR]`, `--prefix DIR`, `--dry-run`, `--what skills,agents,hooks,mcp`, `--force`, `--no-input`.
 
-A manifest (per-project under `<project>/.rf-agentskills/`, or global for user scope) tracks every file written (hash + transform); `uninstall` removes only files whose hash still matches and only the hook/MCP config entries it added — user edits and other tools' hooks are preserved.
+A manifest (per-project under `<project>/.rf-agentskills/`, or global for user scope) tracks every file written (hash + transform); `uninstall` removes only files whose hash still matches and only the hook/MCP config entries it added — user edits and other tools' hooks are preserved. Re-running `install` after an upgrade removes files the previous install wrote that the new bundle no longer ships (same hash check; user-modified files are kept).
 
 | Agent | What lands where | Coverage |
 |---|---|---|
@@ -71,7 +71,7 @@ code --install-extension robotframework-agentskills-1.2.0.vsix
 Each skill is a self-contained folder under `skills/`. Copy what you need:
 
 ```bash
-cp -r skills/robotframework-browser-skill <your-project>/.claude/skills/
+cp -r skills/rf-browser <your-project>/.claude/skills/
 ```
 
 This works for any agent that reads SKILL.md files from a project-local directory (Claude Code, Codex via `.codex/skills/`, Copilot via `.github/skills/`, Cursor via `.cursor/skills/`, etc.).
@@ -80,39 +80,54 @@ This works for any agent that reads SKILL.md files from a project-local director
 
 This repo ships two release scopes — see **[`RELEASING.md`](RELEASING.md)** for the policy:
 
-- **Content** (Claude plugin / `.vsix` / skills tarballs) — currently `v1.2.0`, tagged `v*`.
-- **Tooling** (`rf-agentskills` Python installer) — currently `0.4.0`, tagged `rf-agentskills-v*`.
+- **Content** (Claude plugin / `.vsix` / skills tarballs) — currently `v2.0.0`, tagged `v*`.
+- **Tooling** (`rf-agentskills` Python installer) — currently `0.7.0`, tagged `rf-agentskills-v*`.
 
 The two channels are versioned independently. `rf-agentskills version` prints both:
 
 ```console
 $ rf-agentskills version
-rf-agentskills 0.4.0
-bundled content: 1.2.0  (from rf-agentskills plugin manifest)
+rf-agentskills 0.7.0
+bundled content: 2.0.0  (from rf-agentskills plugin manifest)
 ```
 
 ## What You Get
 
-### 14 Skills
+### 11 Skills
 
 | Skill | Type | Command | Description |
 |-------|------|---------|-------------|
-| Browser Library | library-reference | `/rf-agentskills:browser` | Web testing with Playwright (auto-waiting, assertions, Shadow DOM) |
-| SeleniumLibrary | library-reference | `/rf-agentskills:selenium` | Web testing with Selenium WebDriver |
-| AppiumLibrary | library-reference | `/rf-agentskills:appium` | Mobile testing for iOS and Android |
-| RequestsLibrary | library-reference | `/rf-agentskills:requests` | REST API testing with HTTP methods |
-| RESTinstance | library-reference | `/rf-agentskills:restinstance` | REST API testing with JSON Schema validation |
-| PlatynUI (preview) | library-reference | `/rf-agentskills:platynui` | Native desktop UI testing (Windows UIA, Linux AT-SPI2) via PlatynUI.BareMetal |
-| robotcode CLI | cli-reference | `/rf-agentskills:robotcode` | Discover tests, look up keywords, debug failing tests, REPL, analyze results and code with the `robotcode` CLI |
-| Setup | setup-guide | `/rf-agentskills:setup` | Install Robot Framework and libraries with uv, venv + pip or Poetry; project layout, CI, troubleshooting |
-| Keyword Builder | script-based | `/rf-agentskills:keyword-builder` | Generate RF user keywords from structured input |
-| Test Case Builder | script-based | `/rf-agentskills:testcase-builder` | Generate RF test cases from structured input |
-| Resource Architect | script-based | `/rf-agentskills:resource-architect` | Design resource/variable file layouts |
-| Libdoc Search | script-based | `/rf-agentskills:libdoc-search` | Search library keywords by use case |
-| Libdoc Explain | script-based | `/rf-agentskills:libdoc-explain` | Explain keyword arguments and documentation |
-| Results | script-based | `/rf-agentskills:results` | Parse output.xml into JSON summaries (requires robotframework) |
+| Browser Library | library-reference | `/rf-agentskills:rf-browser` | Web UI tests with Browser Library (Playwright); the default when no web library is chosen yet |
+| SeleniumLibrary | library-reference | `/rf-agentskills:rf-selenium` | Web UI tests with SeleniumLibrary (WebDriver, Selenium Grid) for suites that import `SeleniumLibrary` |
+| AppiumLibrary | library-reference | `/rf-agentskills:rf-appium` | Mobile app tests (Android/iOS native, hybrid, mobile web) with AppiumLibrary |
+| RequestsLibrary | library-reference | `/rf-agentskills:rf-requests` | HTTP/REST API tests with RequestsLibrary; the default when no API library is named |
+| RESTinstance | library-reference | `/rf-agentskills:rf-restinstance` | REST API tests with RESTinstance (`Library    REST`): JSON Schema / OpenAPI-driven assertions |
+| PlatynUI (preview) | library-reference | `/rf-agentskills:rf-platynui` | Native desktop UI testing (Windows UIA, Linux AT-SPI2) via PlatynUI.BareMetal |
+| robotcode CLI | cli-reference | `/rf-agentskills:rf-robotcode` | Discover, run, debug and statically check with the `robotcode` CLI (`robot.toml` profiles, `robot-debug`, REPL); also keyword docs and results when robotcode is installed |
+| Robot Framework language | language-guide + script | `/rf-agentskills:rf-language` | Write and review tests (keyword-driven, data-driven, BDD), suites, `__init__.robot`, tags, user keywords, `.resource` and variable files in modern, version-gated syntax; `rf_conventions` script detects the project's conventions (requires robotframework). Not for Python keyword libraries |
+| Python keyword libraries | library-guide + script | `/rf-agentskills:rf-python-library` | Write and fix keyword libraries and listeners in Python: `@library`/`@keyword`, scope by state lifetime (TEST/SUITE/GLOBAL), type-hint conversion and custom converters, failures and logging, dynamic/hybrid APIs, listener API v3, libdoc; `check_library` script finds "contains no keywords", leaked imports, lost signatures and state kept in `TEST` scope before tests run (requires robotframework, Python 3.10+) |
+| Setup | setup-guide | `/rf-agentskills:rf-setup` | Install Robot Framework and libraries with uv, venv + pip or Poetry; fix environment errors (`ModuleNotFoundError`, wrong interpreter); project layout, CI |
+| Libdoc | script-based | `/rf-agentskills:rf-libdoc` | Look up keyword names, arguments and docs; use `rf-robotcode` instead when robotcode is installed (requires robotframework) |
+| Results | script-based | `/rf-agentskills:rf-results` | Analyze output.xml results (failures, summaries, merges); use `rf-robotcode` instead when robotcode is installed (requires robotframework) |
 
-The library-reference skills provide documentation and usage guidance. The robotcode CLI skill guides agents through the `robotcode` command line and is preferred over the libdoc and results scripts when `robotcode` is installed. The 6 script-based skills execute Python scripts to generate code or analyze artifacts. Library-reference skills cross-reference their companion script-based skills (e.g., the Browser skill suggests using Keyword Builder and Libdoc Search).
+#### Renamed in 2.0
+
+Every skill now has one identifier, `rf-<topic>`, used as its folder name and its `name` in every channel (agentskills.io requires the two to match). In Claude Code the plugin skills are invoked as `/rf-agentskills:rf-browser` instead of `/rf-agentskills:browser`; description-based auto-loading is unaffected. `rf-agentskills install` migrates earlier installs automatically (old folders it installed are removed; files you edited are kept and reported). Folders you copied by hand are not touched — `rf-agentskills doctor` lists them so you can delete them.
+
+| Before 2.0: repo `skills/` folder | Before 2.0: plugin / installer folder and command | Now (everywhere) |
+|---|---|---|
+| `robotframework-browser-skill` | `browser`, `/rf-agentskills:browser` | `rf-browser` |
+| `robotframework-selenium-skill` | `selenium`, `/rf-agentskills:selenium` | `rf-selenium` |
+| `robotframework-appium-skill` | `appium`, `/rf-agentskills:appium` | `rf-appium` |
+| `robotframework-requests-skill` | `requests`, `/rf-agentskills:requests` | `rf-requests` |
+| `robotframework-restinstance-skill` | `restinstance`, `/rf-agentskills:restinstance` | `rf-restinstance` |
+| `robotframework-platynui-skill` | `platynui`, `/rf-agentskills:platynui` | `rf-platynui` |
+| `robotframework-robotcode-skill` | `robotcode`, `/rf-agentskills:robotcode` | `rf-robotcode` |
+| `robotframework-setup-skill` | `setup`, `/rf-agentskills:setup` | `rf-setup` |
+| `robotframework-results` | `results`, `/rf-agentskills:results` | `rf-results` |
+| `robotframework-libdoc-search`, `robotframework-libdoc-explain` | `libdoc-search`, `libdoc-explain` | `rf-libdoc` (merged) |
+
+The library-reference skills provide documentation and usage guidance. The robotcode CLI skill guides agents through the `robotcode` command line and is preferred over the libdoc and results scripts when `robotcode` is installed. The 2 script-based skills execute Python scripts to look up keywords or analyze results. Each skill ships its script in its own `scripts/` folder, and the documented command runs it in the project environment: `uv run python scripts/<name>.py …` (the Claude Code plugin copy uses `"${CLAUDE_SKILL_DIR}/scripts/<name>.py"`, and the installer writes absolute paths for agents that do not expand that variable). The scripts use fixed exit codes (0 ok, 1 internal, 2 usage, 3 Robot Framework missing or < 7, 4 input not loadable) and print `error:`/`hint:` lines on stderr. Library-reference skills cross-reference their companion skills (e.g., the Browser skill suggests Libdoc and Setup). Agents write keywords, test cases and resource files directly and verify them with libdoc and `robot --dryrun`; the validation hooks check every written `.robot`/`.resource` file.
 
 ### 4 Specialized Agents
 
@@ -125,33 +140,33 @@ The library-reference skills provide documentation and usage guidance. The robot
 
 ### Automated Hooks
 
-- **Post-save validation**: Automatically validates `.robot` files after every write/edit
-- **Skill routing**: Routes RF-related prompts to the appropriate skill or agent
-- **Environment check**: Checks for installed RF packages at session start
+- **Post-save validation**: Validates every written `.robot`/`.resource` file with Robocop (project environment first): syntax errors are fed back to the agent; deprecated syntax (`[Return]`, `Run Keyword If`, `Force Tags`, …) is reported as a **non-blocking warning** (`RF_AGENTSKILLS_DEPRECATION_CHECK=warn|off`); an opt-in per-file dry run (`RF_AGENTSKILLS_FILE_DRYRUN=1`). See `plugins/rf-agentskills/hooks/README.md`.
+- **Skill routing**: Routes RF-related prompts to the appropriate skill (short routing text, ≤ 450 characters)
+- **Environment check**: Checks for installed RF packages and Robocop at session start (install advice via rf-setup)
 - **Test reminder**: Reminds you to run tests when the session ends
 
 ## Prerequisites
 
 - **Claude Code** 1.0.33 or later
-- **Python 3.8+** (for builder and tool scripts)
-- **robotframework** Python package (required for libdoc-search, libdoc-explain, and results skills)
-- New to Robot Framework setup? The `setup` skill walks an agent through installing it into a project environment (uv preferred).
+- **Python 3.8+** (for the tool scripts)
+- **robotframework** Python package (required for the libdoc and results skills)
+- New to Robot Framework setup? The `setup` skill (`rf-setup`) walks an agent through installing it into a project environment (uv preferred; it also covers venv + pip and Poetry).
 
 ```bash
-pip install robotframework
+uv add robotframework        # pip alternative (inside the project venv): pip install robotframework
 ```
 
-All scripts handle a missing `robotframework` package gracefully -- script-based skills that do not require it (keyword-builder, testcase-builder, resource-architect) work with the Python standard library alone.
+All scripts handle a missing `robotframework` package gracefully and report how to install it.
 
-Optional libraries (for their respective skills):
+Optional libraries (for their respective skills), installed into the project environment -- same commands as the `rf-setup` skill's library table:
 ```bash
-pip install robotframework-browser    # Browser skill
-pip install robotframework-seleniumlibrary  # Selenium skill
-pip install robotframework-appiumlibrary    # Appium skill
-pip install robotframework-requests   # Requests skill
-pip install RESTinstance              # RESTinstance skill
-pip install --pre robotframework-PlatynUI   # PlatynUI skill (preview; Python 3.12+; NOT plain install — see skill)
-pip install "robotcode[all]"          # robotcode CLI skill (install into the project environment)
+uv add "robotframework-browser[bb]" && uv run rfbrowser install chromium   # Browser skill (no Node.js needed)
+uv add robotframework-seleniumlibrary              # Selenium skill (Selenium Manager fetches drivers)
+uv add robotframework-appiumlibrary                # Appium skill (+ npm Appium server and drivers)
+uv add robotframework-requests                     # Requests skill
+uv add RESTinstance                                # RESTinstance skill (Python 3.11+)
+uv add --prerelease allow robotframework-PlatynUI  # PlatynUI skill (preview; Python 3.12+; a plain install gets old 0.9.2)
+uv add --dev "robotcode[all]"                      # robotcode CLI skill
 ```
 
 ## Team Distribution
@@ -183,24 +198,24 @@ Agent Skills are modular, self-contained packages that include a `SKILL.md` file
 
 ```
 skills/                        # Canonical source of truth (12 skills)
-├── robotframework-*/          # Each skill is a self-contained folder
+├── rf-*/                      # One folder per skill; folder name == SKILL.md name
 │   ├── SKILL.md               # Skill definition (loaded by agent)
 │   ├── scripts/               # Python scripts (executed, not loaded)
 │   └── references/            # Deep reference docs (loaded on demand)
 plugins/rf-agentskills/        # Claude Code Plugin distribution
-├── skills/                    # Short-named skill copies (synced from root)
-├── scripts/                   # Centralized script copies (synced from root)
+├── skills/rf-*/               # Skill copies incl. their own scripts/ (synced from root)
+├── scripts/                   # Hook scripts (.mjs) only
 ├── agents/                    # 4 agent definitions
 ├── hooks/                     # Session/edit hooks
 └── servers/                   # MCP server
 vscode-extension/              # VS Code Extension distribution
-├── skills/                    # Skill copies for VS Code (synced from root)
+├── skills/rf-*/               # Skill copies for VS Code (synced from root)
 └── src/                       # Extension TypeScript source
 tests/                         # pytest test suite
 scripts/                       # Build and sync utilities
 ```
 
-The root `skills/` directory is the single source of truth. Plugin and VS Code copies are derived from it using `scripts/sync-skills.sh`. The `scripts/check-drift.sh` script (also run in CI) verifies that all distribution channels stay in sync.
+The root `skills/` directory is the single source of truth. Plugin and VS Code copies are derived from it using `scripts/sync-skills.sh`. The `scripts/check-drift.sh` script (also run in CI) verifies that all distribution channels stay in sync, and `scripts/validate-skills.py` (also run in CI) checks every `SKILL.md` against the [agentskills.io](https://agentskills.io) frontmatter rules: the folder name equals `name`, which is `rf-<topic>` in every channel, plus `license`, `compatibility` and `metadata.version` (= `VERSION`; kept in step by `scripts/bump-version.sh`).
 
 ## Development
 
@@ -229,19 +244,21 @@ This also runs in CI to prevent drift from being committed.
 python -m pytest tests/ -v
 
 # Run specific test files
-python -m pytest tests/test_keyword_builder.py -v
-python -m pytest tests/test_testcase_builder.py -v
-python -m pytest tests/test_resource_architect.py -v
 python -m pytest tests/test_rf_results.py -v          # requires robotframework
 python -m pytest tests/test_drift_detection.py -v
-python -m pytest tests/test_libdoc_search.py -v        # requires robotframework
+python -m pytest tests/test_rf_libdoc.py -v            # requires robotframework
+python -m pytest tests/test_script_execution.py -v    # script CLI contract (exit codes, --help, --json-out)
+python -m pytest tests/test_skill_commands.py -v      # how SKILL.md / agents / hooks run the scripts
+python -m pytest tests/test_libdoc_skill.py -v
 python -m pytest tests/test_marketplace_validation.py -v
+python -m pytest tests/test_skill_validation.py -v
 ```
 
-### Validate the Marketplace
+### Validate the Marketplace and Skills
 
 ```bash
 python scripts/validate-marketplace.py
+python scripts/validate-skills.py --channel all   # root, plugin and VS Code copies
 ```
 
 ### MCP Server
@@ -250,12 +267,13 @@ The plugin includes an MCP server that exposes all script-based tools:
 
 | MCP Tool | Description |
 |----------|-------------|
-| `rf_libdoc_search` | Search keywords across RF libraries |
-| `rf_libdoc_explain` | Explain keyword arguments in detail |
+| `rf_libdoc_search` | Search keywords across RF libraries (rf-libdoc skill) |
+| `rf_libdoc_explain` | Explain keyword arguments in detail (rf-libdoc skill) |
 | `rf_results_analyze` | Parse output.xml into structured JSON |
-| `rf_keyword_builder` | Generate RF user keywords from JSON |
-| `rf_testcase_builder` | Generate RF test cases from JSON |
-| `rf_resource_architect` | Design resource file layouts |
+| `rf_conventions` | Report a project's Robot Framework conventions and version as JSON (rf-language skill) |
+| `rf_check_library` | Check the project's own Python keyword libraries: keywords, scope, API style and defect findings as JSON (rf-python-library skill; always a subprocess, never imports user code into the server) |
+
+The server runs a script in-process when its own interpreter can import Robot Framework 7+ and the requested libraries. Otherwise it runs the script with the project interpreter found in the working directory (`uv run --frozen python` for a uv project, then `.venv`, then `$VIRTUAL_ENV`).
 
 Test the MCP server:
 ```bash

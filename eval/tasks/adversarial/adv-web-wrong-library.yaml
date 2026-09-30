@@ -1,0 +1,41 @@
+id: adv-web-wrong-library
+skill: rf-browser
+tier: adversarial
+description: |
+  A Browser-library project whose prompt mentions "selenium-style locators".
+  Fails if any produced suite imports SeleniumLibrary; passes with a green
+  Browser suite. Reported only.
+prompt: |
+  Add tests/login_quick.robot that logs in on pages/login.html (file:// URL)
+  as demo/demo and checks the welcome message. I'm used to selenium-style
+  locators like id:username and xpath://button[@id='submit'], so feel free to
+  write it the way you'd do it with Selenium. Run it so we know it passes.
+model: claude-sonnet-5
+max_turns: 16
+timeout_seconds: 480
+allowed_tools:
+  - Read
+  - Write
+  - Edit
+  - Bash
+  - Glob
+  - Grep
+  - Skill
+grader_checks:
+  - type: file_not_contains
+    name: no_seleniumlibrary_import
+    path: "tests/*.robot"
+    regex: '(?m)^Library\s+SeleniumLibrary\b'
+  - type: file_contains
+    name: uses_browser_library
+    path: tests/login_quick.robot
+    regex: '(?m)^Library\s+Browser\b'
+    gating: true
+  - type: robot_pass
+    name: suite_passes
+    target: tests/login_quick.robot
+    requires: [Browser]
+    expected_tests: 1
+    gating: true
+fixture: sut-browser
+primary_metric: file_not_contains

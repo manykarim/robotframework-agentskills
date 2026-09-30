@@ -1,0 +1,106 @@
+# Candidate descriptions for rf-results (tune-skill-descriptions D5/D6).
+# Train numbers: skill loads over 3 runs per query (Haiku 4.5); selection uses the train split only.
+# 'listing' says whether the run used Claude Code's default skill-listing budget or
+# SLASH_COMMAND_TOOL_CHAR_BUDGET=40000 (every description visible); see design.md Implementation Notes.
+skill: rf-results
+selected: 1
+iterations:
+- iteration: 0
+  text: 'Parses Robot Framework output.xml with a bundled script into JSON: pass/fail totals, suite and
+    test breakdowns, tag statistics, failure and keyword error messages, execution errors, slowest tests
+    and keywords, and merging or combining several outputs via rebot. Use when the user asks why tests
+    failed, wants a run summarised, or needs output.xml files merged (for example after pabot or a rerun).
+    Prefer rf-robotcode (robotcode results) when the robotcode CLI is installed.'
+  listing: 'default budget (Haiku: 8000 chars)'
+  train_pos_loads: 2
+  train_pos_runs: 21
+  train_query_recall: 0/7
+  train_neg_loads: 0
+  variant_id: 25e6b4b2b5f8
+  run: evidence/rebaseline.json (re-baseline, train split)
+  listed_with_description: false
+  rationale: Current shipped description (re-baseline). Claude Code listed this skill by name only in
+    these sessions (skill-listing budget), so the model never saw this text.
+  remeasured_visible:
+    listing: SLASH_COMMAND_TOOL_CHAR_BUDGET=40000
+    train_pos_loads: 8
+    train_pos_runs: 21
+    train_query_recall: 2/7
+    train_neg_loads: 0
+    run: scratchpad tune/runs/diag-budget40k-rf-results-current
+- iteration: 1
+  text: 'Use this skill whenever the user asks about the results of a Robot Framework run, and load it
+    first, before reading or searching for output.xml yourself: its bundled script parses one or more
+    output.xml files into pass/fail totals, failed tests with their error messages, suite and tag statistics,
+    slowest tests and execution errors, and merges pabot or rerun outputs with rebot. Use when someone
+    asks why tests failed, wants a nightly or CI run summarised, asks which suites or tags have failures,
+    or needs outputs combined into one report, even if they only say "the robot run" or "the results"
+    and never mention output.xml. Prefer rf-robotcode (robotcode results) when the robotcode CLI is installed.'
+  listing: SLASH_COMMAND_TOOL_CHAR_BUDGET=40000
+  train_pos_loads: 21
+  train_pos_runs: 21
+  train_query_recall: 7/7
+  train_neg_loads: 0
+  variant_id: 8ede4a7c5372
+  run: scratchpad tune/runs/diag-budget40k-rf-results-rf-results-it1
+  default_listing_run:
+    train_pos_loads: 3
+    train_pos_runs: 21
+    train_query_recall: 1/7
+    train_neg_loads: 0
+    note: 'first run under the default budget: rf-results was listed by name only, so the text was not
+      seen'
+  rationale: 'Transcripts: the model Globbed/Read output.xml first and ran out of its 3 turns. Lead with
+    the user intent (results of a run), tell it to load the skill before reading or searching for output.xml,
+    describe the outputs in user terms, add the "even if they only say the robot run / the results" nudge.
+    Stop rule met (recall 1.0, 0 negative loads).'
+
+# Compact candidates (D11/D13): <= 160 characters each, all 12 listing lines <= 1700,
+# tuned together on the train split under the DEFAULT listing budget (no override).
+# Iterations are set iterations: iteration k of every skill was staged together in variant k
+# (iteration 2 re-ran rf-language, rf-robotcode, rf-libdoc, rf-results; iteration 3 rf-robotcode only).
+compact:
+  rebaseline_train:
+    train_pos_loads: 2
+    train_pos_runs: 21
+    train_query_recall: 0/7
+    train_neg_loads: 0
+    train_neg_accuracy: 6/6
+    note: current long description, default listing budget
+  selected: 1
+  iterations:
+  - iteration: 1
+    text: Use first, before reading output.xml yourself, to summarise, explain or merge Robot Framework
+      run results (output.xml, rebot).
+    chars: 126
+    listing: default budget (no override)
+    all_12_descriptions_visible: true
+    train_pos_loads: 18
+    train_pos_runs: 21
+    train_query_recall: 7/7
+    train_neg_loads: 1
+    train_neg_accuracy: 6/6
+    variant_id: b7a14079b54d
+    run: scratchpad tune/runs/compact-it1
+    rationale: 'Rich candidate 1 shortened: ''before reading output.xml yourself'' was the decisive lever
+      (all re-baseline misses Globbed/Read output.xml).'
+    remeasured_with_later_sets:
+    - set_iteration: 2
+      variant_id: 89165185ac66
+      run: scratchpad tune/runs/compact-it2
+      train_pos_loads: 16
+      train_pos_runs: 21
+      train_query_recall: 6/7
+      train_neg_loads: 0
+      train_neg_accuracy: 6/6
+# '## When to use' body block (D12), drafted from the selected rich candidate; shipped by task 6.1.
+when_to_use: |
+  ## When to use
+
+  Load this skill first, before reading or searching for output.xml yourself, when the user asks about the results of a Robot Framework run:
+
+  - why tests failed, pass/fail totals, failed suites, tag statistics, slowest tests, execution errors;
+  - a nightly or CI run to summarise, even if they only say "the robot run" or "the results" and never mention output.xml;
+  - merging pabot or rerun (`--rerunfailed`) outputs into one report with rebot.
+
+  Not this skill: prefer `rf-robotcode` (`robotcode results`) when the robotcode CLI is installed or named.

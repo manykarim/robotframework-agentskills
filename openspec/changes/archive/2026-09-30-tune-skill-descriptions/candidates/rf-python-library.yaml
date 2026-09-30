@@ -1,0 +1,136 @@
+# Candidate descriptions for rf-python-library (tune-skill-descriptions D5/D6).
+# Train numbers: skill loads over 3 runs per query (Haiku 4.5); selection uses the train split only.
+# 'listing' says whether the run used Claude Code's default skill-listing budget or
+# SLASH_COMMAND_TOOL_CHAR_BUDGET=40000 (every description visible); see design.md Implementation Notes.
+skill: rf-python-library
+selected: 3
+iterations:
+- iteration: 0
+  text: 'Creates and reviews Robot Framework keyword libraries and listeners in Python: module or class
+    libraries, @library/@keyword/@not_keyword, library scope (TEST/SUITE/GLOBAL) and init arguments, type-hint
+    conversion (Enum, Literal, TypedDict, custom converters), embedded-argument keywords, failures and
+    logging with robot.api, async, dynamic/hybrid APIs, listener API v3 and libdoc docs. Use when writing
+    or fixing a .py keyword library or listener, adding @keyword or ROBOT_LIBRARY_SCOPE, or when a library
+    ''contains no keywords'' or its state resets between tests. For user keywords and tests in .robot/.resource
+    files use rf-language; for using an existing library such as Browser or RequestsLibrary use its library
+    skill.'
+  listing: 'default budget (Haiku: 8000 chars)'
+  train_pos_loads: 5
+  train_pos_runs: 18
+  train_query_recall: 1/6
+  train_neg_loads: 0
+  variant_id: 25e6b4b2b5f8
+  run: evidence/rebaseline.json (re-baseline, train split)
+  listed_with_description: false
+  rationale: Current shipped description (re-baseline). Claude Code listed this skill by name only in
+    these sessions (skill-listing budget), so the model never saw this text.
+- iteration: 1
+  text: 'Use this skill whenever Robot Framework keywords, libraries or listeners are written in Python,
+    and load it first, before reading or creating the .py files or answering from memory: module or class
+    libraries that suites import, @keyword and @library decorators, ROBOT_LIBRARY_SCOPE and state kept
+    between tests, argument conversion from type hints (Enum, Literal, custom converters), failures and
+    logging via robot.api, libdoc docs for the library, and listeners that react to or report test results.
+    Use when writing or fixing a custom Python library, a library that ''contains no keywords'' or loses
+    its state, choosing a scope for a connection or client, or a listener that sends results somewhere,
+    even if the user just says "custom lib" or "Python helper for Robot". For keywords in .robot/.resource
+    files use rf-language; for using an existing library such as Browser or RequestsLibrary use its library
+    skill.'
+  listing: SLASH_COMMAND_TOOL_CHAR_BUDGET=40000
+  train_pos_loads: 14
+  train_pos_runs: 18
+  train_query_recall: 5/6
+  train_neg_loads: 0
+  variant_id: e5010062d9f1
+  spent_usd: 0.971
+  run: scratchpad tune/runs/rf-python-library-it1
+  rationale: 'Re-baseline: Glob for *.py libraries first, or scope/enum questions answered directly. Imperative
+    intent sentence, load-first nudge, symptoms (contains no keywords, loses state), user phrasings (custom
+    lib).'
+- iteration: 2
+  text: 'Use this skill whenever Robot Framework keywords, libraries or listeners are written in Python,
+    and load it first, before exploring the project, reading or creating the .py files, or answering from
+    memory: new module or class libraries that wrap a client, SDK or service for the tests, @keyword and
+    @library decorators, ROBOT_LIBRARY_SCOPE and state kept between tests, argument conversion from type
+    hints (Enum, Literal, custom converters), failures and logging via robot.api, libdoc docs for the
+    library, and listeners that react to or report test results. Use when writing or fixing a custom Python
+    library, a library that ''contains no keywords'' or loses its state, choosing a scope for a connection
+    or client, or a listener that sends results somewhere, even if the user just says "custom lib" or
+    "Python helper for Robot". For keywords in .robot/.resource files use rf-language; for using an existing
+    library such as Browser or RequestsLibrary use its library skill.'
+  listing: SLASH_COMMAND_TOOL_CHAR_BUDGET=40000
+  train_pos_loads: 12
+  train_pos_runs: 18
+  train_query_recall: 4/6
+  train_neg_loads: 0
+  variant_id: 5dce3abe06b1
+  spent_usd: 0.954
+  run: scratchpad tune/runs/rf-python-library-it2
+  rationale: Candidate 1 missed creating a new library around a client (explored the workspace). Add 'before
+    exploring the project' and new libraries that wrap a client, SDK or service. Result lower than candidate
+    1 (noise on listener/state queries).
+- iteration: 3
+  text: Use this skill whenever Robot Framework keywords, libraries or listeners are written in Python,
+    and load it first, before exploring the project, reading or creating .py files, or answering from
+    memory. It covers new keyword libraries (for example around an API, database or device client), @keyword
+    and @library decorators, ROBOT_LIBRARY_SCOPE and state kept between tests, argument conversion from
+    type hints (Enum, Literal, custom converters), failures and logging via robot.api, libdoc docs, and
+    listeners that react to or report results to chat or dashboards. Use when writing or fixing a custom
+    Python library, a library that 'contains no keywords' or loses its state between tests, choosing a
+    scope for a connection, or writing a listener, even if the user just says "custom lib" or "Python
+    helper for Robot". For keywords in .robot/.resource files use rf-language; for using an existing library
+    such as Browser or RequestsLibrary use its library skill.
+  listing: SLASH_COMMAND_TOOL_CHAR_BUDGET=40000
+  train_pos_loads: 17
+  train_pos_runs: 18
+  train_query_recall: 6/6
+  train_neg_loads: 0
+  variant_id: 222c45c6c043
+  spent_usd: 0.975
+  run: scratchpad tune/runs/rf-python-library-it3
+  rationale: Candidates 1-2 missed creating a new library around a REST client (workspace exploration)
+    and were noisy on listener/state queries. Coverage as its own sentence with concrete kinds of new
+    libraries (API, database or device client), listeners reporting to chat or dashboards, state lost
+    between tests. Stop rule met.
+
+# Compact candidates (D11/D13): <= 160 characters each, all 12 listing lines <= 1700,
+# tuned together on the train split under the DEFAULT listing budget (no override).
+# Iterations are set iterations: iteration k of every skill was staged together in variant k
+# (iteration 2 re-ran rf-language, rf-robotcode, rf-libdoc, rf-results; iteration 3 rf-robotcode only).
+compact:
+  rebaseline_train:
+    train_pos_loads: 5
+    train_pos_runs: 18
+    train_query_recall: 1/6
+    train_neg_loads: 0
+    train_neg_accuracy: 6/6
+    note: current long description, default listing budget
+  selected: 1
+  iterations:
+  - iteration: 1
+    text: Use first, before exploring or answering, to write or fix Robot Framework keyword libraries
+      or listeners in Python.
+    chars: 115
+    listing: default budget (no override)
+    all_12_descriptions_visible: true
+    train_pos_loads: 16
+    train_pos_runs: 18
+    train_query_recall: 6/6
+    train_neg_loads: 0
+    train_neg_accuracy: 6/6
+    variant_id: b7a14079b54d
+    run: scratchpad tune/runs/compact-it1
+    rationale: 'Rich candidate 3 shortened: keyword libraries or listeners in Python, load-first cue against
+      the Glob-for-*.py failure.'
+# '## When to use' body block (D12), drafted from the selected rich candidate; shipped by task 6.1.
+when_to_use: |
+  ## When to use
+
+  Load this skill first, before exploring the project, reading or creating .py files, or answering from memory, when Robot Framework keywords, libraries or listeners are written in Python:
+
+  - a new keyword library (around an API, database or device client), `@keyword` and `@library` decorators;
+  - `ROBOT_LIBRARY_SCOPE` and state kept between tests (a library that loses its state, a connection scope);
+  - argument conversion from type hints (Enum, Literal, custom converters), failures and logging via `robot.api`, libdoc docs;
+  - a library that "contains no keywords";
+  - a listener that reacts to or reports results (chat, dashboards).
+
+  Not this skill: keywords in .robot/.resource files use `rf-language`; using an existing library such as Browser or RequestsLibrary uses its library skill.

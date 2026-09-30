@@ -78,6 +78,10 @@ class FileEntry:
     path: str          # absolute destination path
     sha256: str        # hash at install time (used to detect user edits)
     transform: str | None = None  # name of transform applied, if any
+    # Install category ("skills", "agents", "hooks", "support", "hints",
+    # "other"). Written from installer 0.7.0 on; older records lack it and
+    # the category is derived from the path (see ``category_for_path``).
+    category: str | None = None
 
 
 @dataclass
@@ -143,7 +147,15 @@ class Manifest:
                     scope=entry.get("scope", "user"),
                     installed_at=entry.get("installed_at", ""),
                     bundle_version=entry.get("bundle_version", "unknown"),
-                    files=[FileEntry(**f) for f in entry.get("files", [])],
+                    files=[
+                        FileEntry(
+                            path=f["path"],
+                            sha256=f["sha256"],
+                            transform=f.get("transform"),
+                            category=f.get("category"),
+                        )
+                        for f in entry.get("files", [])
+                    ],
                     config_merges=[
                         # Tolerate older manifest entries that lack the
                         # newer `kind` / `key_path` fields by
@@ -223,7 +235,52 @@ def now_iso() -> str:
 
 def file_entry_for(dest: Path, transform: str | None = None) -> FileEntry:
     """Build a FileEntry by reading the on-disk hash at ``dest``."""
-    return FileEntry(path=str(dest), sha256=sha256_file(dest), transform=transform)
+    return FileEntry(
+        path=str(dest),
+        sha256=sha256_file(dest),
+        transform=transform,
+        category=category_for_path(dest),
+    )
+
+
+# Directory that holds the co-located plugin files (scripts/, servers/,
+# hooks/, .claude-plugin/) for every adapter.
+SUPPORT_DIR_NAME = "rf-agentskills-files"
+
+
+def category_for_path(path: str | Path) -> str:
+    """Classify an installed file by its destination path.
+
+    * ``.../rf-agentskills-files/...``  -> ``"support"`` (shared scripts,
+      servers, hooks, plugin manifest)
+    * ``.goosehints``                   -> ``"hints"``
+    * nearest ``skills`` / ``agents`` path component (searched from the
+      file upwards) -> ``"skills"`` / ``"agents"``
+    * ``hooks.json``                    -> ``"hooks"`` (Codex)
+    * anything else                     -> ``"other"``
+
+    Used both for new manifest entries and for records written by
+    installers older than 0.7.0 that carry no ``category``.
+    """
+    p = Path(path)
+    parts = p.parts
+    if SUPPORT_DIR_NAME in parts:
+        return "support"
+    if p.name == ".goosehints":
+        return "hints"
+    for part in reversed(parts[:-1]):
+        if part == "skills":
+            return "skills"
+        if part == "agents":
+            return "agents"
+    if p.name == "hooks.json":
+        return "hooks"
+    return "other"
+
+
+def entry_category(entry: FileEntry) -> str:
+    """The recorded category, or the path-derived one for old records."""
+    return entry.category or category_for_path(entry.path)
 
 
 def is_user_modified(entry: FileEntry) -> bool:

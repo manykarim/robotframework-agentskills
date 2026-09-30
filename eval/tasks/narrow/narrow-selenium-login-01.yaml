@@ -1,0 +1,54 @@
+id: narrow-selenium-login-01
+skill: rf-selenium
+tier: narrow
+description: |
+  Write a SeleniumLibrary login test against the local page in sut-selenium
+  (headless Chrome via Selenium Manager) and make it pass. Gated by robot_pass.
+prompt: |
+  This project's web tests use SeleniumLibrary. pages/login.html is a small
+  login page: inputs id="username" and id="password", a submit button
+  id="submit". Logging in as demo/demo shows a div id="welcome" with the text
+  "Welcome, demo".
+
+  Write tests/login.robot that opens the page via a file:// URL in headless
+  Chrome, logs in as demo/demo and verifies the welcome text. Run it and make
+  sure it passes.
+model: claude-haiku-4-5-20251001
+max_turns: 16
+timeout_seconds: 420
+allowed_tools:
+  - Read
+  - Write
+  - Edit
+  - Bash
+  - Glob
+  - Grep
+  - Skill
+expected_files:
+  - path: tests/login.robot
+    must_contain:
+      - "SeleniumLibrary"
+      - "Welcome, demo"
+grader_checks:
+  - type: robot_pass
+    name: login_suite_passes
+    target: tests/login.robot
+    requires: [SeleniumLibrary]
+    expected_tests: 1
+  - type: file_contains
+    name: imports_seleniumlibrary
+    path: tests/login.robot
+    regex: '^Library\s+SeleniumLibrary\b'
+  - type: file_not_contains
+    name: no_executable_path
+    path: tests/login.robot
+    regex: 'executable_path\s*='
+  - type: no_deprecated_keywords
+    target: tests/login.robot
+  - type: tool_call_count
+    name: loaded_rf_selenium_skill
+    tool_pattern: "(Skill|Read)"
+    input_pattern: '(rf-selenium|/skills/rf-selenium/SKILL\.md)'
+    min: 1
+fixture: sut-selenium
+primary_metric: robot_pass

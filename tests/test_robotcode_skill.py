@@ -25,7 +25,7 @@ from pathlib import Path
 import pytest
 
 ROOT = Path(__file__).resolve().parent.parent
-SKILL_DIR = ROOT / "skills" / "robotframework-robotcode-skill"
+SKILL_DIR = ROOT / "skills" / "rf-robotcode"
 SKILL_MD = SKILL_DIR / "SKILL.md"
 REFERENCES = SKILL_DIR / "references"
 
@@ -141,8 +141,12 @@ def test_skill_frontmatter() -> None:
     fm = content[3:end]
     assert "name: rf-robotcode" in fm, "frontmatter name must be rf-robotcode"
     desc = fm.split("description:", 1)[1].lower()
-    for word in ("robotcode", "discover", "debug", "result"):
+    for word in ("robotcode", "discover", "debug"):
         assert word in desc, f"description should mention {word!r}"
+    # "result" moved from the compact description into the "## When to use"
+    # block (tune-skill-descriptions D11/D12).
+    block = content.split("## When to use", 1)[1].split("\n## ", 1)[0].lower()
+    assert "result" in block, "'## When to use' should mention 'result'"
 
 
 def test_all_use_case_references_present() -> None:
@@ -197,16 +201,17 @@ def test_secrets_warning_present() -> None:
 
 def test_fallback_to_script_skills() -> None:
     content = _skill_text()
-    for skill in ("rf-results", "rf-libdoc-search", "rf-libdoc-explain"):
+    for skill in ("rf-results", "rf-libdoc"):
         assert skill in content, f"companion fallback {skill} missing"
+    for old in ("rf-libdoc-search", "rf-libdoc-explain"):
+        assert old not in content, f"merged skill {old} still named"
 
 
 @pytest.mark.parametrize(
     "skill_dir",
     [
-        "robotframework-results",
-        "robotframework-libdoc-search",
-        "robotframework-libdoc-explain",
+        "rf-results",
+        "rf-libdoc",
     ],
 )
 def test_script_skills_link_back(skill_dir: str) -> None:
@@ -269,3 +274,13 @@ def test_documented_command_and_options_exist(cmd: tuple[str, ...]) -> None:
 def test_documented_aliases_exist() -> None:
     missing = DOCUMENTED_ALIASES - _listed_commands(_help())
     assert not missing, f"missing aliases: {sorted(missing)}"
+
+
+def test_distributed_under_same_identifier() -> None:
+    """Plugin and VS Code copies use the same rf-robotcode dir and name (skill-metadata-conformance)."""
+    for channel in ("plugins/rf-agentskills/skills", "vscode-extension/skills"):
+        md = ROOT / channel / "rf-robotcode" / "SKILL.md"
+        assert md.is_file(), md
+        assert "\nname: rf-robotcode\n" in md.read_text(encoding="utf-8"), md
+    pkg = (ROOT / "vscode-extension" / "package.json").read_text(encoding="utf-8")
+    assert "./skills/rf-robotcode/SKILL.md" in pkg

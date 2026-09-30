@@ -7,6 +7,35 @@
 
 ---
 
+## Amendment 2026-09-27 — `strengthen-skill-eval-harness`
+
+The three planned workflows are implemented as **one** workflow,
+`.github/workflows/skill-evaluation.yml`, with these tiers:
+
+| Trigger | Job | Scope | Arms | N | Model | Cap (env) | Gate |
+|---|---|---|---|---|---|---|---|
+| PR touching skills, plugin, `eval/**`, harness, `pyproject.toml`/`uv.lock` | `preflight` → `pr-eval` | narrow tier; tasks of changed skills + `plugin` canaries (full narrow tier when `src/rf_skill_eval/**` changed) | treatment | 3 | `claude-haiku-4-5-20251001` | `PR_NARROW_CAP_USD` = 3 | `rf-skill-eval gate --baseline eval/baselines/narrow.json` |
+| PR changing a SKILL.md `description` (or a trigger set) | `pr-eval` (trigger step) | that skill's trigger set, validation split | treatment, hooks off | 3 | Haiku | `PR_TRIGGER_CAP_USD` = 2 | validation accuracy may drop by ≤ one query vs `eval/baselines/triggers.json` |
+| Weekly (Sun 04:00 UTC) | `full-eval` | all tiers + all trigger sets (both splits) | treatment, baseline | 3 | tier defaults | narrow 12, realistic 12, adversarial 8, triggers 8 (= $40) | informational gate; issue on regression; `candidate-baseline/` artifact |
+| Manual (`workflow_dispatch`) | `full-eval` | inputs `tiers`, `arms`, `runs`, `model`, `allow_opus`, `max_cost_usd`, `triggers` | as input | as input | as input (Opus only with `allow_opus`) | `max_cost_usd` per invocation | same as weekly |
+| Every run | `harness-tests` | `ruff`, `mypy`, `pytest tests/eval` (fakes, recorded transcripts, golden solutions — no API calls) | – | – | – | – | – |
+
+- **Preflight** validates tasks and trigger sets and checks coverage (no API
+  calls), then maps changed paths to skills with `rf-skill-eval preflight`.
+- **Missing credentials** (fork PRs): `pr-eval`/`full-eval` are skipped and a
+  `not-run` job writes "not run: no credentials" to the step summary — never
+  a passing evaluation result.
+- **Baselines** are promoted manually: download the weekly
+  `candidate-baseline-<run>` artifact, commit it to `eval/baselines/` in a
+  reviewed PR (see `eval/baselines/README.md`).
+- **Required status**: the PR gate becomes a required check only after two
+  weekly baselines have been recorded, so the first baseline is not set from a
+  single noisy run. Until then `gate` reports `rebaseline-needed` (exit 3).
+- Caps are initial values; tune them after the first weekly run reports real
+  costs.
+
+---
+
 ## Context
 
 The harness must run in GitHub Actions for three different cadences:

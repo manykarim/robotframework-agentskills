@@ -1,0 +1,45 @@
+# Trigger query set for rf-results (format: eval/triggers/README.md).
+# Tune descriptions on the train split only; never edit validation queries
+# to make a description pass (rotate them only when the skill's intent changes).
+skill: rf-results
+model: claude-haiku-4-5-20251001
+runs: 3
+threshold: 0.5
+queries:
+  # should trigger (train)
+  - {id: rs-t01, split: train, should_trigger: true, query: "Parse results/output.xml and tell me which tests failed and why"}
+  - {id: rs-t02, split: train, should_trigger: true, note: "indirect: file name", query: "Why did 3 tests fail in results/output.xml?"}
+  - {id: rs-t03, split: train, should_trigger: true, query: "Summarise last night's Robot Framework run: totals, failed suites and slowest tests"}
+  - {id: rs-t04, split: train, should_trigger: true, query: "Merge the output.xml files from our pabot run into one result"}
+  - {id: rs-t05, split: train, should_trigger: true, query: "Combine the original run and the rerun (--rerunfailed) outputs into one report"}
+  - {id: rs-t06, split: train, should_trigger: true, note: "indirect: technique only", query: "Which tags had the most failures in the CI robot run?"}
+  - {id: rs-t07, split: train, should_trigger: true, note: "typos, user phrasing", query: "pasted the output.xml from jenkins into results/ - whats the pass rate and which suites r red?"}
+  # should trigger (validation)
+  - {id: rs-v01, split: validation, should_trigger: true, note: "edit existing file", query: "Update docs/test-status.md with the pass/fail counts from results/output.xml"}
+  - {id: rs-v02, split: validation, should_trigger: true, query: "List the keyword error messages from output.xml of the failed checkout tests"}
+  - {id: rs-v03, split: validation, should_trigger: true, query: "Which Robot Framework tests were slowest in results/output.xml?"}
+  - {id: rs-v04, split: validation, should_trigger: true, query: "Show the execution errors (import failures) recorded in output.xml"}
+  # should NOT trigger (train): sibling skills + non-RF look-alikes
+  - {id: rs-n01, split: train, should_trigger: false, note: "sibling rf-libdoc", query: "Which SeleniumLibrary keyword waits for text in an element?"}
+  - {id: rs-n02, split: train, should_trigger: false, note: "sibling rf-robotcode", query: "Use robotcode results diff to compare yesterday's and today's run"}
+  - {id: rs-n03, split: train, should_trigger: false, note: "sibling rf-browser", query: "Write a Browser library test for the checkout page"}
+  - {id: rs-n04, split: train, should_trigger: false, note: "sibling rf-setup", query: "Install Robot Framework and pabot into our uv project"}
+  - {id: rs-n05, split: train, should_trigger: false, note: "non-RF look-alike", query: "Parse a JUnit XML report in Python and count failures"}
+  - {id: rs-n06, split: train, should_trigger: false, note: "non-RF look-alike", query: "Generate an Allure report from our pytest results"}
+  # should NOT trigger (validation)
+  - {id: rs-n07, split: validation, should_trigger: false, note: "sibling rf-libdoc", query: "What arguments does the Browser keyword Get Text take?"}
+  - {id: rs-n08, split: validation, should_trigger: false, note: "sibling rf-requests", query: "Write a RequestsLibrary test for GET /health"}
+  - {id: rs-n09, split: validation, should_trigger: false, note: "non-RF look-alike", query: "Create a pytest-html report with screenshots"}
+  - {id: rs-n10, split: validation, should_trigger: false, note: "non-RF look-alike", query: "Summarise the failing jobs in this GitHub Actions log"}
+  # holdout (tune-skill-descriptions task 7.1): written after the descriptions shipped;
+  # never used to tune, select or accept a description. 5 should / 5 should-not trigger.
+  - {id: rs-h01, split: holdout, should_trigger: true, note: "indirect: no file named", query: "The robot run in CI went red; which test broke first and what was the error?"}
+  - {id: rs-h02, split: holdout, should_trigger: true, query: "Give me a table of suite pass rates from results/output.xml for the sprint review"}
+  - {id: rs-h03, split: holdout, should_trigger: true, query: "We ran the suites in 4 parallel shards; join the four outputs into one log and report"}
+  - {id: rs-h04, split: holdout, should_trigger: true, query: "Did any robot tests get skipped in the release run, and why?"}
+  - {id: rs-h05, split: holdout, should_trigger: true, query: "How many tests tagged critical passed in the output.xml of the release candidate run?"}
+  - {id: rs-h06, split: holdout, should_trigger: false, note: "sibling rf-robotcode", query: "robotcode is set up here; summarize the latest output.xml with robotcode results"}
+  - {id: rs-h07, split: holdout, should_trigger: false, note: "sibling rf-language", query: "Add the tag flaky to the three unstable tests in tests/login.robot"}
+  - {id: rs-h08, split: holdout, should_trigger: false, note: "sibling rf-libdoc", query: "Which keyword in Collections compares two lists ignoring order?"}
+  - {id: rs-h09, split: holdout, should_trigger: false, note: "non-RF look-alike", query: "Count the failures in a Cucumber JSON report with jq"}
+  - {id: rs-h10, split: holdout, should_trigger: false, note: "non-RF look-alike", query: "Summarize this JMeter .jtl results file"}

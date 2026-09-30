@@ -1,0 +1,3 @@
+# robotcode / robot.toml settings for this fixture.
+python-path = ["libraries"]
+output-dir = "results"

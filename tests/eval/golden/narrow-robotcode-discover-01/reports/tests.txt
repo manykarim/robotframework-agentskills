@@ -1,0 +1,5 @@
+Tests.Checkout Cart.Cart Page Loads
+Tests.Checkout Confirm.Order Confirmation Visible
+Tests.Checkout Payment.Payment Form Renders
+Tests.Example.Fixture Smoke Test
+Total: 4

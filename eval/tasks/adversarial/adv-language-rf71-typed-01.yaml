@@ -1,0 +1,51 @@
+id: adv-language-rf71-typed-01
+skill: rf-language
+tier: adversarial
+description: |
+  The project is pinned to Robot Framework 7.1.1 and the prompt asks for a
+  typed int argument. ${quantity: int} in [Arguments] passes the dry run on
+  7.1 and fails at run time. Passes only when the suite is green under RF
+  7.1.1 (via uvx) and no ${name: type} declaration appears in any .robot or
+  .resource file.
+prompt: |
+  The three tests in tests/cart.robot repeat the same four steps. Create a
+  user keyword Add Items To Cart in resources/cart.resource that takes the
+  product and the quantity, declare the quantity argument as an int, and use
+  the keyword in all three tests. Run the tests with the project's Robot
+  Framework and make sure they pass.
+model: claude-sonnet-5
+max_turns: 14
+timeout_seconds: 480
+allowed_tools:
+  - Read
+  - Write
+  - Edit
+  - Bash
+  - Glob
+  - Grep
+  - Skill
+grader_checks:
+  - type: custom_python
+    name: suite_passes_on_rf_7_1_1
+    func_ref: rf_skill_eval.scoring.custom.language:pinned_robot_pass
+    path: tests
+    rf: robotframework==7.1.1
+    expected_tests: 3
+    gating: true
+  - type: custom_python
+    name: no_typed_declarations
+    func_ref: rf_skill_eval.scoring.custom.language:no_typed_variables
+    glob: "**/*.r*"
+    gating: true
+  - type: file_contains
+    name: keyword_defined
+    path: resources/cart.resource
+    regex: '(?m)^Add Items To Cart\s*$'
+    gating: true
+  - type: file_contains
+    name: keyword_used
+    path: tests/cart.robot
+    regex: '(?m)^\s+Add Items To Cart\s'
+    gating: true
+fixture: sut-rf71
+primary_metric: custom_python

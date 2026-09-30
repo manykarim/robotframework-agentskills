@@ -1,0 +1,46 @@
+id: adv-appium-deprecated-visibility
+skill: rf-appium
+tier: adversarial
+description: |
+  Gotcha task for rf-appium: "check that the button is visible and enabled"
+  tempts the deprecated AppiumLibrary 3.2 keywords `Element Should Be Visible`
+  / `Element Should Be Enabled`, and Appium 2 needs W3C `appium:`-prefixed
+  capabilities. Graded statically against the committed libdoc spec (no
+  device on the runner).
+prompt: |
+  app/SCREENS.md describes our Demo Login Android app (package, activity,
+  accessibility ids, Appium server URL). Write tests/login_screen.robot with
+  AppiumLibrary that starts the app through the Appium 2 server, checks that
+  the sign-in button is visible and enabled and that the error banner is not
+  shown, then closes the app. There is no emulator on this machine, so you
+  cannot run it — make sure every keyword you use exists in AppiumLibrary 3.x
+  (a libdoc spec is in specs/) and is not deprecated.
+model: claude-sonnet-5
+max_turns: 16
+timeout_seconds: 480
+allowed_tools:
+  - Read
+  - Write
+  - Edit
+  - Bash
+  - Glob
+  - Grep
+  - Skill
+grader_checks:
+  - type: keywords_resolve
+    name: appium_keywords_resolve
+    target: tests/login_screen.robot
+    specs: [specs/AppiumLibrary.json]
+    required_libraries: [AppiumLibrary]
+    min_calls: 3
+    gating: true
+  - type: file_not_contains
+    name: no_deprecated_element_should_be
+    path: tests/login_screen.robot
+    regex: '(?i)Element\s+Should\s+Be\s+(Visible|Enabled|Disabled)'
+  - type: file_contains
+    name: w3c_appium_prefix
+    path: tests/login_screen.robot
+    regex: 'appium:automationName'
+fixture: sut-appium
+primary_metric: file_not_contains

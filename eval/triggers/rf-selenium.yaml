@@ -1,0 +1,45 @@
+# Trigger query set for rf-selenium (format: eval/triggers/README.md).
+# Tune descriptions on the train split only; never edit validation queries
+# to make a description pass (rotate them only when the skill's intent changes).
+skill: rf-selenium
+model: claude-haiku-4-5-20251001
+runs: 3
+threshold: 0.5
+queries:
+  # should trigger (train)
+  - {id: se-t01, split: train, should_trigger: true, query: "Write a Robot Framework SeleniumLibrary test that opens https://shop.test in headless Chrome and adds an item to the cart"}
+  - {id: se-t02, split: train, should_trigger: true, query: "My suite uses Library    SeleniumLibrary — how do I select 'Germany' from the country dropdown?"}
+  - {id: se-t03, split: train, should_trigger: true, query: "Run my Robot Framework SeleniumLibrary tests against our Selenium Grid at http://grid:4444 with Open Browser"}
+  - {id: se-t04, split: train, should_trigger: true, note: "indirect: pasted error", query: "Robot test fails with 'Element with locator id:submit not found' right after Open Browser, how should I wait?"}
+  - {id: se-t05, split: train, should_trigger: true, query: "Handle the JavaScript confirm alert that pops up after clicking Delete in my SeleniumLibrary test"}
+  - {id: se-t06, split: train, should_trigger: true, note: "indirect: pasted error", query: "ElementClickInterceptedException in my .robot test when clicking css:.accept-cookies — how do I get past the cookie banner?"}
+  - {id: se-t07, split: train, should_trigger: true, note: "typos, user phrasing", query: "selenium library robot: Click Element dosnt work on the dropdown menu item, do i need to hover first?"}
+  # should trigger (validation)
+  - {id: se-v01, split: validation, should_trigger: true, note: "edit existing file", query: "In tests/ui/profile.robot (SeleniumLibrary) switch into the iframe #editor and type the bio"}
+  - {id: se-v02, split: validation, should_trigger: true, query: "Take a screenshot of just the #chart element with SeleniumLibrary when a Robot test fails"}
+  - {id: se-v03, split: validation, should_trigger: true, query: "Use Execute JavaScript in my SeleniumLibrary suite to scroll to the footer before clicking the link"}
+  - {id: se-v04, split: validation, should_trigger: true, query: "How do I pass Chrome options (window size, lang=de) to Open Browser in Robot Framework with WebDriver?"}
+  # should NOT trigger (train): sibling skills + non-RF look-alikes
+  - {id: se-n01, split: train, should_trigger: false, note: "sibling rf-browser", query: "My suite has Library    Browser; how do I record a Playwright trace for a failing test?"}
+  - {id: se-n02, split: train, should_trigger: false, note: "sibling rf-browser", query: "Use New Context with a mobile viewport in Robot Framework Browser library"}
+  - {id: se-n03, split: train, should_trigger: false, note: "sibling rf-setup", query: "Install SeleniumLibrary into our uv project and make sure Chrome can be started"}
+  - {id: se-n04, split: train, should_trigger: false, note: "sibling rf-appium", query: "Test our mobile web shop in Chrome on an Android emulator via Appium from Robot Framework"}
+  - {id: se-n05, split: train, should_trigger: false, note: "non-RF look-alike", query: "Write a Python unittest with selenium webdriver that logs into our admin page"}
+  - {id: se-n06, split: train, should_trigger: false, note: "non-RF look-alike", query: "Convert this Selenium Java TestNG test to Selenide"}
+  # should NOT trigger (validation)
+  - {id: se-n07, split: validation, should_trigger: false, note: "sibling rf-browser", query: "Browser library Get Text assertion fails with a strict mode violation in my Robot test"}
+  - {id: se-n08, split: validation, should_trigger: false, note: "sibling rf-results", query: "Summarise which tests failed in results/output.xml from last night's UI run"}
+  - {id: se-n09, split: validation, should_trigger: false, note: "non-RF look-alike", query: "Set up a Selenium Grid 4 hub with Docker compose for our Java team"}
+  - {id: se-n10, split: validation, should_trigger: false, note: "non-RF look-alike", query: "Write a pytest fixture that yields a headless Firefox selenium driver"}
+  # holdout (tune-skill-descriptions task 7.1): written after the descriptions shipped;
+  # never used to tune, select or accept a description. 5 should / 5 should-not trigger.
+  - {id: se-h01, split: holdout, should_trigger: true, query: "SeleniumLibrary test: drag the 'Task 3' card into the 'Done' column of our kanban board"}
+  - {id: se-h02, split: holdout, should_trigger: true, query: "Our robot web suite on Selenium: wait until the AJAX table has 20 rows before reading it"}
+  - {id: se-h03, split: holdout, should_trigger: true, query: "Robot + SeleniumLibrary: read the value of the session_id cookie after login"}
+  - {id: se-h04, split: holdout, should_trigger: true, query: "Upload a file through the hidden <input type=file> in our Selenium-based robot test"}
+  - {id: se-h05, split: holdout, should_trigger: true, note: "indirect: pasted error", query: "chromedriver-based robot tests randomly fail with 'element not interactable' on the Save button, which wait should I use?"}
+  - {id: se-h06, split: holdout, should_trigger: false, note: "sibling rf-browser", query: "Library    Browser: make every new page start with the German locale and a 1280x720 viewport"}
+  - {id: se-h07, split: holdout, should_trigger: false, note: "sibling rf-browser", query: "We're starting a brand-new Robot Framework web test project for our shop; write the first product search test"}
+  - {id: se-h08, split: holdout, should_trigger: false, note: "sibling rf-setup", query: "Selenium Manager can't download chromedriver in our offline CI; set up the drivers for the robot suite"}
+  - {id: se-h09, split: holdout, should_trigger: false, note: "non-RF look-alike", query: "Write a WebdriverIO test in TypeScript for the search box"}
+  - {id: se-h10, split: holdout, should_trigger: false, note: "non-RF look-alike", query: "Explain implicit vs explicit waits in Selenium WebDriver for C#"}

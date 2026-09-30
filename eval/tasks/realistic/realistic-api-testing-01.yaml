@@ -1,5 +1,5 @@
 id: realistic-api-testing-01
-skill: requests
+skill: rf-requests
 tier: realistic
 description: |
   Write a RequestsLibrary-based test that reads a static JSON fixture,
@@ -26,9 +26,11 @@ prompt: |
   Then run the test with `robot tests/api_users.robot` and confirm it
   passes. Leave the test in a state where it would still pass on a fresh
   checkout of the fixture.
-model: claude-sonnet-4-6
+model: claude-sonnet-5
 max_turns: 18
 timeout_seconds: 900
+mcp_servers:
+  - rf-mcp
 allowed_tools:
   - Read
   - Write

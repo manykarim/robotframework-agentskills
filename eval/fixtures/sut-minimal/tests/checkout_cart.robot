@@ -1,5 +1,5 @@
 *** Settings ***
-Documentation    Checkout cart suite. Uses duplicated setup for the resource-architect task.
+Documentation    Checkout cart suite. Uses duplicated setup on purpose (resource-extraction scenarios).
 Library          SeleniumLibrary
 Resource         ../resources/common.resource
 

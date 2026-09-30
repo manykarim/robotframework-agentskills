@@ -18,41 +18,114 @@ The installer probes `node` on PATH at install time; if Node is not
 present, the hooks block is skipped with a clear `post_install` note
 rather than written-and-broken.
 
-| Event | Script | Always fires? | Cost when no-op |
-|---|---|---|---|
-| `SessionStart` | `scripts/check_rf_environment.mjs` | yes | ~150ms (informational) |
-| `PostToolUse` (matcher: `Write\|Edit`) | `scripts/validate_robot.mjs` | only on Write/Edit | ~30ms (file extension check) |
-| `UserPromptSubmit` | `scripts/maybe_inject_rf_context.mjs` | always invoked, conditional injection | ~30ms (regex over prompt) |
-| `Stop` | `scripts/maybe_remind_robot_tests.mjs` | always invoked, conditional reminder | ~30ms (chunked grep over transcript) |
-| `Stop` | `scripts/validate_robot_project.mjs` | only when `RF_AGENTSKILLS_PROJECT_VALIDATION` is set | ~0ms (env-flag check) |
+| Event | Script | Always fires? | Cost when no-op | Cost when active | Hook timeout |
+|---|---|---|---|---|---|
+| `SessionStart` | `scripts/check_rf_environment.mjs` | yes | — | ~0.5–1 s (import probes) | 15 s |
+| `PostToolUse` (matcher: `Write\|Edit`) | `scripts/validate_robot.mjs` | only on Write/Edit | ~30ms (file extension check) | ~1–1.5 s on a 500-line file (one Robocop check + format check); +0.4 s or more with the opt-in dry run | 45 s |
+| `UserPromptSubmit` | `scripts/maybe_inject_rf_context.mjs` | always invoked, conditional injection | ~30ms (regex over prompt) | same (≤ 450-character text) | 15 s |
+| `Stop` | `scripts/maybe_remind_robot_tests.mjs` | always invoked, conditional reminder | ~30ms (chunked grep over transcript) | same | default |
+| `Stop` | `scripts/validate_robot_project.mjs` | only when `RF_AGENTSKILLS_PROJECT_VALIDATION` is set | ~0ms (env-flag check) | project dry run + find-unused (120 s cap each) | default |
+
+Every process a hook starts has a timeout (Robocop 10 s, per-file dry run
+20 s, interpreter probes 5 s, project-wide checks 120 s). A timeout skips that
+check silently. `scripts/_python_env.mjs` is a shared helper, not a hook.
 
 ## Validation hooks (what catches broken Robot Framework code)
 
 Two scripts validate the Robot Framework files the agent writes, at two
 different points in the lifecycle. Both are **optional** — they degrade
 to a silent no-op when their underlying tools aren't installed. Install
-the tooling with the `validation` extra:
+the tooling into the project environment (see the rf-setup skill), or into
+the installer's environment with the `validation` extra:
 
 ```bash
-pip install "rf-agentskills[validation]"   # robotframework-robocop + robotframework-find-unused
+uv add --dev robotframework-robocop        # project environment (preferred)
+uv tool install "rf-agentskills[validation]"   # installer env: robotframework-robocop + robotframework-find-unused
 ```
 
 ### Tier 1 + 2 — per file, on every write (`validate_robot.mjs`)
 
 Fires from `PostToolUse` after a Write/Edit of a `.robot`/`.resource` file.
 
-- **Tier 1 — structural errors:** runs `robocop check --threshold E`. The
-  `--threshold E` is deliberate: Robocop has 167 rules and the default set
-  flags style nits (e.g. `DOC03 Missing documentation`) on *every* file,
-  including perfectly valid ones — that noise would bury real problems and
-  get the hook disabled. Error severity scopes to genuine problems:
-  invalid `FOR`/`IF`/`TRY` syntax, argument errors, duplicate definitions,
-  and imports Robocop can statically see are broken. On a finding the hook
-  writes the diagnostic to **stderr and exits 2**, which feeds it back to
-  the agent so it can self-correct (see "the exit-2 exception" below).
-- **Tier 2 — formatting drift:** runs `robocop format --check --diff`. Purely
-  informational — surfaces the proposed reformat as `additionalContext`
+- **Tier 1 — one Robocop pass, classified by rule ID.** Runs
+  `robocop check --no-cache` once, with the **project's configured rule set**
+  and a parsable issue format
+  (`-c print_issues.output_format=simple --issue-format '{severity}|{rule_id}|{source}:{line}:{col}|{desc}'`).
+  Each finding is sorted into one class; everything else (style rules such as
+  `DOC03`) is dropped, as before:
+  - **Errors** — error severity (`E`), not a `DEPR` rule: invalid
+    `FOR`/`IF`/`TRY` syntax, argument errors, duplicate definitions, imports
+    Robocop can see are broken. This is the set the former `--threshold E` run
+    selected, and errors **block exactly as before**: the diagnostic goes to
+    **stderr and the hook exits 2**, which feeds it back to the agent (see "the
+    exit-2 exception" below).
+  - **Hard deprecations** — `DEPR03` `WITH NAME`, `DEPR04` singular section
+    headers, `DEPR07` `Force/Default Tags`, `DEPR08` `Run Keyword If/Unless`,
+    `DEPR09` loop-exit keywords, `DEPR10` `Return From Keyword*`, `DEPR11`
+    `[Return]`.
+  - **Modernization hints** — `DEPR05` `Set Test/Suite/Global Variable` →
+    `VAR`, `DEPR06` `Create List/Dictionary` → `VAR`, and any other `DEPR` rule.
+
+  **Deprecations only warn.** They are reported as non-blocking
+  `additionalContext` (exit 0) and never cause exit 2 — not even a hard
+  deprecation on a line the current edit wrote. Classification uses the rule
+  ID, not the severity (`DEPR11` is W in Robocop 8.2 and I in 9.1).
+  - **Touched lines** are listed individually, hard deprecations first, each
+    with file, line and the modern replacement (`WARN DEPR08 x.robot:12 —
+    Run Keyword If → use IF/ELSE/END`). Touched lines come from
+    `tool_response.structuredPatch` (the `+` lines of each hunk), else the
+    lines where an Edit's `new_string` now occurs, else the whole file (Write
+    create). Deprecations on other lines are summarized as a count per rule.
+  - **Cap:** at most 10 listed findings plus "N more omitted", at most 2,000
+    characters.
+  - **Dedupe:** a finding listed once in a session (`session_id`; key = file,
+    rule and trimmed line text) is only counted afterwards. The marker is
+    `<tmpdir>/rf-agentskills-depr-<session_id>.json`; if it cannot be written,
+    only the dedupe is lost. When an error exits 2, the deprecation warnings are
+    neither written nor recorded, so they appear on the next clean edit.
+  - Robocop's gating by Robot Framework version applies (a project on RF 6.1
+    gets no `VAR` hint), and so does the project's Robocop config.
+  - If Robocop is missing, times out (10 s), or prints nothing parsable while
+    failing, the tier is silent — a tool failure is never a finding.
+- **Tier 2 — formatting drift:** runs `robocop format --no-cache --check --diff`.
+  Purely informational — surfaces the proposed reformat as `additionalContext`
   (exit 0). Formatting differences **never** cause exit 2.
+- **Opt-in per-file dry run:** with `RF_AGENTSKILLS_FILE_DRYRUN=1`, a written
+  `.robot` suite (not `.resource`, not `__init__.robot`) is also run through
+  `robot --dryrun --output NONE --report NONE --log NONE` from the project
+  directory (20 s timeout). `[ ERROR ]` lines and failures such as "No keyword
+  with name" are reported as advisory context, capped like the deprecation
+  warnings. It is off by default: a dry run imports libraries (import-time side
+  effects, seconds for Browser/Selenium), and a keyword the agent writes next
+  looks missing until it exists.
+
+Advisory output (deprecations, formatting, dry run) is emitted only when no
+exit-2 error diagnostic is written. Robocop is always called with
+`--no-cache`, so no `.robocop_cache/` directory is left in your project.
+
+#### Environment variables
+
+| Variable | Values | Effect |
+|---|---|---|
+| `RF_AGENTSKILLS_DEPRECATION_CHECK` | `warn` (default), `off` | `off` drops all deprecation output. Any other value is treated as `warn`; no value makes a deprecation block (exit 2), and the variable never affects error findings. |
+| `RF_AGENTSKILLS_FILE_DRYRUN` | unset (default), `1`/`true`/`yes`/`on` | Enables the per-file dry run above. |
+| `RF_AGENTSKILLS_PROJECT_VALIDATION` | unset (default), `1`/`true`/`yes`/`on` | Enables the project-wide Stop tier below. |
+
+#### Opting out per rule
+
+Teams that keep a legacy construct on purpose ignore the rule in their Robocop
+config; the hook reads the project's config automatically:
+
+```toml
+# pyproject.toml
+[tool.robocop.lint]
+ignore = ["DEPR08"]
+```
+
+**Selecting several rule groups on the command line:** repeat the option —
+`robocop check --select "DEPR*" --select "ERR*"`. A comma list
+(`--select 'DEPR*,ERR*'`) matches **no** rule in Robocop 8.2 and 9.1: Robocop
+prints a warning, reports "No issues found" and exits 0.
 
 This replaced an earlier `robot.api.get_model` check that was effectively a
 no-op: `get_model` is a lenient tokenizer that returns "OK" for unterminated
@@ -95,24 +168,32 @@ guideline #2 below ("hook scripts must always exit 0"). The Claude Code
 real error to the model is the entire point of validation — the
 edit→validate→feed-back→self-correct loop. So they exit 2 *specifically and
 only* on a confirmed Robot Framework error, and exit 0 in every other case
-(tool missing, non-Robot file, no findings, formatting-only difference).
+(tool missing, tool timeout or unparsable output, non-Robot file, no
+findings, formatting-only difference, deprecation findings of any class).
 
 ## Python interpreter resolution
 
 `validate_robot.mjs`, `validate_robot_project.mjs`, and
 `check_rf_environment.mjs` shell out to Python for the parts that need
-Robot Framework tooling (`robocop` / `robot --dryrun` /
-`robotframework_find_unused` for validation, `import robot` for the
-version probe). They read `scripts/python_runtime.json` — written by the
-installer from `sys.executable` — to find the interpreter that has
-`robotframework` installed. This is necessary for pipx, uv tool install,
-and venv installs where `python` on PATH is NOT the same Python
-rf-agentskills was installed into.
+Robot Framework tooling (`robocop`, `robot --dryrun`,
+`robotframework_find_unused`, `import robot` for the version probe). They
+share `scripts/_python_env.mjs`, which takes the first interpreter that can
+import the needed tool, in this order:
 
-If the recorded interpreter is unreachable (user moved their venv),
-the hooks fall back to `python3` → `python` on PATH. If no candidate
-interpreter has the required tool (`robotframework`, `robocop`,
-`robotframework_find_unused`), the hooks exit silently — they're
+1. the active virtual environment (`$VIRTUAL_ENV`);
+2. the project's `.venv` under the event's `cwd`
+   (`.venv/bin/python`, on Windows `.venv\Scripts\python.exe`);
+3. the installer-recorded interpreter in `scripts/python_runtime.json`
+   (written from `sys.executable`; needed for pipx / uv tool installs);
+4. `python3`, then `python` on `PATH`.
+
+The project environment wins so that Robocop sees the project's Robot
+Framework version (version-gated rules such as the `VAR` hint follow it). If
+the project environment has no Robocop, the search falls through to the
+installer's interpreter, whose RF version may differ — a few version-gated
+hints can then be off. The hooks never start `uv run` or another package
+manager: that can create environments, sync dependencies or reach the network.
+If no candidate has the required tool, the hooks exit silently — they're
 non-blocking by design.
 
 ## Why two of these are conditional
@@ -144,24 +225,48 @@ Robot Framework signal. Non-RF sessions are unaffected.
   - direct mentions: `robot framework`, `robot-framework`
   - file extensions: `.robot`, `.resource`
   - Robot Framework libraries: `SeleniumLibrary`, `BrowserLibrary`,
-    `AppiumLibrary`, `RequestsLibrary`, `RESTinstance`, plus
+    `AppiumLibrary`, `RequestsLibrary`, `RESTinstance`, `PlatynUI`, plus
     space-separated forms (`Browser Library`, etc.)
-  - rf-agentskills skill ids: `libdoc-search`, `libdoc-explain`,
-    `keyword-builder`, `testcase-builder`, `resource-architect`,
-    `rf-results`
+  - rf-agentskills skill ids: `rf-language`, `rf-python-library`,
+    `rf-libdoc`, `rf-results`, `rf-robotcode`, `rf-setup` and the library
+    skills `rf-browser`, `rf-selenium`, `rf-appium`, `rf-requests`,
+    `rf-restinstance`, `rf-platynui`
   - rf-agentskills subagent ids: `rf-test-architect`, `rf-debug-expert`,
     `rf-keyword-consultant`, `rf-migration-guide`
-  - tooling: `libdoc`, `robotidy`, `robocop`, `rfbrowser`
-- On match: emits `{"hookSpecificOutput": {"hookEventName":
-  "UserPromptSubmit", "additionalContext": "..."}}` summarising the
-  available rf-agentskills and pointing the agent at libdoc-search /
-  libdoc-explain for keyword lookups.
+  - RF section headers pasted into the prompt: `*** Settings ***`,
+    `*** Variables ***`, `*** Test Cases ***`, `*** Tasks ***`,
+    `*** Keywords ***`, `*** Comments ***`
+  - tooling: `libdoc`, `robotidy`, `robocop`, `rfbrowser`, `robotcode`,
+    `robot-debug`, `robot.toml`; Python library API terms (`@keyword`,
+    `robot.api.deco`, `ROBOT_LIBRARY_*`, "robot listener")
+- On match: emits one `{"hookSpecificOutput": {"hookEventName":
+  "UserPromptSubmit", "additionalContext": "..."}}` with a routing text of
+  at most 450 characters (about 80 tokens): tests, suites, keywords,
+  resources and variables → `rf-language`; Python libraries and listeners →
+  `rf-python-library`; library usage → the library skill (defaults
+  `rf-browser` for web, `rf-requests` for API); installs → `rf-setup`;
+  keyword names and arguments → `rf-libdoc` / `robotcode libdoc`, not
+  memory; and a closing reminder to write RF 7 syntax (`RETURN`, `VAR`,
+  `IF`, `Test Tags`). Skill descriptions and subagents are already listed
+  by Claude Code, so the text only says which one to use when.
 - On miss: stdout stays empty.
 
 Deliberately **not** matched: bare `RF` (too ambiguous), bare `test`
-(too generic), bare `library` / `keyword`. The parametrised cases in
-`tests/test_hook_scripts.py` lock in both the positive trigger list
-and the negative miss list.
+(too generic), bare `library` / `keyword` / `listener`. The parametrised
+cases in `tests/test_hook_scripts.py` lock in the positive trigger list,
+the negative miss list, the budget and that every `rf-*` name in the text
+is a shipped skill or subagent.
+
+## What `check_rf_environment.mjs` reports
+
+At `SessionStart` it reports the Robot Framework version and interpreter
+(same resolution as above, from the event's `cwd`), whether Robocop is
+available — without it, syntax and deprecation checks on edit are disabled —
+and which library packages are importable. For missing packages it shows
+project-environment commands (`uv add …`, `uv add --dev
+robotframework-robocop`) and points to the rf-setup skill; it never
+recommends `pip install` or `rfbrowser init`. A missing, empty or malformed
+event produces no output; it always exits 0.
 
 ## How `maybe_remind_robot_tests.mjs` decides
 
@@ -173,8 +278,9 @@ and the negative miss list.
   does not count). Streaming chunking keeps memory bounded on
   long sessions.
 - On hit: emits `additionalContext` reminding the user to run
-  `robot --outputdir results tests/`, inspect with
-  `scripts/rf_results.py`, and open `results/report.html`.
+  `uv run robot --outputdir results tests/`, inspect with
+  `uv run python "<abs path>/skills/rf-results/scripts/rf_results.py"`
+  (path computed from the hook's own location), and open `results/report.html`.
 - On miss: stdout stays empty.
 
 ## Verifying the hooks fire
@@ -260,8 +366,10 @@ uv run rf-skill-eval run \
 4. **Stay Node-only when possible.** Shelling out to other runtimes
    (Python, bash) reintroduces the install-time dependency surface
    the Node migration eliminated. If a hook genuinely needs Python
-   (Robot Framework parsing), use `scripts/python_runtime.json` to
-   target the install-time interpreter, not bare `python` on PATH.
+   (Robot Framework parsing), resolve the interpreter with
+   `scripts/_python_env.mjs` (project env, then `python_runtime.json`),
+   not bare `python` on PATH, and give every spawned process a timeout
+   (`spawnOptions(...)`).
 5. **Keep the regex tight.** Adding a trigger that looks ergonomic
    ("test", "library") is a fast way to revive the
    `narrow-non-rf-control-01` regression. The unit-test parameter

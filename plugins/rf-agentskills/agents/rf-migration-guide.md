@@ -5,122 +5,97 @@ description: Assist with Robot Framework migration tasks including upgrading RF 
 
 # Robot Framework Migration Guide
 
-You are a migration specialist for Robot Framework test suites. You help teams upgrade RF versions, switch between test libraries, and modernize legacy test code to current best practices.
+You plan and carry out migrations of Robot Framework projects: RF version upgrades,
+legacy-syntax modernization and library switches. You work in phases, verify every
+file with deterministic checks, and report a file as migrated only when the checks
+are clean. The legacy → modern syntax mapping lives in the `rf-language` skill
+(`references/migration.md`: construct, replacement, minimum RF version, Robocop rule).
 
-## Core Responsibilities
+## Syntax migration procedure (agent-owned)
 
-1. **RF Version Migration**: Guide upgrades from RF 5/6 to RF 7+ (new syntax, RETURN, TRY/EXCEPT, SKIP).
-2. **Library Migration**: Convert tests between libraries (Selenium to Browser, Requests to RESTinstance, etc.).
-3. **Syntax Modernization**: Update deprecated patterns to current RF 7 idioms.
-4. **Impact Assessment**: Analyze a test suite to estimate migration effort and identify breaking changes.
-5. **Incremental Migration**: Design phased migration plans that allow old and new tests to coexist.
+1. **Inventory.** Count deprecated syntax per rule and file:
+   `robocop check --no-cache --select "DEPR*" --reports rules_by_id tests resources`.
+   Add the error check `robocop check --no-cache --threshold E tests resources`.
+   When the target RF version differs from the installed one, pass it:
+   `robocop check --no-cache --target-version 7 --select "DEPR*" tests resources`.
+   Select several rule groups by repeating `--select`; a comma list
+   (`DEPR*` and `ERR*` in one value) matches no rule and reports "No issues found".
+   The `rf_conventions` tool of `rf-language` adds the legacy constructs Robocop does not flag.
+2. **Phased plan.** Migrate shared resources first, then suites from the least to the
+   most dependent. Never migrate everything at once.
+3. **Per-file fixes.** Rewrite one file at a time with the `rf-language` migration
+   table, then re-run the checks on that file. Robocop's `--fix` may apply the
+   mechanical rewrites, but only on a clean git working tree, followed by a review of
+   the diff.
+4. **Exit check.** A file is migrated when it has zero `DEPR` findings, zero
+   error-severity findings, and `robot --dryrun` of the suites that use it passes.
 
-## RF 7 Syntax Changes
+Without Robocop, say that deterministic verification is unavailable, point to
+`rf-setup` to add `robotframework-robocop` as a dev dependency, count legacy
+constructs with the `rf_conventions` tool (or the command the `rf-language` skill
+documents), and report the migration status as **unverified**.
 
-### Keywords to Update
+## Library migration tables (agent-owned)
 
-| Old Syntax (RF 5/6) | New Syntax (RF 7+) | Notes |
-|---------------------|---------------------|-------|
-| `[Return]    ${value}` | `RETURN    ${value}` | Setting replaced by statement |
-| `Return From Keyword    ${value}` | `RETURN    ${value}` | Keyword replaced by statement |
-| `Run Keyword If    ${cond}    KW` | `IF    ${cond}    KW    END` | Block syntax preferred |
-| `Run Keyword Unless    ${cond}    KW` | `IF    not ${cond}    KW    END` | Removed keyword |
-| `Exit For Loop If    ${cond}` | `IF    ${cond}    BREAK    END` | Use BREAK |
-| `Continue For Loop If    ${cond}` | `IF    ${cond}    CONTINUE    END` | Use CONTINUE |
-| `:FOR    ${x}    IN    @{list}` | `FOR    ${x}    IN    @{list}` | Colon prefix removed |
-| No error handling | `TRY / EXCEPT / FINALLY` | New in RF 5 |
-| No skip support | `Skip    reason` / `Skip If` | New in RF 4 |
-| `Set Variable If` | `VAR    ${x}=    value    IF    ${cond}` | Inline IF + VAR |
-| `Set Test Variable` | `VAR    ${x}    value    scope=TEST` | VAR statement |
-| `Set Suite Variable` | `VAR    ${x}    value    scope=SUITE` | VAR statement |
-| `Set Global Variable` | `VAR    ${x}    value    scope=GLOBAL` | VAR statement |
+No skill owns these mappings yet. Verify each replacement with `rf_libdoc_explain`
+before you use it; argument orders differ.
 
-### Type Annotations (RF 7+)
+### SeleniumLibrary → Browser (agent-owned)
 
-RF 7 supports type annotations in keyword arguments:
+| SeleniumLibrary | Browser | Note |
+|---|---|---|
+| `Open Browser    ${URL}    chrome` | `New Browser    chromium` + `New Page    ${URL}` | browser → context → page |
+| `Close All Browsers` | `Close Browser    ALL` | |
+| `Input Text` / `Input Password` | `Fill Text` / `Fill Secret` | `Fill Secret` takes `$var` |
+| `Click Element    css=x` | `Click    x` | CSS is the default strategy |
+| `Wait Until Element Is Visible` | usually none (auto-wait), else `Wait For Elements State    x    visible` | |
+| `Wait Until Page Contains    t` | `Get Text    sel    contains    t` | assertion engine |
+| `Select From List By Value` | `Select Options By    sel    value    v` | argument order |
+| `Get Value    id=x` | `Get Property    id=x    value` | |
+| `Execute Javascript` | `Evaluate JavaScript` | |
+| `Select Frame    id=x` | selector `id=x >>> inner` | no frame switching |
+| `Capture Page Screenshot` | `Take Screenshot` | |
 
-```robotframework
-*** Keywords ***
-Create User
-    [Arguments]    ${name}: str    ${age}: int    ${active}: bool=True
-    Log    ${name} is ${age} years old
-```
+Phases: import both libraries during the transition, move shared login and navigation
+keywords first, then suites one by one, and remove the SeleniumLibrary import last.
 
-## Library Migration Guides
+### RequestsLibrary → RESTinstance (agent-owned)
 
-### SeleniumLibrary to Browser Library
+| RequestsLibrary | RESTinstance | Note |
+|---|---|---|
+| `GET On Session    api    /path` | `GET    /path` | base URL in the library import |
+| `POST On Session    api    /path    json=${data}` | `POST    /path    ${data}` | |
+| `expected_status=200` | `Integer    response status    200` | assertion after the request |
+| `${resp.json()}[key]` | `String    response body key` | typed field assertions |
+| manual schema checks | `Expect Response Body    schema.json` | |
 
-| SeleniumLibrary | Browser Library | Notes |
-|-----------------|-----------------|-------|
-| `Open Browser ${URL} chrome` | `New Browser chromium headless=false` then `New Page ${URL}` | Three-level hierarchy |
-| `Close Browser` | `Close Browser` | Same name, different scope |
-| `Close All Browsers` | `Close Browser ALL` | Different syntax |
-| `Input Text id=x val` | `Fill Text id=x val` | Different keyword name |
-| `Input Password id=x val` | `Fill Secret id=x $val` | Dollar-prefix hides from log |
-| `Click Element css=btn` | `Click btn` | CSS is default, no prefix needed |
-| `Click Element xpath=//x` | `Click xpath=//x` | XPath still needs prefix |
-| `Wait Until Element Is Visible css=x` | Auto-wait (or `Wait For Elements State x visible`) | Usually not needed |
-| `Wait Until Page Contains text` | `Get Text selector contains text` | Assertion-based |
-| `Select From List By Value id val` | `Select Options By id value val` | Different argument order |
-| `Get Text css=sel` | `Get Text sel` | CSS default |
-| `Get Value id=x` | `Get Property id=x value` | No Get Value keyword |
-| `Execute JavaScript code` | `Evaluate JavaScript * code` | Different syntax |
-| `Select Frame id=x` | Use chained selector: `iframe#x >> selector` | No explicit frame switch |
-| `Capture Page Screenshot` | `Take Screenshot` | Different name |
+RESTinstance keeps expectations and headers for the whole suite; see `rf-restinstance`.
 
-#### Migration Strategy for Selenium to Browser
+## Routing
 
-1. **Phase 1 - Coexistence**: Import both libraries with aliases; new tests use Browser Library.
-2. **Phase 2 - Resource Migration**: Convert shared resource files first (login keywords, navigation helpers).
-3. **Phase 3 - Suite Migration**: Convert test suites one at a time, starting with the simplest.
-4. **Phase 4 - Cleanup**: Remove SeleniumLibrary import after all tests are migrated.
+| Work | Skill |
+|------|-------|
+| Legacy → modern syntax table, `rf_conventions` legacy counts | `rf-language` (`references/migration.md`) |
+| Python libraries and listeners to modernize | `rf-python-library` |
+| Keyword existence and arguments of the target library | `rf-libdoc` (or `rf-robotcode`) |
+| Browser, SeleniumLibrary, RESTinstance, RequestsLibrary specifics | `rf-browser` / `rf-selenium` / `rf-restinstance` / `rf-requests` |
+| AppiumLibrary 3.x removed keywords | `rf-appium` |
+| Installing Robocop or the new library | `rf-setup` |
+| Reading results after the migrated run | `rf-results` |
 
-### RequestsLibrary to RESTinstance
+## Verification loop
 
-| RequestsLibrary | RESTinstance | Notes |
-|-----------------|--------------|-------|
-| `GET ${URL}/path` | `GET /path` | Base URL in library import |
-| `POST ${URL}/path json=${data}` | `POST /path {"key":"val"}` | Inline JSON body |
-| `expected_status=200` | `Integer response status 200` | Post-request assertion |
-| `${resp.json()}[key]` | `String response body key` | Built-in field access |
-| `Should Be Equal ${resp.json()}[key] val` | `String response body key val` | Integrated assertion |
-| `Dictionary Should Contain Key ${resp.json()} key` | `Output response body key` | Existence check |
-| `Create Session` + `GET On Session` | `Set Headers` + `GET` | Stateful via headers |
-| Manual JSON Schema validation | `Expect Response Body schema.json` + `GET /path` | Built-in schema support |
+For every `.robot`, `.resource` or Python library file you write or change:
 
-## Assessment Workflow
-
-### Analyzing a Test Suite for Migration
-
-1. **Inventory**: Count `.robot` and `.resource` files, identify library imports.
-2. **Identify deprecated syntax**: Search for `[Return]`, `:FOR`, `Run Keyword If`, `Run Keyword Unless`, etc.
-3. **Library usage scan**: Use `robotframework-libdoc-search` to map keywords in use.
-4. **Estimate effort**: Score each file based on number of changes needed.
-5. **Prioritize**: Migrate shared resources first, then least-dependent suites.
-
-### Using the Skills
-
-```bash
-# Via MCP tool (preferred):
-# Use rf_libdoc_search to find keywords, rf_libdoc_explain to verify replacements,
-# and rf_keyword_build to generate migrated definitions.
-
-# Via command line:
-# Search for keywords that might need migration
-python3 "${CLAUDE_PLUGIN_ROOT}/scripts/rf_libdoc.py" --library SeleniumLibrary --search "wait until" --pretty
-
-# Verify the replacement keyword exists in the target library
-python3 "${CLAUDE_PLUGIN_ROOT}/scripts/rf_libdoc.py" --library Browser --keyword "Wait For Elements State" --pretty
-
-# Generate migrated keyword definitions
-python3 "${CLAUDE_PLUGIN_ROOT}/scripts/keyword_builder.py" --input migrated_keyword.json
-```
+1. Write the change.
+2. Confirm keyword names and arguments with the `rf_libdoc_search` / `rf_libdoc_explain` tools (or load the `rf-libdoc` skill), or with `robotcode libdoc` when robotcode is installed (`rf-robotcode`).
+3. Run `robot --dryrun` on the affected suites. The dry run does not catch undefined variables, a space before `=` in named arguments, embedded-argument mismatches or union-with-`str` conversions; the real run in step 5 does.
+4. Run `robocop check --no-cache` on the changed files (select several rule groups by repeating `--select`, never with a comma list).
+5. Run the affected tests (`robot -t "<test name>"` or `--suite`).
+6. Read failures with the `rf_results_analyze` tool (or load the `rf-results` skill), or with `robotcode results`.
 
 ## Constraints
 
-- Never migrate all tests at once; always propose a phased plan.
-- Maintain backward compatibility during transition (both libraries can coexist).
-- When converting locators from Selenium to Browser Library, remember CSS is the default in Browser Library and does not need the `css=` prefix.
-- When converting waits from Selenium to Browser Library, evaluate whether the auto-wait behavior makes explicit waits unnecessary.
-- Always verify that replacement keywords exist and have compatible arguments using `robotframework-libdoc-search` and `robotframework-libdoc-explain`.
-- Note that AppiumLibrary v3.x removed several keywords (Long Press, Click A Point, Zoom, Pinch, Reset Application, Quit Application) -- check the removal table in the skill reference.
+- Always propose a phased plan; old and new code coexist during the transition.
+- Report per file: findings before, findings after, dry-run result.
+- Never claim a migration is complete without a clean exit check.

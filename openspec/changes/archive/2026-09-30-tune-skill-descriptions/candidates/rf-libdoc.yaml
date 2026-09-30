@@ -1,0 +1,160 @@
+# Candidate descriptions for rf-libdoc (tune-skill-descriptions D5/D6).
+# Train numbers: skill loads over 3 runs per query (Haiku 4.5); selection uses the train split only.
+# 'listing' says whether the run used Claude Code's default skill-listing budget or
+# SLASH_COMMAND_TOOL_CHAR_BUDGET=40000 (every description visible); see design.md Implementation Notes.
+skill: rf-libdoc
+selected: 2
+iterations:
+- iteration: 0
+  text: 'Searches and explains Robot Framework keyword documentation with a bundled libdoc script: finds
+    keywords for a task across libraries, resource files and suites, and returns exact names, signatures
+    (arguments, types, defaults) and docs as JSON. Use when the user asks which keyword does X, what arguments
+    a keyword takes, or hits No keyword with name ''…'' found or wrong-argument-count errors. Prefer rf-robotcode
+    (robotcode libdoc) when the robotcode CLI is installed.'
+  listing: 'default budget (Haiku: 8000 chars)'
+  train_pos_loads: 2
+  train_pos_runs: 21
+  train_query_recall: 0/7
+  train_neg_loads: 3
+  variant_id: 25e6b4b2b5f8
+  run: evidence/rebaseline.json (re-baseline, train split)
+  listed_with_description: false
+  rationale: Current shipped description (re-baseline). Claude Code listed this skill by name only in
+    these sessions (skill-listing budget), so the model never saw this text.
+- iteration: 1
+  text: 'Use this skill whenever a Robot Framework question depends on an exact keyword name, its arguments
+    or its documentation, and load it first instead of answering from memory: a bundled libdoc script
+    searches the installed libraries (BuiltIn, Collections, SeleniumLibrary, Browser, RequestsLibrary
+    and others) and the project''s resource files and returns exact names, signatures with types and defaults,
+    and docs. Use when the user asks which keyword does something, what arguments or defaults a keyword
+    takes, what keywords a library or .resource file offers, or hits No keyword with name ''…'' found
+    or a wrong-argument-count error. When the robotcode CLI is installed or the user asks for robotcode
+    libdoc, use rf-robotcode instead.'
+  listing: SLASH_COMMAND_TOOL_CHAR_BUDGET=40000
+  train_pos_loads: 18
+  train_pos_runs: 21
+  train_query_recall: 6/7
+  train_neg_loads: 1
+  variant_id: fa30a1ee5798
+  spent_usd: 1.15
+  run: scratchpad tune/runs/rf-libdoc-it1
+  rationale: 'Re-baseline: keyword names and signatures answered from memory; resource searched with Grep.
+    Frame the skill as the alternative to answering from memory, list the question shapes (which keyword,
+    which arguments), keep the robotcode boundary.'
+- iteration: 2
+  text: 'Use this skill whenever a Robot Framework question depends on an exact keyword name, its arguments
+    or its documentation, and load it first instead of answering from memory or grepping files: a bundled
+    libdoc script searches the installed libraries (BuiltIn, Collections, SeleniumLibrary, Browser, RequestsLibrary
+    and others) and the project''s own .resource files and returns exact names, signatures with types
+    and defaults, and docs. Use when the user asks which keyword does something, what arguments or defaults
+    a keyword takes, which keywords a library or a project .resource file offers for a topic, or hits
+    No keyword with name ''…'' found or a wrong-argument-count error. Not for writing whole tests, which
+    the library skills such as rf-browser or rf-requests cover. When the robotcode CLI is installed or
+    the user asks for robotcode libdoc, use rf-robotcode instead.'
+  listing: SLASH_COMMAND_TOOL_CHAR_BUDGET=40000
+  train_pos_loads: 18
+  train_pos_runs: 21
+  train_query_recall: 6/7
+  train_neg_loads: 0
+  variant_id: 5cb1640690ce
+  spent_usd: 1.109
+  run: scratchpad tune/runs/rf-libdoc-it2
+  rationale: 'Candidate 1 had one secondary load while writing a Browser test (negative) and missed searching
+    a project .resource file (Grep). Add ''instead of grepping files'', the project''s own .resource files,
+    and a boundary: writing whole tests belongs to the library skills.'
+- iteration: 3
+  text: 'Use this skill whenever a Robot Framework question depends on an exact keyword name, its arguments
+    or its documentation, and load it first instead of answering from memory or grepping files: a bundled
+    libdoc script searches the installed libraries (BuiltIn, Collections, SeleniumLibrary, Browser, RequestsLibrary
+    and others) and the project''s own .resource files, where it lists the keywords with their arguments
+    more exactly than a text search, and returns exact names, signatures with types and defaults, and
+    docs. Use when the user asks which keyword does something, what arguments or defaults a keyword takes,
+    which keywords a library or a project .resource file offers for a topic, or hits No keyword with name
+    ''…'' found or a wrong-argument-count error. Not for writing whole tests, which the library skills
+    such as rf-browser or rf-requests cover. When the robotcode CLI is installed or the user asks for
+    robotcode libdoc, use rf-robotcode instead.'
+  listing: SLASH_COMMAND_TOOL_CHAR_BUDGET=40000
+  train_pos_loads: 18
+  train_pos_runs: 21
+  train_query_recall: 6/7
+  train_neg_loads: 0
+  variant_id: 7040d54b8c0c
+  spent_usd: 1.122
+  run: scratchpad tune/runs/rf-libdoc-it3
+  rationale: Candidate 2 still Grep-searched a project .resource file for keywords. Say that the script
+    lists a .resource file's keywords with arguments more exactly than a text search. Same score as candidate
+    2 (resource search still grepped).
+- iteration: 4
+  text: 'Use this skill whenever a Robot Framework question depends on which keywords exist, in installed
+    libraries or in the project''s own .resource files, or on a keyword''s exact name, arguments or documentation,
+    and load it first instead of answering from memory or grepping files: a bundled libdoc script searches
+    BuiltIn, Collections, SeleniumLibrary, Browser, RequestsLibrary and other libraries as well as resource
+    files, and returns exact names, signatures with types and defaults, and docs. Use when the user asks
+    which keyword does something, what arguments or defaults a keyword takes, which keywords a library
+    or a .resource file offers for a topic, or hits No keyword with name ''…'' found or a wrong-argument-count
+    error. Not for writing whole tests, which the library skills such as rf-browser or rf-requests cover.
+    When the robotcode CLI is installed or the user asks for robotcode libdoc, use rf-robotcode instead.'
+  listing: SLASH_COMMAND_TOOL_CHAR_BUDGET=40000
+  train_pos_loads: 18
+  train_pos_runs: 21
+  train_query_recall: 6/7
+  train_neg_loads: 0
+  variant_id: 98464e520f95
+  spent_usd: 1.142
+  run: scratchpad tune/runs/rf-libdoc-it4
+  rationale: 'Put ''which keywords exist, in installed libraries or in the project''s own .resource files''
+    into the intent sentence. Same 18/21 as candidates 2-3: an explicit ''search our resources/... file''
+    request is still answered with Grep. Stopped (4 iterations, no gain since candidate 2).'
+
+# Compact candidates (D11/D13): <= 160 characters each, all 12 listing lines <= 1700,
+# tuned together on the train split under the DEFAULT listing budget (no override).
+# Iterations are set iterations: iteration k of every skill was staged together in variant k
+# (iteration 2 re-ran rf-language, rf-robotcode, rf-libdoc, rf-results; iteration 3 rf-robotcode only).
+compact:
+  rebaseline_train:
+    train_pos_loads: 2
+    train_pos_runs: 21
+    train_query_recall: 0/7
+    train_neg_loads: 3
+    train_neg_accuracy: 5/6
+    note: current long description, default listing budget
+  selected: 1
+  iterations:
+  - iteration: 1
+    text: Use first, not memory, for exact Robot Framework keyword names, arguments and docs via libdoc,
+      or 'No keyword with name' errors.
+    chars: 128
+    listing: default budget (no override)
+    all_12_descriptions_visible: true
+    train_pos_loads: 17
+    train_pos_runs: 21
+    train_query_recall: 6/7
+    train_neg_loads: 1
+    train_neg_accuracy: 6/6
+    variant_id: b7a14079b54d
+    run: scratchpad tune/runs/compact-it1
+    rationale: 'Rich candidate 2 shortened: ''not memory'' replaces ''before exploring'' because the failure
+      mode was answering keyword names from memory; the ''No keyword with name'' error is the one symptom
+      that fits.'
+    remeasured_with_later_sets:
+    - set_iteration: 2
+      variant_id: 89165185ac66
+      run: scratchpad tune/runs/compact-it2
+      train_pos_loads: 16
+      train_pos_runs: 21
+      train_query_recall: 5/7
+      train_neg_loads: 2
+      train_neg_accuracy: 6/6
+# '## When to use' body block (D12), drafted from the selected rich candidate; shipped by task 6.1.
+when_to_use: |
+  ## When to use
+
+  Load this skill first, instead of answering from memory or grepping files, when a Robot Framework answer depends on an exact keyword name, its arguments or its documentation:
+
+  - which keyword does something in an installed library (BuiltIn, Collections, SeleniumLibrary, Browser, RequestsLibrary, ...) or in the project's own .resource files;
+  - what arguments, types or defaults a keyword takes (its signature);
+  - `No keyword with name '...' found`, or a wrong-argument-count error.
+
+  The bundled libdoc script returns exact names, signatures and docs.
+
+  Not this skill: writing whole tests belongs to the library skills (`rf-browser`, `rf-requests`, ...). When the robotcode CLI is installed or the user asks for `robotcode libdoc`, use `rf-robotcode`.

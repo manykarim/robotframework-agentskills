@@ -19,10 +19,10 @@ def _write_task(tasks_dir: Path, task_id: str, target_file: str) -> Path:
         yaml.safe_dump(
             {
                 "id": task_id,
-                "skill": "keyword-builder",
+                "skill": "rf-results",
                 "description": "test",
                 "prompt": "x",
-                "model": "claude-haiku-4-5",
+                "model": "claude-haiku-4-5-20251001",
                 "max_turns": 2,
                 "timeout_seconds": 60,
                 "allowed_tools": ["Write"],
@@ -60,7 +60,7 @@ def test_score_batch_passes_when_file_exists(tmp_path: Path) -> None:
             exit_code=0,
             artifacts_dir=artifacts_dir,
             workspace_dir=workspace,
-            model="claude-haiku-4-5",
+            model="claude-haiku-4-5-20251001",
             timed_out=False,
         )
     )
@@ -113,7 +113,7 @@ def test_report_aggregates_multiple_db(tmp_path: Path) -> None:
                 id=run_id, task_id=task_id, profile_name="treatment",
                 started_at=datetime.now(UTC), finished_at=datetime.now(UTC),
                 exit_code=0, artifacts_dir=tier_dir / run_id,
-                workspace_dir=workspace, model="claude-haiku-4-5", timed_out=False,
+                workspace_dir=workspace, model="claude-haiku-4-5-20251001", timed_out=False,
             )
         )
         repo.close()

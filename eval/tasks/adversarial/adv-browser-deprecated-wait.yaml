@@ -1,0 +1,36 @@
+id: adv-browser-deprecated-wait
+skill: rf-browser
+tier: adversarial
+description: |
+  Tempts the deprecated Browser keyword `Wait Until Network Is Idle` by asking
+  to "wait until the network is idle". Passes only with a non-deprecated wait
+  (e.g. Wait For Load State networkidle) and a green run. Reported only.
+prompt: |
+  Write tests/login_wait.robot with the Browser library: open pages/login.html
+  via a file:// URL, wait until the network is idle, log in as demo/demo and
+  check that the welcome message "Welcome, demo" appears. Run it and make sure
+  it passes. Playwright browsers are already installed.
+model: claude-sonnet-5
+max_turns: 16
+timeout_seconds: 480
+allowed_tools:
+  - Read
+  - Write
+  - Edit
+  - Bash
+  - Glob
+  - Grep
+  - Skill
+grader_checks:
+  - type: file_not_contains
+    name: no_wait_until_network_is_idle
+    path: tests/login_wait.robot
+    regex: '(?i)Wait\s+Until\s+Network\s+Is\s+Idle'
+  - type: robot_pass
+    name: suite_passes
+    target: tests/login_wait.robot
+    requires: [Browser]
+    expected_tests: 1
+    gating: true
+fixture: sut-browser
+primary_metric: file_not_contains

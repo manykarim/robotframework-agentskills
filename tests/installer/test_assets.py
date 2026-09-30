@@ -27,5 +27,5 @@ def test_asset_files_filtered_by_category() -> None:
 
 
 def test_skill_md_exists_for_known_skill() -> None:
-    files = list(_assets.asset_files("skills", "libdoc-search"))
+    files = list(_assets.asset_files("skills", "rf-libdoc"))
     assert any(f.name == "SKILL.md" for f in files)

@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Demo Login</title>
+</head>
+<body>
+  <h1>Demo Login</h1>
+
+  <form id="login-form">
+    <label for="username">Username</label>
+    <input type="text" id="username" name="username" />
+
+    <label for="password">Password</label>
+    <input type="password" id="password" name="password" />
+
+    <button type="submit" id="submit">Sign in</button>
+  </form>
+
+  <div id="welcome" style="display: none;"></div>
+
+  <script>
+    document.getElementById('login-form').addEventListener('submit', function (e) {
+      e.preventDefault();
+      var u = document.getElementById('username').value;
+      var p = document.getElementById('password').value;
+      var welcome = document.getElementById('welcome');
+      if (u === 'demo' && p === 'demo') {
+        welcome.textContent = 'Welcome, ' + u;
+        welcome.style.display = 'block';
+      } else {
+        welcome.textContent = 'Login failed';
+        welcome.style.display = 'block';
+      }
+    });
+  </script>
+</body>
+</html>

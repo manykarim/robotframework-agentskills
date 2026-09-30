@@ -1,7 +1,7 @@
 {
   "name": "rf-agentskills",
-  "version": "1.2.0",
-  "description": "Robot Framework agent skills for Claude Code - library references, test/keyword/resource generators, libdoc search, and results analysis",
+  "version": "2.0.0",
+  "description": "Robot Framework agent skills for Claude Code - library references, environment setup, robotcode CLI, libdoc keyword lookup, and results analysis",
   "author": {
     "name": "manykarim",
     "email": "manykarim@users.noreply.github.com"

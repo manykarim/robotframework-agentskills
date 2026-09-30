@@ -1,0 +1,45 @@
+# Trigger query set for rf-requests (format: eval/triggers/README.md).
+# Tune descriptions on the train split only; never edit validation queries
+# to make a description pass (rotate them only when the skill's intent changes).
+skill: rf-requests
+model: claude-haiku-4-5-20251001
+runs: 3
+threshold: 0.5
+queries:
+  # should trigger (train)
+  - {id: rq-t01, split: train, should_trigger: true, query: "Write a Robot Framework test with RequestsLibrary that GETs /api/users and checks there are 3 users"}
+  - {id: rq-t02, split: train, should_trigger: true, query: "My suite has Library    RequestsLibrary — how do I send a bearer token on every request in a session?"}
+  - {id: rq-t03, split: train, should_trigger: true, note: "indirect: no library named", query: "Write Robot Framework API tests for our /orders endpoint (create, read, delete)"}
+  - {id: rq-t04, split: train, should_trigger: true, note: "indirect: pasted error", query: "Robot test fails with 'HTTPError: 404 Client Error: Not Found for url' but I expect 404 there — how do I assert it?"}
+  - {id: rq-t05, split: train, should_trigger: true, query: "Upload a file with a multipart POST from a Robot Framework test using RequestsLibrary"}
+  - {id: rq-t06, split: train, should_trigger: true, query: "Check that the JSON response field items[0].price is 9.99 in my RequestsLibrary test"}
+  - {id: rq-t07, split: train, should_trigger: true, note: "typos, user phrasing", query: "robotframework requests lib - how to send query params (?page=2&size=50) with GET On Session"}
+  # should trigger (validation)
+  - {id: rq-v01, split: validation, should_trigger: true, note: "edit existing file", query: "In tests/api/auth.robot add a test for the refresh-token endpoint (we use RequestsLibrary)"}
+  - {id: rq-v02, split: validation, should_trigger: true, query: "Robot Framework: POST a JSON body with RequestsLibrary and assert status 201 and the Location header"}
+  - {id: rq-v03, split: validation, should_trigger: true, query: "How do I disable SSL verification for a RequestsLibrary session against our staging API?"}
+  - {id: rq-v04, split: validation, should_trigger: true, query: "Send basic auth credentials with GET On Session in Robot Framework"}
+  # should NOT trigger (train): sibling skills + non-RF look-alikes
+  - {id: rq-n01, split: train, should_trigger: false, note: "sibling rf-restinstance", query: "My suite imports REST (RESTinstance); validate the response body against schemas/user.json"}
+  - {id: rq-n02, split: train, should_trigger: false, note: "sibling rf-restinstance", query: "Use RESTinstance to assert that response body id is an Integer and name a String"}
+  - {id: rq-n03, split: train, should_trigger: false, note: "sibling rf-browser", query: "Write a Robot Framework Browser test for the web login page"}
+  - {id: rq-n04, split: train, should_trigger: false, note: "sibling rf-results", query: "Which API tests failed in output.xml of the nightly run?"}
+  - {id: rq-n05, split: train, should_trigger: false, note: "non-RF look-alike", query: "Write a Python script with requests that downloads all users from our API into a CSV"}
+  - {id: rq-n06, split: train, should_trigger: false, note: "non-RF look-alike", query: "Convert this Postman collection to a Newman CI job"}
+  # should NOT trigger (validation)
+  - {id: rq-n07, split: validation, should_trigger: false, note: "sibling rf-restinstance", query: "Check our API responses against the OpenAPI spec in Robot Framework with RESTinstance"}
+  - {id: rq-n08, split: validation, should_trigger: false, note: "sibling rf-setup", query: "Install RequestsLibrary into our Poetry-managed Robot Framework project"}
+  - {id: rq-n09, split: validation, should_trigger: false, note: "non-RF look-alike", query: "Write pytest tests for our FastAPI endpoints using TestClient"}
+  - {id: rq-n10, split: validation, should_trigger: false, note: "non-RF look-alike", query: "Mock HTTP calls in Python unit tests with the responses library"}
+  # holdout (tune-skill-descriptions task 7.1): written after the descriptions shipped;
+  # never used to tune, select or accept a description. 5 should / 5 should-not trigger.
+  - {id: rq-h01, split: holdout, should_trigger: true, query: "Robot Framework API test: PUT an updated address to /customers/42 and verify the change with a GET afterwards"}
+  - {id: rq-h02, split: holdout, should_trigger: true, note: "indirect: symptom only", query: "Our API returns 500 now and then; how do I retry a GET On Session a few times in robot before failing?"}
+  - {id: rq-h03, split: holdout, should_trigger: true, query: "Send a form-urlencoded login (username/password) to /oauth/token from a robot test and keep the access token"}
+  - {id: rq-h04, split: holdout, should_trigger: true, query: "RequestsLibrary: the endpoint returns a CSV file, how do I read its rows in my test?"}
+  - {id: rq-h05, split: holdout, should_trigger: true, note: "intent only", query: "Write robot tests for our pagination: fetch page 1 and page 2 of /products and make sure no id repeats"}
+  - {id: rq-h06, split: holdout, should_trigger: false, note: "sibling rf-restinstance", query: "Library    REST in our suite: check that response body tags is an Array of Strings"}
+  - {id: rq-h07, split: holdout, should_trigger: false, note: "sibling rf-restinstance", query: "Contract-test every endpoint against our swagger.json from Robot Framework"}
+  - {id: rq-h08, split: holdout, should_trigger: false, note: "sibling rf-setup", query: "Importing RequestsLibrary fails with No module named 'requests' in our CI job"}
+  - {id: rq-h09, split: holdout, should_trigger: false, note: "non-RF look-alike", query: "Write a k6 load test for GET /products"}
+  - {id: rq-h10, split: holdout, should_trigger: false, note: "non-RF look-alike", query: "Use httpx in async Python to call three APIs in parallel"}

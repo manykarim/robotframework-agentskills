@@ -1,0 +1,64 @@
+id: narrow-language-env-varfiles-01
+skill: rf-language
+tier: narrow
+description: |
+  Move hard-coded environment values into per-environment YAML variable files.
+  Gated by hidden grader suites run with --variablefile variables/staging.yaml
+  and variables/dev.yaml (together with tests/env.robot), PyYAML declared in
+  pyproject.toml, and the hard-coded URL gone from tests/env.robot.
+prompt: |
+  tests/env.robot hard-codes the dev values of ${BASE URL} and ${TIMEOUT}.
+  Move them into per-environment YAML variable files so that we pick the
+  environment on the command line:
+    - variables/dev.yaml: BASE URL http://localhost:8080, TIMEOUT 5 s
+    - variables/staging.yaml: BASE URL https://staging.example.com, TIMEOUT 30 s
+  tests/env.robot must not hard-code these values any more. Make sure the
+  project can load YAML variable files, and run the suite against both
+  environments.
+model: claude-haiku-4-5-20251001
+max_turns: 14
+timeout_seconds: 300
+allowed_tools:
+  - Read
+  - Write
+  - Edit
+  - Bash
+  - Glob
+  - Grep
+  - Skill
+grader_checks:
+  - type: custom_python
+    name: staging_values_from_varfile
+    func_ref: rf_skill_eval.scoring.custom.language:hidden_suite
+    suite: env_staging.robot
+    variablefile: variables/staging.yaml
+    also_run: [tests/env.robot]
+    requires: [yaml]
+    expected_tests: 3
+    gating: true
+  - type: custom_python
+    name: dev_values_from_varfile
+    func_ref: rf_skill_eval.scoring.custom.language:hidden_suite
+    suite: env_dev.robot
+    variablefile: variables/dev.yaml
+    also_run: [tests/env.robot]
+    requires: [yaml]
+    expected_tests: 3
+    gating: true
+  - type: file_contains
+    name: pyyaml_declared
+    path: pyproject.toml
+    regex: '(?i)pyyaml'
+    gating: true
+  - type: file_not_contains
+    name: no_hardcoded_url
+    path: tests/env.robot
+    regex: 'http://localhost:8080'
+    gating: true
+  - type: tool_call_count
+    name: loaded_rf_language_skill
+    tool_pattern: "(Skill|Read)"
+    input_pattern: '(rf-language|/skills/rf-language/SKILL\.md)'
+    min: 1
+fixture: sut-language-keywords
+primary_metric: custom_python

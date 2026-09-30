@@ -1,0 +1,46 @@
+id: narrow-python-library-mode-literal-01
+skill: rf-python-library
+tier: narrow
+description: |
+  Write a Set Mode keyword that accepts only ON/OFF, case-insensitively, and
+  rejects anything else with a message naming the allowed values. A `str`
+  argument without validation accepts "maybe" and fails the hidden grader
+  suite (eval/graders/python-library/mode.robot). Non-gating: the argument is
+  typed with Literal or an Enum.
+prompt: |
+  Create libraries/Modes.py, a Robot Framework keyword library written in
+  Python, with a keyword `Set Mode    <mode>`. The mode may only be ON or OFF;
+  testers type it in any case (on, Off, OFF). The keyword returns the mode as
+  the string ON or OFF. Any other value must fail with an error message that
+  names the allowed values. Suites import it as `Library    Modes` with
+  libraries/ on the python-path. Make sure it works before you finish.
+model: claude-haiku-4-5-20251001
+max_turns: 14
+timeout_seconds: 300
+allowed_tools:
+  - Read
+  - Write
+  - Edit
+  - Bash
+  - Glob
+  - Grep
+  - Skill
+grader_checks:
+  - type: custom_python
+    name: hidden_suite_mode_values
+    func_ref: rf_skill_eval.scoring.custom.python_library:hidden_suite
+    suite: mode.robot
+    expected_tests: 4
+    gating: true
+  - type: file_contains
+    name: literal_or_enum_type
+    path: libraries/Modes.py
+    regex: 'Literal\[|\(Enum\)|\bEnum\b'
+    gating: false
+  - type: tool_call_count
+    name: loaded_rf_python_library_skill
+    tool_pattern: "(Skill|Read)"
+    input_pattern: '(rf-python-library|/skills/rf-python-library/SKILL\.md)'
+    min: 1
+fixture: sut-pylib
+primary_metric: custom_python

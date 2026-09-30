@@ -1,0 +1,48 @@
+id: narrow-robotcode-discover-01
+skill: rf-robotcode
+tier: narrow
+description: |
+  Use the robotcode CLI to discover every test in sut-minimal and write the
+  fully-qualified test names to a report. Gated by file_contains on the
+  robotcode-style long names (Suite.Sub Suite.Test).
+prompt: |
+  I want an inventory of the tests in this project. Use robotcode (install it
+  as a dev dependency with uv if it is missing) to discover all tests and
+  write reports/tests.txt with one fully-qualified test name (long name, e.g.
+  Suite.Sub Suite.Test Name) per line, followed by a final line
+  "Total: <n>". Don't hand-grep the .robot files.
+model: claude-haiku-4-5-20251001
+max_turns: 14
+timeout_seconds: 420
+allowed_tools:
+  - Read
+  - Write
+  - Edit
+  - Bash
+  - Glob
+  - Grep
+  - Skill
+expected_files:
+  - path: reports/tests.txt
+    must_contain:
+      - "Cart Page Loads"
+grader_checks:
+  - type: file_contains
+    name: long_name_cart
+    path: reports/tests.txt
+    regex: '(?m)^\S.*\.Checkout Cart\.Cart Page Loads\s*$'
+  - type: file_contains
+    name: long_name_smoke
+    path: reports/tests.txt
+    regex: '(?m)^\S.*\.Example\.Fixture Smoke Test\s*$'
+  - type: file_contains
+    name: total_line
+    path: reports/tests.txt
+    regex: '(?m)^Total:\s*\d+'
+  - type: tool_call_count
+    name: ran_robotcode
+    tool_pattern: "Bash"
+    input_pattern: '\brobotcode\b'
+    min: 1
+fixture: sut-minimal
+primary_metric: file_contains

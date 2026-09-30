@@ -21,7 +21,7 @@ from pathlib import Path
 import pytest
 
 ROOT = Path(__file__).resolve().parent.parent
-SKILL_DIR = ROOT / "skills" / "robotframework-platynui-skill"
+SKILL_DIR = ROOT / "skills" / "rf-platynui"
 SKILL_MD = SKILL_DIR / "SKILL.md"
 
 # The PlatynUI.BareMetal keyword names the skill documents (keywords-reference.md).
@@ -115,3 +115,13 @@ def test_high_level_platynui_is_placeholder() -> None:
     assert names == {"Dummy Keyword"}, (
         f"expected the placeholder PlatynUI library, got keywords: {sorted(names)}"
     )
+
+
+def test_distributed_under_same_identifier() -> None:
+    """Plugin and VS Code copies use the same rf-platynui dir and name (skill-metadata-conformance)."""
+    for channel in ("plugins/rf-agentskills/skills", "vscode-extension/skills"):
+        md = ROOT / channel / "rf-platynui" / "SKILL.md"
+        assert md.is_file(), md
+        assert "\nname: rf-platynui\n" in md.read_text(encoding="utf-8"), md
+    pkg = (ROOT / "vscode-extension" / "package.json").read_text(encoding="utf-8")
+    assert "./skills/rf-platynui/SKILL.md" in pkg

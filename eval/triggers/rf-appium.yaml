@@ -1,0 +1,45 @@
+# Trigger query set for rf-appium (format: eval/triggers/README.md).
+# Tune descriptions on the train split only; never edit validation queries
+# to make a description pass (rotate them only when the skill's intent changes).
+skill: rf-appium
+model: claude-haiku-4-5-20251001
+runs: 3
+threshold: 0.5
+queries:
+  # should trigger (train)
+  - {id: ap-t01, split: train, should_trigger: true, query: "Write a Robot Framework AppiumLibrary test that logs into our Android app with UiAutomator2"}
+  - {id: ap-t02, split: train, should_trigger: true, query: "My suite has Library    AppiumLibrary — how do I swipe up to reveal the settings list?"}
+  - {id: ap-t03, split: train, should_trigger: true, query: "Switch to the WEBVIEW context in our hybrid app with AppiumLibrary and fill the web login form"}
+  - {id: ap-t04, split: train, should_trigger: true, note: "indirect: no library named", query: "Automate the onboarding screens of our iOS app on the simulator with Robot Framework"}
+  - {id: ap-t05, split: train, should_trigger: true, query: "Which capabilities do I pass to Open Application for an .ipa with XCUITest in Robot Framework?"}
+  - {id: ap-t06, split: train, should_trigger: true, note: "indirect: pasted error", query: "Robot mobile test fails with 'An element could not be located on the page using the given search parameters' for accessibility_id=login — what's wrong?"}
+  - {id: ap-t07, split: train, should_trigger: true, note: "typos, user phrasing", query: "appium libary robot - how do i hide the keybaord after typing the pin on android"}
+  # should trigger (validation)
+  - {id: ap-v01, split: validation, should_trigger: true, note: "edit existing file", query: "Add a pull-to-refresh step to tests/mobile/feed.robot (AppiumLibrary)"}
+  - {id: ap-v02, split: validation, should_trigger: true, query: "Tap the 'Allow' button of the Android location permission dialog from a Robot test"}
+  - {id: ap-v03, split: validation, should_trigger: true, query: "Robot Framework test for our mobile app: scroll until the 'Terms' element is visible, then tap it"}
+  - {id: ap-v04, split: validation, should_trigger: true, query: "Run my AppiumLibrary suite against the .apk on emulator-5554 and check the welcome text"}
+  # should NOT trigger (train): sibling skills + non-RF look-alikes
+  - {id: ap-n01, split: train, should_trigger: false, note: "sibling rf-platynui", query: "Automate the Windows Calculator desktop app with Robot Framework"}
+  - {id: ap-n02, split: train, should_trigger: false, note: "sibling rf-browser", query: "Write a Robot Framework Browser test for our responsive website in a desktop Chromium"}
+  - {id: ap-n03, split: train, should_trigger: false, note: "sibling rf-setup", query: "Install the Appium server and the UiAutomator2 driver for our Robot Framework project"}
+  - {id: ap-n04, split: train, should_trigger: false, note: "sibling rf-selenium", query: "Open Chrome on my laptop with SeleniumLibrary and test the login page"}
+  - {id: ap-n05, split: train, should_trigger: false, note: "non-RF look-alike", query: "Write an Espresso test in Kotlin for the login activity"}
+  - {id: ap-n06, split: train, should_trigger: false, note: "non-RF look-alike", query: "Appium Java TestNG: how do I set desiredCapabilities for iOS 17?"}
+  # should NOT trigger (validation)
+  - {id: ap-n07, split: validation, should_trigger: false, note: "sibling rf-platynui", query: "Click the Save button in our Qt desktop application from Robot Framework"}
+  - {id: ap-n08, split: validation, should_trigger: false, note: "sibling rf-requests", query: "Test the REST backend of our mobile app with RequestsLibrary"}
+  - {id: ap-n09, split: validation, should_trigger: false, note: "non-RF look-alike", query: "Write an XCUITest UI test in Swift that taps the Sign In button"}
+  - {id: ap-n10, split: validation, should_trigger: false, note: "non-RF look-alike", query: "Detox end-to-end test for our React Native app"}
+  # holdout (tune-skill-descriptions task 7.1): written after the descriptions shipped;
+  # never used to tune, select or accept a description. 5 should / 5 should-not trigger.
+  - {id: ap-h01, split: holdout, should_trigger: true, query: "Our Robot Framework mobile suite needs a test that long-presses a chat message in the Android app and picks 'Delete' from the popup"}
+  - {id: ap-h02, split: holdout, should_trigger: true, query: "AppiumLibrary: the iPhone app shows a native date picker, how do I set it to next Friday in my robot test?"}
+  - {id: ap-h03, split: holdout, should_trigger: true, note: "indirect: symptom only", query: "robot test on a real Android phone: Input Text into the OTP field does nothing although the field looks focused"}
+  - {id: ap-h04, split: holdout, should_trigger: true, query: "Put the app in the background for 5 seconds and bring it back in an AppiumLibrary test to check the user is still logged in"}
+  - {id: ap-h05, split: holdout, should_trigger: true, note: "intent only", query: "Our tablet app changes layout in landscape; write a Robot Framework check that rotates the device and verifies the sidebar appears"}
+  - {id: ap-h06, split: holdout, should_trigger: false, note: "sibling rf-platynui", query: "Robot Framework test for our Windows point-of-sale desktop client: press F2 and check that the 'Discount' dialog opens"}
+  - {id: ap-h07, split: holdout, should_trigger: false, note: "sibling rf-setup", query: "appium driver install uiautomator2 fails behind our company proxy, how do I get the driver installed for the robot mobile tests?"}
+  - {id: ap-h08, split: holdout, should_trigger: false, note: "sibling rf-browser", query: "Emulate an iPhone viewport in our Playwright-based Robot tests to check the mobile web menu"}
+  - {id: ap-h09, split: holdout, should_trigger: false, note: "non-RF look-alike", query: "Write a Maestro flow YAML that logs into our Flutter app"}
+  - {id: ap-h10, split: holdout, should_trigger: false, note: "non-RF look-alike", query: "How do I record a screen video of an adb shell session on my Pixel?"}

@@ -1,124 +1,100 @@
 #!/usr/bin/env node
-// check_rf_environment.mjs — Check Robot Framework environment at session start.
+// check_rf_environment.mjs — Check the Robot Framework environment at session start.
 //
-// Called by the SessionStart hook to verify that the RF toolchain is
-// available. Outputs a diagnostic summary to stderr so Claude sees the
-// environment state. Always exits 0 (informational only — never blocks
-// session start).
+// Called by the SessionStart hook. Writes a diagnostic summary to stderr so the
+// agent sees the environment state. Always exits 0 (informational only — never
+// blocks session start).
 //
-// Cross-platform port of check_rf_environment.sh.
-//
-// Python interpreter resolution: prefers the install-time interpreter
-// recorded in `python_runtime.json` (next to this script, written by the
-// rf-agentskills installer from `sys.executable`). This is essential for
-// pipx / uv tool install / venv setups where the interpreter that has
-// `robotframework` installed is NOT the `python` on PATH. Falls back to
-// `python3` then `python` if the recorded interpreter is unavailable.
+// Interpreter resolution is shared with the validation hooks (_python_env.mjs):
+// VIRTUAL_ENV -> <cwd>/.venv -> python_runtime.json -> python3/python. The
+// SessionStart event's `cwd` selects the project (process cwd when it has none);
+// a missing, empty or malformed event produces no output. Install advice follows the rf-setup skill (project environment,
+// `uv add …`); it never recommends `pip install` or `rfbrowser init`.
 import { spawnSync } from "node:child_process";
 import { readFileSync } from "node:fs";
-import { fileURLToPath } from "node:url";
-import { dirname, join } from "node:path";
+import {
+  PROBE_TIMEOUT_MS,
+  findInterpreterWith,
+  firstPython,
+  projectRoot,
+  spawnOptions,
+} from "./_python_env.mjs";
 
-const HERE = dirname(fileURLToPath(import.meta.url));
-
-function loadPythonInterpreters() {
-  const candidates = [];
-  try {
-    const cfg = JSON.parse(
-      readFileSync(join(HERE, "python_runtime.json"), "utf-8"),
-    );
-    if (typeof cfg.interpreter === "string" && cfg.interpreter) {
-      candidates.push(cfg.interpreter);
-    }
-    for (const fb of cfg.fallbacks ?? []) {
-      if (typeof fb === "string" && fb && !candidates.includes(fb)) {
-        candidates.push(fb);
-      }
-    }
-  } catch {
-    // Config missing — use PATH fallbacks only.
-  }
-  for (const fb of ["python3", "python"]) {
-    if (!candidates.includes(fb)) candidates.push(fb);
-  }
-  return candidates;
+// Missing, empty or malformed event -> no output (the hook never blocks).
+let event = null;
+try {
+  event = JSON.parse(readFileSync(0, "utf-8"));
+} catch {
+  process.exit(0);
 }
+if (!event || typeof event !== "object" || Array.isArray(event)) process.exit(0);
+const cwd = projectRoot(event);
 
 const found = [];
 const missing = [];
 
 function commandExists(cmd) {
-  // `where` on Windows, `command -v` on POSIX. `spawnSync` with shell:true
-  // is portable enough for a pure existence probe.
   const probe = process.platform === "win32"
-    ? spawnSync("where", [cmd], { stdio: "ignore" })
-    : spawnSync("sh", ["-c", `command -v ${cmd}`], { stdio: "ignore" });
+    ? spawnSync("where", [cmd], { ...spawnOptions(PROBE_TIMEOUT_MS), stdio: "ignore" })
+    : spawnSync("sh", ["-c", `command -v ${cmd}`], { ...spawnOptions(PROBE_TIMEOUT_MS), stdio: "ignore" });
   return probe.status === 0;
-}
-
-// Resolve which Python invocation to use. Try (in order): the
-// install-time interpreter from python_runtime.json, then `python3`,
-// then `python` on PATH. The recorded interpreter wins when present
-// because it's the one with `robotframework` installed (pipx / uv tool
-// install / venv all keep `robot` in their own Python, not on PATH).
-function pickPython() {
-  for (const py of loadPythonInterpreters()) {
-    // For absolute paths, a probe with `--version` is the cheapest
-    // existence check that works on Windows too (no `where` needed).
-    const r = spawnSync(py, ["--version"], { stdio: "ignore" });
-    if (!r.error || r.error.code !== "ENOENT") return py;
-  }
-  return null;
 }
 
 function pythonImportExists(py, importName) {
   if (!py) return false;
-  const r = spawnSync(py, ["-c", `import ${importName}`], { stdio: "ignore" });
+  const r = spawnSync(py, ["-c", `import ${importName}`], {
+    ...spawnOptions(PROBE_TIMEOUT_MS),
+    stdio: "ignore",
+  });
   return r.status === 0;
 }
 
-function check(category, ok, label) {
+function check(ok, label) {
   (ok ? found : missing).push(label);
   return ok;
 }
 
 process.stderr.write("=== Robot Framework Environment Check ===\n");
 
-const py = pickPython();
+// Prefer the interpreter that has Robot Framework; else the first one that runs.
+const py = findInterpreterWith("robot", cwd) ?? firstPython(cwd);
 
 process.stderr.write("\nCore:\n");
-check("core", py !== null, "python3");
+check(py !== null, "python3");
 const rfOk = pythonImportExists(py, "robot");
-check("core", rfOk, "robotframework");
+check(rfOk, "robotframework");
 let rfVersion = "not installed";
 if (rfOk) {
   const r = spawnSync(py, ["-c", "import robot; print(robot.version.VERSION)"], {
+    ...spawnOptions(PROBE_TIMEOUT_MS),
     encoding: "utf-8",
   });
   if (r.status === 0) rfVersion = (r.stdout ?? "").trim() || rfVersion;
 }
 process.stderr.write(`  Robot Framework version: ${rfVersion}\n`);
+if (py) process.stderr.write(`  Interpreter: ${py}\n`);
+
+process.stderr.write("\nLinting:\n");
+const robocopOk = check(pythonImportExists(py, "robocop") ||
+  findInterpreterWith("robocop", cwd) !== null, "robotframework-robocop");
+process.stderr.write(
+  robocopOk
+    ? "  Robocop: available (invalid and deprecated syntax is checked on every .robot/.resource edit)\n"
+    : "  Robocop: not installed — syntax and deprecation checks on edit are disabled " +
+        "(uv add --dev robotframework-robocop; see the rf-setup skill)\n",
+);
 
 process.stderr.write("\nWeb Testing:\n");
-check("web", pythonImportExists(py, "Browser"),
-  "robotframework-browser (Browser Library)");
-check("web", pythonImportExists(py, "SeleniumLibrary"),
-  "robotframework-seleniumlibrary");
-if (pythonImportExists(py, "Browser") && commandExists("npx")) {
-  process.stderr.write(
-    "  Browser Library: installed (run 'rfbrowser init' if not initialized)\n",
-  );
-}
+check(pythonImportExists(py, "Browser"), "robotframework-browser (Browser Library)");
+check(pythonImportExists(py, "SeleniumLibrary"), "robotframework-seleniumlibrary");
 
 process.stderr.write("\nAPI Testing:\n");
-check("api", pythonImportExists(py, "RequestsLibrary"),
-  "robotframework-requests");
-check("api", pythonImportExists(py, "REST"), "RESTinstance");
+check(pythonImportExists(py, "RequestsLibrary"), "robotframework-requests");
+check(pythonImportExists(py, "REST"), "RESTinstance");
 
 process.stderr.write("\nMobile Testing:\n");
-check("mobile", pythonImportExists(py, "AppiumLibrary"),
-  "robotframework-appiumlibrary");
-check("mobile", commandExists("appium"), "appium");
+check(pythonImportExists(py, "AppiumLibrary"), "robotframework-appiumlibrary");
+check(commandExists("appium"), "appium");
 
 process.stderr.write("\n--- Summary ---\n");
 if (found.length) {
@@ -127,16 +103,13 @@ if (found.length) {
 if (missing.length) {
   process.stderr.write(`Not installed: ${missing.join(", ")}\n`);
   process.stderr.write(
-    "\nSee the rf-agentskills setup skill for full install steps (uv / venv + pip / poetry).\n",
+    "\nInstall only what the project needs, into the project environment. " +
+      "See the rf-setup skill for the full steps (uv, venv, poetry; Browser needs Node.js):\n",
   );
-  process.stderr.write("\nInstall missing packages into the project environment as needed:\n");
-  process.stderr.write("  uv add robotframework robotframework-requests   # uv project (preferred)\n");
-  process.stderr.write("  pip install robotframework                    # Core (required)\n");
-  process.stderr.write("  pip install robotframework-browser && rfbrowser init  # Web (Playwright)\n");
-  process.stderr.write("  pip install robotframework-seleniumlibrary    # Web (Selenium)\n");
-  process.stderr.write("  pip install robotframework-requests           # API\n");
-  process.stderr.write("  pip install RESTinstance                      # API (alternative)\n");
-  process.stderr.write("  pip install robotframework-appiumlibrary      # Mobile\n");
+  process.stderr.write("  uv add robotframework                        # core\n");
+  process.stderr.write("  uv add --dev robotframework-robocop          # lint + checks on edit\n");
+  process.stderr.write("  uv add robotframework-requests               # API (default)\n");
+  process.stderr.write("  uv add \"robotframework-browser[bb]\"          # web (default; see rf-setup)\n");
 } else {
   process.stderr.write("All checked packages are installed.\n");
 }

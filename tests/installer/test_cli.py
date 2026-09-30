@@ -44,6 +44,53 @@ def test_cli_doctor_runs(capsys, fake_home: Path) -> None:
     assert "adapter" in out
 
 
+def _legacy_skill(root: Path, dir_name: str, name: str, body: str = "Robot Framework skill.\n") -> Path:
+    d = root / dir_name
+    d.mkdir(parents=True)
+    (d / "SKILL.md").write_text(f"---\nname: {name}\ndescription: x\n---\n{body}", encoding="utf-8")
+    return d
+
+
+def test_cli_doctor_warns_about_unowned_legacy_skill_dirs(capsys, fake_home: Path) -> None:
+    """skill-metadata-conformance: doctor flags unowned pre-2.0 skill dirs and never deletes them."""
+    user_skills = fake_home / ".claude" / "skills"
+    project_skills = fake_home / ".agents" / "skills"  # fake_home is also the CWD (project scope)
+    long_dir = _legacy_skill(user_skills, "robotframework-browser-skill", "rf-browser")
+    short_dir = _legacy_skill(project_skills, "results", "results")
+    foreign = _legacy_skill(user_skills, "browser", "web-browser", "Someone else's browser skill.\n")
+    same_name_foreign = _legacy_skill(user_skills, "setup", "setup", "Set up a Rails app.\n")
+
+    rc = main(["doctor"])
+
+    assert rc == 0
+    captured = capsys.readouterr()
+    err = captured.err.replace("\n", "")
+    assert str(long_dir) in err
+    assert str(short_dir) in err
+    assert "rm -r" in err
+    assert str(foreign) not in err
+    assert str(same_name_foreign) not in err
+    assert "legacy skill dirs" in captured.out
+    for d in (long_dir, short_dir, foreign, same_name_foreign):
+        assert (d / "SKILL.md").is_file(), "doctor must never delete"
+
+
+def test_cli_doctor_ignores_owned_legacy_named_dirs(capsys, fake_home: Path, monkeypatch) -> None:
+    from rf_agentskills import cli as _cli
+
+    legacy = _legacy_skill(fake_home / ".claude" / "skills", "browser", "browser")
+    monkeypatch.setattr(_cli, "_owned_paths", lambda: [legacy / "SKILL.md"])
+    assert main(["doctor"]) == 0
+    assert str(legacy) not in capsys.readouterr().err.replace("\n", "")
+
+
+def test_cli_doctor_no_legacy_dirs_after_fresh_install(capsys, fake_home: Path) -> None:
+    assert main(["install", "--agent", "claude-code", "--scope", "user"]) == 0
+    capsys.readouterr()
+    assert main(["doctor"]) == 0
+    assert "pre-2.0" not in capsys.readouterr().err
+
+
 def test_cli_list_empty(capsys, fake_home: Path) -> None:
     rc = main(["list"])
     assert rc == 0

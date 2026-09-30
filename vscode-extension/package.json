@@ -1,8 +1,8 @@
 {
   "name": "robotframework-agentskills",
   "displayName": "Robot Framework Agent Skills",
-  "description": "Agent Skills for Robot Framework test automation \u2014 web, API, mobile testing, keyword/test/resource generation, and library documentation tools",
-  "version": "1.2.0",
+  "description": "Agent Skills for Robot Framework test automation \u2014 web, API, mobile and desktop testing, environment setup, and library documentation tools",
+  "version": "2.0.0",
   "publisher": "manykarim",
   "license": "Apache-2.0",
   "engines": {
@@ -35,22 +35,19 @@
         "path": "./skills/rf-browser/SKILL.md"
       },
       {
-        "path": "./skills/rf-keyword-builder/SKILL.md"
+        "path": "./skills/rf-language/SKILL.md"
       },
       {
-        "path": "./skills/rf-libdoc-explain/SKILL.md"
-      },
-      {
-        "path": "./skills/rf-libdoc-search/SKILL.md"
+        "path": "./skills/rf-libdoc/SKILL.md"
       },
       {
         "path": "./skills/rf-platynui/SKILL.md"
       },
       {
-        "path": "./skills/rf-requests/SKILL.md"
+        "path": "./skills/rf-python-library/SKILL.md"
       },
       {
-        "path": "./skills/rf-resource-architect/SKILL.md"
+        "path": "./skills/rf-requests/SKILL.md"
       },
       {
         "path": "./skills/rf-restinstance/SKILL.md"
@@ -66,9 +63,6 @@
       },
       {
         "path": "./skills/rf-setup/SKILL.md"
-      },
-      {
-        "path": "./skills/rf-testcase-builder/SKILL.md"
       }
     ]
   },

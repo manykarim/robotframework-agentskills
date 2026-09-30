@@ -1,8 +1,8 @@
 """Generate the `.mcp.json` for an isolated Claude profile.
 
-The harness enables the `rf-mcp` server so that runs have access to the
-Robot Framework tool surface. Additional servers can be registered by
-passing a mapping to :func:`build_mcp_config`.
+Servers are registered explicitly: per-task servers (``mcp_servers:`` in the
+task YAML, e.g. ``rf-mcp``) in both arms, plugin servers (``rf-tools``) in the
+treatment arm only. Nothing is registered by default.
 """
 
 from __future__ import annotations
@@ -26,18 +26,23 @@ DEFAULT_RF_MCP_SERVER: dict[str, Any] = {
 }
 
 
+#: Per-task MCP servers a task may declare via ``mcp_servers:`` (design D1).
+MCP_SERVER_REGISTRY: dict[str, dict[str, Any]] = {"rf-mcp": DEFAULT_RF_MCP_SERVER}
+
+
 def build_mcp_config(
     extra_servers: Mapping[str, Mapping[str, Any]] | None = None,
     *,
-    include_rf_mcp: bool = True,
+    include_rf_mcp: bool = False,
 ) -> dict[str, Any]:
     """Return the dict that should be JSON-serialised to ``.mcp.json``.
 
     Args:
         extra_servers: Additional MCP server configurations keyed by name.
             Each value must include ``command`` (str) and ``args`` (list).
-        include_rf_mcp: Whether to register the ``rf-mcp`` server. Set to
-            ``False`` for control profiles that should not see RF tools.
+        include_rf_mcp: Whether to register the ``rf-mcp`` server. Defaults
+            to ``False``: rf-mcp is a per-task declaration (``mcp_servers:
+            [rf-mcp]``) applied identically in both arms, never implied.
     """
 
     servers: dict[str, Any] = {}
@@ -55,7 +60,7 @@ def write_mcp_config(
     config_dir: Path,
     *,
     extra_servers: Mapping[str, Mapping[str, Any]] | None = None,
-    include_rf_mcp: bool = True,
+    include_rf_mcp: bool = False,
 ) -> Path:
     """Write `.mcp.json` into ``config_dir`` and return the created path."""
 

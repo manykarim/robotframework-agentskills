@@ -1,0 +1,15 @@
+[project]
+name = "sut-language-keywords"
+version = "0.0.1"
+description = "Fixture for rf-language keyword and variable tasks: embedded-argument teams keyword and per-environment variable files."
+requires-python = ">=3.10"
+dependencies = [
+  "robotframework>=7.3",
+]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = []

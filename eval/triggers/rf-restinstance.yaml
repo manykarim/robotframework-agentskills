@@ -1,0 +1,45 @@
+# Trigger query set for rf-restinstance (format: eval/triggers/README.md).
+# Tune descriptions on the train split only; never edit validation queries
+# to make a description pass (rotate them only when the skill's intent changes).
+skill: rf-restinstance
+model: claude-haiku-4-5-20251001
+runs: 3
+threshold: 0.5
+queries:
+  # should trigger (train)
+  - {id: ri-t01, split: train, should_trigger: true, query: "My suite has Library    REST — assert that response body name is the String 'Alice'"}
+  - {id: ri-t02, split: train, should_trigger: true, query: "Validate the /users response against a JSON Schema file in Robot Framework using RESTinstance"}
+  - {id: ri-t03, split: train, should_trigger: true, query: "Use RESTinstance to check our API responses against the OpenAPI spec in openapi.yaml"}
+  - {id: ri-t04, split: train, should_trigger: true, note: "indirect: pasted error", query: "My Robot API test fails with 'Expected integer, but got string' on response body id — what does that mean?"}
+  - {id: ri-t05, split: train, should_trigger: true, query: "Generate a JSON schema from the current response and save it with RESTinstance"}
+  - {id: ri-t06, split: train, should_trigger: true, note: "indirect: technique only", query: "Write schema-driven API tests in Robot Framework where every response is checked against JSON Schema"}
+  - {id: ri-t07, split: train, should_trigger: true, note: "typos, user phrasing", query: "restinstance: how to check that response body items is an array with at least 1 item??"}
+  # should trigger (validation)
+  - {id: ri-v01, split: validation, should_trigger: true, note: "edit existing file", query: "In tests/api/users_schema.robot (Library REST) add a check that email is a String matching an email format"}
+  - {id: ri-v02, split: validation, should_trigger: true, query: "Assert with RESTinstance that response status is an Integer 201 after POST /users"}
+  - {id: ri-v03, split: validation, should_trigger: true, query: "How do I set default headers for all requests with RESTinstance in Robot Framework?"}
+  - {id: ri-v04, split: validation, should_trigger: true, query: "Expect Response Body with a schema in RESTinstance so every following request is validated"}
+  # should NOT trigger (train): sibling skills + non-RF look-alikes
+  - {id: ri-n01, split: train, should_trigger: false, note: "sibling rf-requests", query: "My suite imports RequestsLibrary; send a bearer token on every request in a session"}
+  - {id: ri-n02, split: train, should_trigger: false, note: "sibling rf-requests", query: "Upload a file with multipart POST using RequestsLibrary in Robot Framework"}
+  - {id: ri-n03, split: train, should_trigger: false, note: "sibling rf-setup", query: "Install RESTinstance — pip says it needs Python 3.11; how do I set up the environment?"}
+  - {id: ri-n04, split: train, should_trigger: false, note: "sibling rf-browser", query: "Log into the web UI with Browser library and check the dashboard"}
+  - {id: ri-n05, split: train, should_trigger: false, note: "non-RF look-alike", query: "Validate a JSON document against a schema in Python with the jsonschema package"}
+  - {id: ri-n06, split: train, should_trigger: false, note: "non-RF look-alike", query: "Fuzz our OpenAPI endpoints with Schemathesis in CI"}
+  # should NOT trigger (validation)
+  - {id: ri-n07, split: validation, should_trigger: false, note: "sibling rf-requests", query: "RequestsLibrary: assert that GET On Session returns status 404 for an unknown id"}
+  - {id: ri-n08, split: validation, should_trigger: false, note: "sibling rf-results", query: "Merge the output.xml files of our API test shards into one report"}
+  - {id: ri-n09, split: validation, should_trigger: false, note: "non-RF look-alike", query: "Write a Postman test script that checks response time is below 200 ms"}
+  - {id: ri-n10, split: validation, should_trigger: false, note: "non-RF look-alike", query: "Generate a TypeScript client from our OpenAPI spec"}
+  # holdout (tune-skill-descriptions task 7.1): written after the descriptions shipped;
+  # never used to tune, select or accept a description. 5 should / 5 should-not trigger.
+  - {id: ri-h01, split: holdout, should_trigger: true, query: "With Library    REST, check that response body price is a Number greater than 0"}
+  - {id: ri-h02, split: holdout, should_trigger: true, query: "Our Robot API suite uses RESTinstance; load the expected schema from schemas/order.json for POST /orders"}
+  - {id: ri-h03, split: holdout, should_trigger: true, query: "RESTinstance test: middleName in the response body may be null, how do I accept a String or Null?"}
+  - {id: ri-h04, split: holdout, should_trigger: true, query: "Make RESTinstance write the learned JSON schema of each endpoint to a file after the run"}
+  - {id: ri-h05, split: holdout, should_trigger: true, query: "Robot test with the REST library: PATCH /users/7 and assert the returned object has exactly these properties"}
+  - {id: ri-h06, split: holdout, should_trigger: false, note: "sibling rf-requests", query: "RequestsLibrary: keep cookies between two requests in the same session"}
+  - {id: ri-h07, split: holdout, should_trigger: false, note: "sibling rf-requests", query: "Write Robot Framework tests for our /health and /version endpoints, just the status and one field"}
+  - {id: ri-h08, split: holdout, should_trigger: false, note: "sibling rf-results", query: "How many API suites failed in last night's output.xml?"}
+  - {id: ri-h09, split: holdout, should_trigger: false, note: "non-RF look-alike", query: "Validate a YAML config against a JSON schema with ajv in Node"}
+  - {id: ri-h10, split: holdout, should_trigger: false, note: "non-RF look-alike", query: "Write Pact consumer tests in JavaScript for the orders service"}

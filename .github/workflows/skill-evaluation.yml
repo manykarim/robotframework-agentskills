@@ -1,32 +1,78 @@
 name: Skill Evaluation
 
+# Tiered skill evaluation (strengthen-skill-eval-harness, ADR-005):
+#   PR       -> narrow tier, treatment arm only, N=3, Haiku, scoped to the changed
+#               skills + `plugin` canaries, gated against eval/baselines/narrow.json;
+#               validation-split trigger evals when a SKILL.md description changed.
+#   weekly   -> all tiers in both arms, N=3, all trigger sets, candidate baseline.
+#   manual   -> same as weekly with model / runs / allow_opus inputs.
+# Every harness invocation carries an explicit --max-cost-usd cap.
+
 on:
+  pull_request:
+    paths:
+      - 'skills/**'
+      - 'plugins/rf-agentskills/**'
+      - 'vscode-extension/skills/**'
+      - 'eval/**'
+      - 'src/rf_skill_eval/**'
+      - 'pyproject.toml'
+      - 'uv.lock'
+      - '.github/workflows/skill-evaluation.yml'
+  schedule:
+    # Sunday 04:00 UTC - off-hours weekly run per ADR-005
+    - cron: '0 4 * * 0'
   workflow_dispatch:
     inputs:
-      tier:
-        description: "Evaluation tier to run"
+      tiers:
+        description: "Comma list of tiers"
         required: true
-        default: narrow
+        default: "narrow,realistic,adversarial"
+        type: string
+      arms:
+        description: "Arms to run"
+        required: true
+        default: "treatment,baseline"
         type: choice
         options:
-          - narrow
-          - realistic
-          - canary
+          - "treatment,baseline"
+          - "treatment"
+          - "baseline"
+      model:
+        description: "Override every task's model (empty = tier defaults: narrow Haiku, realistic/adversarial Sonnet)"
+        required: false
+        default: ""
+        type: choice
+        options:
+          - ""
+          - "claude-haiku-4-5-20251001"
+          - "claude-sonnet-5"
+          - "claude-opus-5-5"
+      runs:
+        description: "Replicates per task x arm"
+        required: true
+        default: "3"
+        type: string
+      allow_opus:
+        description: "Opt in to claude-opus-5-5 (manual runs only; needs a cost cap)"
+        required: false
+        default: false
+        type: boolean
+      max_cost_usd:
+        description: "Cost cap in USD per harness invocation (each tier, triggers)"
+        required: true
+        default: "15"
+        type: string
+      triggers:
+        description: "Also run all trigger sets (both splits)"
+        required: false
+        default: true
+        type: boolean
       use_api_key:
         description: "Fall back to ANTHROPIC_API_KEY instead of OAuth token"
         required: false
         default: false
         type: boolean
-  schedule:
-    # Sunday 04:00 UTC - off-hours canary per ADR-005
-    - cron: '0 4 * * 0'
-  pull_request:
-    paths:
-      - 'skills/**'
-      - 'src/rf_skill_eval/**'
-      - 'eval/tasks/**'
-      - 'plugins/rf-agentskills/**'
-      - 'pyproject.toml'
 
 concurrency:
   group: skill-eval-${{ github.ref }}
@@ -37,19 +83,135 @@ permissions:
   pull-requests: write
   issues: write
 
+env:
+  HAIKU_MODEL: claude-haiku-4-5-20251001
+  # Initial caps (design D9 open question) - tune after the first weekly run.
+  PR_NARROW_CAP_USD: "3"
+  PR_TRIGGER_CAP_USD: "2"
+  WEEKLY_NARROW_CAP_USD: "12"
+  WEEKLY_REALISTIC_CAP_USD: "12"
+  WEEKLY_ADVERSARIAL_CAP_USD: "8"
+  WEEKLY_TRIGGER_CAP_USD: "8"
+
 jobs:
-  evaluate:
-    name: Evaluate (${{ matrix.tier }})
+  preflight:
+    name: Preflight (validate + select)
     runs-on: ubuntu-latest
-    timeout-minutes: ${{ matrix.tier == 'canary' && 180 || (matrix.tier == 'realistic' && 120 || 60) }}
-    env:
-      CLAUDE_MODEL_DEFAULT: claude-haiku-4-5
-    strategy:
-      max-parallel: 1
-      fail-fast: false
-      matrix:
-        tier:
-          - ${{ github.event_name == 'pull_request' && 'narrow' || (github.event_name == 'schedule' && 'canary' || inputs.tier) }}
+    timeout-minutes: 15
+    outputs:
+      has_credentials: ${{ steps.creds.outputs.has_credentials }}
+      run_evals: ${{ steps.select.outputs.run_evals }}
+      full_tier: ${{ steps.select.outputs.full_tier }}
+      skills: ${{ steps.select.outputs.skills }}
+      run_triggers: ${{ steps.select.outputs.run_triggers }}
+      trigger_skills: ${{ steps.select.outputs.trigger_skills }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v3
+        with:
+          enable-cache: true
+          cache-dependency-glob: |
+            pyproject.toml
+            uv.lock
+
+      - name: Install harness
+        run: uv sync --all-packages
+
+      - name: Validate tasks, trigger sets and coverage (no API calls)
+        run: |
+          uv run rf-skill-eval validate-tasks eval/tasks
+          uv run rf-skill-eval coverage
+
+      - name: Detect credentials
+        id: creds
+        env:
+          CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          if [ -n "${CLAUDE_CODE_OAUTH_TOKEN}" ] || [ -n "${ANTHROPIC_API_KEY}" ]; then
+            echo "has_credentials=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_credentials=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Map changed paths to skills
+        id: select
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            uv run rf-skill-eval preflight \
+              --base "origin/${{ github.base_ref }}" \
+              --github-output "$GITHUB_OUTPUT"
+          else
+            {
+              echo "run_evals=true"
+              echo "full_tier=true"
+              echo "skills="
+              echo "run_triggers=true"
+              echo "trigger_skills="
+            } >> "$GITHUB_OUTPUT"
+          fi
+
+  harness-tests:
+    name: Harness unit tests (no API calls)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v3
+        with:
+          enable-cache: true
+          cache-dependency-glob: |
+            pyproject.toml
+            uv.lock
+
+      - name: Install harness + grader libraries
+        run: uv sync --all-packages
+
+      - name: Initialize Playwright browsers (golden-solution grading)
+        run: uv run rfbrowser init
+
+      - name: Lint and type-check
+        run: |
+          uv run ruff check src tests/eval
+          uv run mypy
+
+      - name: pytest tests/eval
+        # Fakes and recorded transcripts only; RF_SKILL_EVAL_AUTOLOAD_DOTENV=0 and
+        # no secrets, so nothing can reach a model.
+        env:
+          RF_SKILL_EVAL_AUTOLOAD_DOTENV: "0"
+        run: uv run pytest tests/eval -q
+
+  not-run:
+    name: Evaluation not run (no credentials)
+    needs: preflight
+    if: ${{ needs.preflight.outputs.has_credentials != 'true' && needs.preflight.outputs.run_evals == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Report
+        run: |
+          echo "::notice::not run: no credentials (fork PR or missing secrets) - no evaluation result was produced"
+          {
+            echo "## Skill evaluation"
+            echo
+            echo "**not run: no credentials** - this is not a passing result."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  pr-eval:
+    name: PR eval (narrow, treatment, N=3)
+    needs: preflight
+    if: ${{ github.event_name == 'pull_request' && needs.preflight.outputs.run_evals == 'true' && needs.preflight.outputs.has_credentials == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -73,63 +235,120 @@ jobs:
         run: npm install -g @anthropic-ai/claude-code
 
       - name: Install Python dependencies
-        run: uv sync --all-extras
+        run: uv sync --all-packages
 
       - name: Initialize Playwright browsers
         run: uv run rfbrowser init
 
-      - name: Run doctor health checks
+      - name: Doctor (grader tools for the narrow tier)
         env:
           CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
-        run: uv run rf-skill-eval doctor
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: uv run rf-skill-eval doctor --tasks-dir eval/tasks/narrow --strict
 
-      - name: Set API key fallback
-        if: ${{ inputs.use_api_key == true }}
-        run: echo "ANTHROPIC_API_KEY=${{ secrets.ANTHROPIC_API_KEY }}" >> "$GITHUB_ENV"
-
-      - name: Run evaluation batch
+      - name: Run narrow tier (treatment arm)
+        id: batch
         env:
           CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          SKILLS: ${{ needs.preflight.outputs.skills }}
         run: |
+          set +e
+          SKILL_ARGS=()
+          if [ -n "${SKILLS}" ]; then SKILL_ARGS=(--skills "${SKILLS}"); fi
           uv run rf-skill-eval run-batch \
-            --tasks-dir eval/tasks/${{ matrix.tier }} \
-            --profile treatment \
-            --output eval/runs/${{ github.run_id }}/treatment \
-            --concurrency 1
+            --tasks-dir eval/tasks/narrow \
+            --tier narrow \
+            "${SKILL_ARGS[@]}" \
+            --arms treatment \
+            --runs 3 \
+            --model "${HAIKU_MODEL}" \
+            --max-cost-usd "${PR_NARROW_CAP_USD}" \
+            --output eval/runs/pr
+          echo "exit_code=$?" >> "$GITHUB_OUTPUT"
 
-      - name: Score results
-        env:
-          CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+      - name: Gate against stored baseline
+        id: gate
+        if: always()
         run: |
-          uv run rf-skill-eval score-batch \
-            --runs-dir eval/runs/${{ github.run_id }}/treatment \
-            --tasks-dir eval/tasks/${{ matrix.tier }}
+          set +e
+          uv run rf-skill-eval gate \
+            --runs-dir eval/runs/pr \
+            --baseline eval/baselines/narrow.json \
+            --tasks-dir eval/tasks \
+            --max-cost-usd "${PR_NARROW_CAP_USD}" \
+            --report-output gate.txt
+          echo "exit_code=$?" >> "$GITHUB_OUTPUT"
 
-      - name: Generate markdown report
+      - name: Trigger evals (validation split, changed descriptions)
+        id: triggers
+        if: ${{ always() && needs.preflight.outputs.run_triggers == 'true' }}
         env:
           CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          TRIGGER_SKILLS: ${{ needs.preflight.outputs.trigger_skills }}
+        run: |
+          set +e
+          uv run rf-skill-eval trigger \
+            --skills "${TRIGGER_SKILLS}" \
+            --split validation \
+            --model "${HAIKU_MODEL}" \
+            --max-cost-usd "${PR_TRIGGER_CAP_USD}" \
+            --output eval/runs/triggers
+          code=$?
+          uv run rf-skill-eval gate \
+            --trigger-results eval/runs/triggers/trigger-results.json \
+            --trigger-baseline eval/baselines/triggers.json \
+            --report-output trigger-gate.txt
+          gate=$?
+          if [ "$code" -ne 0 ]; then echo "exit_code=$code" >> "$GITHUB_OUTPUT"; else echo "exit_code=$gate" >> "$GITHUB_OUTPUT"; fi
+
+      - name: Render report
+        if: always()
         run: |
           uv run rf-skill-eval report \
-            --runs-dir eval/runs/${{ github.run_id }} \
+            --runs-dir eval/runs/pr \
+            --tasks-dir eval/tasks \
+            --baseline eval/baselines/narrow.json \
             --format md \
-            --output eval-report.md
+            --output eval-report.md || echo "_no report (no runs recorded)_" > eval-report.md
+          {
+            echo '### Gate'
+            echo '```'
+            cat gate.txt 2>/dev/null || echo "gate did not run"
+            echo '```'
+            if [ -f trigger-gate.txt ]; then
+              echo '### Trigger gate'
+              echo '```'
+              cat trigger-gate.txt
+              echo '```'
+              cat eval/runs/triggers/trigger-report.md 2>/dev/null || true
+            fi
+            echo
+            cat eval-report.md
+          } > pr-comment.md
+          cat pr-comment.md >> "$GITHUB_STEP_SUMMARY"
 
       - name: Upload evaluation artifacts
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: skill-eval-${{ github.run_id }}-${{ matrix.tier }}
+          name: skill-eval-pr-${{ github.run_id }}
           path: |
-            eval/runs/${{ github.run_id }}
+            eval/runs/pr
+            eval/runs/triggers
             eval-report.md
+            gate.txt
+            trigger-gate.txt
           # v4 silently strips dotfiles by default. We need .mcp.json,
           # .claude/, and other hidden config artifacts visible for
           # post-run debugging.
           include-hidden-files: true
+          if-no-files-found: ignore
           retention-days: 30
 
       - name: Comment PR with report
-        if: ${{ github.event_name == 'pull_request' && always() }}
+        if: always()
         uses: actions/github-script@v7
         with:
           script: |
@@ -137,12 +356,11 @@ jobs:
             const marker = '<!-- rf-skill-eval-report -->';
             let body;
             try {
-              body = fs.readFileSync('eval-report.md', 'utf8');
+              body = fs.readFileSync('pr-comment.md', 'utf8');
             } catch (err) {
               body = 'Evaluation report missing (run may have failed before report generation).';
             }
-            const fullBody = `${marker}\n\n## Skill Evaluation Report (${{ matrix.tier }})\n\n${body}`;
-
+            const fullBody = `${marker}\n\n## Skill Evaluation (narrow, treatment, N=3)\n\n${body}`.slice(0, 65000);
             const { owner, repo } = context.repo;
             const issue_number = context.issue.number;
             const { data: comments } = await github.rest.issues.listComments({
@@ -150,105 +368,192 @@ jobs:
             });
             const existing = comments.find(c => c.body && c.body.includes(marker));
             if (existing) {
-              await github.rest.issues.updateComment({
-                owner, repo, comment_id: existing.id, body: fullBody,
-              });
+              await github.rest.issues.updateComment({ owner, repo, comment_id: existing.id, body: fullBody });
             } else {
-              await github.rest.issues.createComment({
-                owner, repo, issue_number, body: fullBody,
-              });
+              await github.rest.issues.createComment({ owner, repo, issue_number, body: fullBody });
             }
 
-  regression-alert:
-    name: Regression alert (canary)
-    needs: evaluate
-    if: ${{ github.event_name == 'schedule' }}
+      - name: Fail on regression, incomplete runs or budget stop
+        if: always()
+        run: |
+          echo "run-batch exit: ${{ steps.batch.outputs.exit_code }}"
+          echo "gate exit: ${{ steps.gate.outputs.exit_code }}"
+          echo "trigger exit: ${{ steps.triggers.outputs.exit_code }}"
+          test "${{ steps.batch.outputs.exit_code }}" = "0"
+          test "${{ steps.gate.outputs.exit_code }}" = "0"
+          if [ -n "${{ steps.triggers.outputs.exit_code }}" ]; then
+            test "${{ steps.triggers.outputs.exit_code }}" = "0"
+          fi
+
+  full-eval:
+    name: Full eval (all tiers, both arms)
+    needs: preflight
+    if: ${{ github.event_name != 'pull_request' && needs.preflight.outputs.has_credentials == 'true' }}
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 360
+    env:
+      TIERS: ${{ github.event_name == 'workflow_dispatch' && inputs.tiers || 'narrow,realistic,adversarial' }}
+      ARMS: ${{ github.event_name == 'workflow_dispatch' && inputs.arms || 'treatment,baseline' }}
+      RUNS: ${{ github.event_name == 'workflow_dispatch' && inputs.runs || '3' }}
+      MODEL: ${{ github.event_name == 'workflow_dispatch' && inputs.model || '' }}
+      ALLOW_OPUS: ${{ github.event_name == 'workflow_dispatch' && inputs.allow_opus || false }}
+      MANUAL_CAP: ${{ github.event_name == 'workflow_dispatch' && inputs.max_cost_usd || '' }}
+      RUN_TRIGGERS: ${{ github.event_name != 'workflow_dispatch' || inputs.triggers }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Download evaluation artifacts
-        uses: actions/download-artifact@v4
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v3
         with:
-          name: skill-eval-${{ github.run_id }}-canary
-          path: eval-artifacts
+          enable-cache: true
+          cache-dependency-glob: |
+            pyproject.toml
+            uv.lock
 
-      - name: Fetch baseline from eval-history branch
-        id: baseline
-        continue-on-error: true
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install Claude Code CLI
+        run: npm install -g @anthropic-ai/claude-code
+
+      - name: Install Python dependencies
+        run: uv sync --all-packages
+
+      - name: Initialize Playwright browsers
+        run: uv run rfbrowser init
+
+      - name: Set API key fallback
+        if: ${{ inputs.use_api_key == true }}
+        run: echo "ANTHROPIC_API_KEY=${{ secrets.ANTHROPIC_API_KEY }}" >> "$GITHUB_ENV"
+
+      - name: Doctor
+        env:
+          CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+        run: uv run rf-skill-eval doctor --tasks-dir eval/tasks --strict
+
+      - name: Run tiers
+        id: batch
+        env:
+          CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
         run: |
           set +e
-          git fetch origin eval-history --depth=1 2>/dev/null
-          if git show origin/eval-history:baseline.json > baseline.json 2>/dev/null; then
-            echo "baseline_found=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "baseline_found=false" >> "$GITHUB_OUTPUT"
-            echo "No baseline.json on eval-history branch; skipping regression check."
-          fi
+          overall=0
+          MODEL_ARGS=()
+          if [ -n "${MODEL}" ]; then MODEL_ARGS=(--model "${MODEL}"); fi
+          if [ "${ALLOW_OPUS}" = "true" ]; then MODEL_ARGS+=(--allow-opus); fi
+          for tier in ${TIERS//,/ }; do
+            case "$tier" in
+              narrow) cap="${WEEKLY_NARROW_CAP_USD}" ;;
+              realistic) cap="${WEEKLY_REALISTIC_CAP_USD}" ;;
+              adversarial) cap="${WEEKLY_ADVERSARIAL_CAP_USD}" ;;
+              *) echo "unknown tier $tier"; exit 2 ;;
+            esac
+            if [ -n "${MANUAL_CAP}" ]; then cap="${MANUAL_CAP}"; fi
+            uv run rf-skill-eval run-batch \
+              --tasks-dir "eval/tasks/${tier}" \
+              --tier "${tier}" \
+              --arms "${ARMS}" \
+              --runs "${RUNS}" \
+              "${MODEL_ARGS[@]}" \
+              --max-cost-usd "${cap}" \
+              --output "eval/runs/full/${tier}"
+            code=$?
+            if [ "$code" -ne 0 ]; then overall=$code; fi
+          done
+          echo "exit_code=${overall}" >> "$GITHUB_OUTPUT"
 
-      - name: Detect regressions (>2sigma)
-        if: ${{ steps.baseline.outputs.baseline_found == 'true' }}
-        id: detect
-        continue-on-error: true
+      - name: Trigger evals (all sets, both splits)
+        id: triggers
+        if: ${{ always() && env.RUN_TRIGGERS == 'true' }}
+        env:
+          CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
         run: |
-          python3 <<'PY'
-          import json, os, sys, glob, statistics
-          try:
-              baseline = json.load(open("baseline.json"))
-          except Exception as e:
-              print(f"Could not read baseline: {e}")
-              sys.exit(0)
+          set +e
+          cap="${WEEKLY_TRIGGER_CAP_USD}"
+          if [ -n "${MANUAL_CAP}" ]; then cap="${MANUAL_CAP}"; fi
+          MODEL_ARGS=()
+          if [ -n "${MODEL}" ]; then MODEL_ARGS=(--model "${MODEL}"); fi
+          if [ "${ALLOW_OPUS}" = "true" ]; then MODEL_ARGS+=(--allow-opus); fi
+          uv run rf-skill-eval trigger \
+            --split train,validation \
+            "${MODEL_ARGS[@]}" \
+            --max-cost-usd "${cap}" \
+            --output eval/runs/full/triggers
+          echo "exit_code=$?" >> "$GITHUB_OUTPUT"
 
-          score_files = glob.glob("eval-artifacts/**/score.json", recursive=True)
-          if not score_files:
-              print("No score.json files found; skipping.")
-              sys.exit(0)
+      - name: Candidate baseline and report
+        if: always()
+        run: |
+          uv run rf-skill-eval baseline update \
+            --from eval/runs/full \
+            --tasks-dir eval/tasks \
+            --output-dir candidate-baseline || true
+          uv run rf-skill-eval report \
+            --runs-dir eval/runs/full \
+            --tasks-dir eval/tasks \
+            --format md \
+            --output eval-report.md || echo "_no report_" > eval-report.md
+          set +e
+          uv run rf-skill-eval gate \
+            --runs-dir eval/runs/full \
+            --baseline eval/baselines/narrow.json \
+            --tasks-dir eval/tasks \
+            --report-output gate.txt
+          echo "GATE_EXIT=$?" >> "$GITHUB_ENV"
+          {
+            echo '### Gate vs committed baseline (informational)'
+            echo '```'
+            cat gate.txt 2>/dev/null
+            echo '```'
+            cat eval/runs/full/triggers/trigger-report.md 2>/dev/null || true
+            cat eval-report.md
+          } >> "$GITHUB_STEP_SUMMARY"
 
-          current_scores = []
-          for sf in score_files:
-              try:
-                  data = json.load(open(sf))
-                  s = data.get("score") if isinstance(data, dict) else None
-                  if isinstance(s, (int, float)):
-                      current_scores.append(float(s))
-              except Exception:
-                  continue
-          if not current_scores:
-              print("No numeric scores extracted; skipping.")
-              sys.exit(0)
+      - name: Upload evaluation artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: skill-eval-full-${{ github.run_id }}
+          path: |
+            eval/runs/full
+            eval-report.md
+            gate.txt
+          include-hidden-files: true
+          if-no-files-found: ignore
+          retention-days: 30
 
-          current_mean = statistics.mean(current_scores)
-          b_mean = float(baseline.get("mean", 0.0))
-          b_std = float(baseline.get("std", 0.0))
-          threshold = b_mean - 2 * b_std if b_std > 0 else b_mean
+      - name: Upload candidate baseline
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: candidate-baseline-${{ github.run_id }}
+          path: candidate-baseline/
+          if-no-files-found: ignore
+          retention-days: 90
 
-          print(f"Current mean: {current_mean:.4f}")
-          print(f"Baseline mean: {b_mean:.4f} std: {b_std:.4f} threshold(>2sigma drop): {threshold:.4f}")
-
-          regression = current_scores and current_mean < threshold
-          with open(os.environ["GITHUB_OUTPUT"], "a") as fh:
-              fh.write(f"regression={'true' if regression else 'false'}\n")
-              fh.write(f"current_mean={current_mean:.4f}\n")
-              fh.write(f"baseline_mean={b_mean:.4f}\n")
-              fh.write(f"baseline_std={b_std:.4f}\n")
-          PY
-
-      - name: Open regression issue
-        if: ${{ steps.detect.outputs.regression == 'true' }}
+      - name: Open regression issue (weekly)
+        if: ${{ always() && github.event_name == 'schedule' && env.GATE_EXIT == '1' }}
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           gh issue create \
-            --title "Skill eval canary regression detected (run ${{ github.run_id }})" \
+            --title "Skill eval weekly regression (run ${{ github.run_id }})" \
             --label "eval-regression" \
-            --body "Canary evaluation dropped more than 2 sigma below baseline.
+            --body "The weekly evaluation failed the gate against the committed baseline.
 
-          - Current mean: ${{ steps.detect.outputs.current_mean }}
-          - Baseline mean: ${{ steps.detect.outputs.baseline_mean }}
-          - Baseline std: ${{ steps.detect.outputs.baseline_std }}
+          $(cat gate.txt)
 
           Run: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+
+      - name: Fail on incomplete runs or budget stop
+        if: always()
+        run: |
+          test "${{ steps.batch.outputs.exit_code }}" = "0"
+          if [ -n "${{ steps.triggers.outputs.exit_code }}" ]; then
+            test "${{ steps.triggers.outputs.exit_code }}" = "0"
+          fi

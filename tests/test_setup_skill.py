@@ -32,7 +32,7 @@ except ModuleNotFoundError:  # pragma: no cover
 needs_tomllib = pytest.mark.skipif(tomllib is None, reason="tomllib needs Python 3.11+")
 
 ROOT = Path(__file__).resolve().parent.parent
-SKILL_DIR = ROOT / "skills" / "robotframework-setup-skill"
+SKILL_DIR = ROOT / "skills" / "rf-setup"
 SKILL_MD = SKILL_DIR / "SKILL.md"
 REFERENCES = SKILL_DIR / "references"
 EXAMPLES = SKILL_DIR / "assets" / "examples"
@@ -138,6 +138,26 @@ def test_companion_skills_linked() -> None:
     assert not missing, f"missing companion skills: {sorted(missing)}"
 
 
+def test_project_layout_points_to_language_skill() -> None:
+    """setup-skill delta (add-rf-language-skill): pointer, libraries/, PyYAML, plain robot."""
+    text = (REFERENCES / "project-layout.md").read_text(encoding="utf-8")
+    assert "rf-language" in text
+    for retired in ("rf-resource-architect", "resource_architect", "rf-keyword-design", "rf-test-design"):
+        assert retired not in text, retired
+    assert "libraries/" in text and "--pythonpath libraries" in text and "python-path" in text
+    assert "uv add pyyaml" in text and "PyYAML" in text
+    assert re.search(r"JSON variable files[^\n]*no extra package", text)
+    assert re.search(r"robot [^\n]*--variablefile variables/\w+\.yaml", text)
+    assert "does **not** read `robot.toml`" in text and "only robotcode" in text
+    assert 'variable-files = ["variables/staging.yaml"]' in text
+
+
+def test_companion_table_names_language_skill() -> None:
+    section = _skill_text().split("## Companion Skills", 1)[1]
+    assert "`rf-language`" in section
+    assert "rf-resource-architect" not in section
+
+
 def test_troubleshooting_covers_required_problems() -> None:
     text = (REFERENCES / "troubleshooting.md").read_text(encoding="utf-8").lower()
     for topic in ("wrong interpreter", "externally-managed-environment", "rfbrowser",
@@ -158,7 +178,7 @@ def test_browser_documents_both_install_paths() -> None:
 
 
 def test_robotcode_skill_links_back() -> None:
-    content = (ROOT / "skills" / "robotframework-robotcode-skill" / "SKILL.md").read_text(
+    content = (ROOT / "skills" / "rf-robotcode" / "SKILL.md").read_text(
         encoding="utf-8"
     )
     assert "rf-setup" in content
@@ -208,3 +228,13 @@ def test_github_actions_example_is_valid_yaml() -> None:
     steps = data["jobs"]["robot"]["steps"]
     runs = " ".join(step.get("run", "") for step in steps)
     assert "uv sync --locked" in runs and "uv run robot" in runs
+
+
+def test_distributed_under_same_identifier() -> None:
+    """Plugin and VS Code copies use the same rf-setup dir and name (skill-metadata-conformance)."""
+    for channel in ("plugins/rf-agentskills/skills", "vscode-extension/skills"):
+        md = ROOT / channel / "rf-setup" / "SKILL.md"
+        assert md.is_file(), md
+        assert "\nname: rf-setup\n" in md.read_text(encoding="utf-8"), md
+    pkg = (ROOT / "vscode-extension" / "package.json").read_text(encoding="utf-8")
+    assert "./skills/rf-setup/SKILL.md" in pkg

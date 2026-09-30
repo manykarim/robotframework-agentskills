@@ -1,0 +1,45 @@
+# Trigger query set for rf-robotcode (format: eval/triggers/README.md).
+# Tune descriptions on the train split only; never edit validation queries
+# to make a description pass (rotate them only when the skill's intent changes).
+skill: rf-robotcode
+model: claude-haiku-4-5-20251001
+runs: 3
+threshold: 0.5
+queries:
+  # should trigger (train)
+  - {id: rc-t01, split: train, should_trigger: true, query: "Use robotcode to list all tests tagged smoke in this project"}
+  - {id: rc-t02, split: train, should_trigger: true, query: "robotcode is installed — run the 'ci' profile from robot.toml"}
+  - {id: rc-t03, split: train, should_trigger: true, query: "Debug the failing test 'Checkout Works' step by step with robot-debug"}
+  - {id: rc-t04, split: train, should_trigger: true, note: "indirect: file name", query: "Our robot.toml has dev and ci profiles; how do I run only the api suites with the dev profile?"}
+  - {id: rc-t05, split: train, should_trigger: true, query: "Run robotcode analyze code on tests/ and fix the reported errors"}
+  - {id: rc-t06, split: train, should_trigger: true, note: "indirect: technique only", query: "Explore Browser keywords interactively in a Robot Framework REPL before writing the test"}
+  - {id: rc-t07, split: train, should_trigger: true, note: "typos, user phrasing", query: "robotcode repl: how do i try out a keyword without running the whole suite"}
+  # should trigger (validation)
+  - {id: rc-v01, split: validation, should_trigger: true, note: "edit existing file", query: "Add a 'nightly' profile to robot.toml that sets the output dir and includes the regression tag"}
+  - {id: rc-v02, split: validation, should_trigger: true, query: "Compare the results of yesterday's and today's run with robotcode results diff"}
+  - {id: rc-v03, split: validation, should_trigger: true, query: "robotcode discover: which suites and tests exist and what tags do they use?"}
+  - {id: rc-v04, split: validation, should_trigger: true, query: "Show the documentation of the Browser keyword Click via robotcode libdoc"}
+  # should NOT trigger (train): sibling skills + non-RF look-alikes
+  - {id: rc-n01, split: train, should_trigger: false, note: "sibling rf-setup", query: "Install robotcode into our uv project as a dev dependency"}
+  - {id: rc-n02, split: train, should_trigger: false, note: "sibling rf-browser", query: "Write a Browser library test for the checkout page"}
+  - {id: rc-n03, split: train, should_trigger: false, note: "sibling rf-requests", query: "Write RequestsLibrary tests for our /orders API"}
+  - {id: rc-n04, split: train, should_trigger: false, note: "VS Code extension settings", query: "Which VS Code settings.json options make the RobotCode extension use our .venv?"}
+  - {id: rc-n05, split: train, should_trigger: false, note: "non-RF look-alike", query: "List all pytest tests without running them (collect only)"}
+  - {id: rc-n06, split: train, should_trigger: false, note: "non-RF look-alike", query: "Debug a Python function with pdb breakpoints"}
+  # should NOT trigger (validation)
+  - {id: rc-n07, split: validation, should_trigger: false, note: "sibling rf-selenium", query: "Fix a SeleniumLibrary locator in tests/ui/login.robot"}
+  - {id: rc-n08, split: validation, should_trigger: false, note: "sibling rf-appium", query: "Write an AppiumLibrary swipe test for our Android app"}
+  - {id: rc-n09, split: validation, should_trigger: false, note: "non-RF look-alike", query: "Configure ruff and mypy in pyproject.toml"}
+  - {id: rc-n10, split: validation, should_trigger: false, note: "non-RF look-alike", query: "Write a tox.ini with separate test environments"}
+  # holdout (tune-skill-descriptions task 7.1): written after the descriptions shipped;
+  # never used to tune, select or accept a description. 5 should / 5 should-not trigger.
+  - {id: rc-h01, split: holdout, should_trigger: true, query: "Show me the robot.toml profiles we have and what each one sets"}
+  - {id: rc-h02, split: holdout, should_trigger: true, query: "robotcode: run only the tests whose name contains 'Checkout' with the staging profile"}
+  - {id: rc-h03, split: holdout, should_trigger: true, query: "Step through the 'Refund Order' test with the robotcode debugger and stop at the failing keyword"}
+  - {id: rc-h04, split: holdout, should_trigger: true, query: "Get a JSON list of all test names in tests/ via robotcode without executing them"}
+  - {id: rc-h05, split: holdout, should_trigger: true, note: "edit existing file", query: "Our robot.toml should pass --variable ENV:qa in the qa profile; add it and run that profile"}
+  - {id: rc-h06, split: holdout, should_trigger: false, note: "sibling rf-results", query: "robotcode isn't available on this machine; tell me which tests failed in results/output.xml"}
+  - {id: rc-h07, split: holdout, should_trigger: false, note: "sibling rf-libdoc", query: "No robotcode here: what arguments does Get Text take in Browser?"}
+  - {id: rc-h08, split: holdout, should_trigger: false, note: "sibling rf-setup", query: "Add robotcode[all] to our Poetry dev dependencies"}
+  - {id: rc-h09, split: holdout, should_trigger: false, note: "non-RF look-alike", query: "Configure launch.json in VS Code to debug a Node script"}
+  - {id: rc-h10, split: holdout, should_trigger: false, note: "non-RF look-alike", query: "Write a Makefile target that runs pytest with coverage"}

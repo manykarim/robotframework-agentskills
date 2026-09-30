@@ -1,0 +1,10 @@
+output.xml
+log.html
+report.html
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+grader-out/
+browser/
+node_modules/

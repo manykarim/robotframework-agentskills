@@ -1,0 +1,9 @@
+output.xml
+log.html
+report.html
+results/
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.robocop_cache/

@@ -25,7 +25,7 @@ def test_plan_writes_skills_agents_and_plugin_files(install_prefix: Path) -> Non
     # (where ``str(WindowsPath)`` would use ``\``).
     dst_paths = [t.dst.as_posix() for t in plan.targets]
     # Skills tree
-    assert any("/skills/libdoc-search/SKILL.md" in p for p in dst_paths)
+    assert any("/skills/rf-libdoc/SKILL.md" in p for p in dst_paths)
     assert any("/agents/rf-test-architect.md" in p for p in dst_paths)
     # Co-located scripts/servers under rf-agentskills-files/
     assert any("/rf-agentskills-files/scripts/" in p for p in dst_paths)
@@ -130,7 +130,7 @@ def test_end_to_end_install_and_uninstall(install_prefix: Path, fake_home: Path)
     assert rc == 0
 
     # Verify some real files landed
-    assert (install_prefix / "skills" / "libdoc-search" / "SKILL.md").is_file()
+    assert (install_prefix / "skills" / "rf-libdoc" / "SKILL.md").is_file()
     assert (install_prefix / "settings.json").is_file()
     settings = json.loads((install_prefix / "settings.json").read_text())
     assert "hooks" in settings
@@ -170,7 +170,7 @@ def test_install_warns_on_conflict_without_force(
     """A pre-existing file at a destination path should not be silently overwritten."""
     from rf_agentskills.cli import main
 
-    target = install_prefix / "skills" / "libdoc-search" / "SKILL.md"
+    target = install_prefix / "skills" / "rf-libdoc" / "SKILL.md"
     target.parent.mkdir(parents=True)
     target.write_text("USER OWNED CONTENT")
 
@@ -188,7 +188,7 @@ def test_install_warns_on_conflict_without_force(
 def test_install_force_overwrites_conflict(install_prefix: Path, fake_home: Path) -> None:
     from rf_agentskills.cli import main
 
-    target = install_prefix / "skills" / "libdoc-search" / "SKILL.md"
+    target = install_prefix / "skills" / "rf-libdoc" / "SKILL.md"
     target.parent.mkdir(parents=True)
     target.write_text("USER OWNED CONTENT")
 
@@ -360,3 +360,54 @@ def test_install_writes_hooks_normally_when_node_present(
         m for m in plan.merges if m.description.startswith("merge hooks block")
     ]
     assert hook_merges, "expected hooks merge when node is present"
+
+
+def test_claude_code_keeps_skill_dir_variable(install_prefix: Path, fake_home: Path) -> None:
+    """Claude Code substitutes ${CLAUDE_SKILL_DIR} itself: installed SKILL.md keeps it,
+    and the script sits in the installed skill's own scripts/ dir."""
+    from rf_agentskills.adapters import by_name
+    from rf_agentskills.cli import main as cli_main
+
+    assert by_name("claude-code")().expands_skill_dir is True
+    assert cli_main(["install", "--agent", "claude-code", "--prefix", str(install_prefix)]) == 0
+    md = install_prefix / "skills" / "rf-libdoc" / "SKILL.md"
+    text = md.read_text(encoding="utf-8")
+    assert 'uv run python "${CLAUDE_SKILL_DIR}/scripts/rf_libdoc.py"' in text
+    assert "${CLAUDE_PLUGIN_ROOT}" not in text
+    assert (md.parent / "scripts" / "rf_libdoc.py").is_file()
+
+
+def test_project_install_ships_language_skill_in_manifest(fake_home: Path) -> None:
+    """add-rf-language-skill 6.3: .claude/skills/rf-language is installed with its
+    script and recorded in the project manifest."""
+    from rf_agentskills.cli import main as cli_main
+
+    assert cli_main(["install", "--agent", "claude-code"]) == 0
+    md = fake_home / ".claude" / "skills" / "rf-language" / "SKILL.md"
+    assert md.is_file()
+    assert "\nname: rf-language\n" in md.read_text(encoding="utf-8")
+    text = md.read_text(encoding="utf-8")
+    assert 'uv run python "${CLAUDE_SKILL_DIR}/scripts/rf_conventions.py"' in text
+    assert (md.parent / "scripts" / "rf_conventions.py").is_file()
+    manifest = (fake_home / ".rf-agentskills" / "installed.json").read_text(encoding="utf-8")
+    assert "skills/rf-language/SKILL.md" in manifest.replace("\\\\", "/")
+    assert "skills/rf-language/scripts/rf_conventions.py" in manifest.replace("\\\\", "/")
+
+
+def test_project_install_ships_python_library_skill(install_prefix: Path, fake_home: Path) -> None:
+    """add-rf-python-library-skill 7.5: the plan lists skills/rf-python-library, and the
+    install ships its checker script and records it in the manifest."""
+    from rf_agentskills.cli import main as cli_main
+
+    dst_paths = [t.dst.as_posix() for t in ClaudeCodeAdapter().plan(InstallOptions(prefix=install_prefix)).targets]
+    assert any(p.endswith("/skills/rf-python-library/SKILL.md") for p in dst_paths)
+    assert any(p.endswith("/skills/rf-python-library/scripts/check_library.py") for p in dst_paths)
+    assert cli_main(["install", "--agent", "claude-code"]) == 0
+    md = fake_home / ".claude" / "skills" / "rf-python-library" / "SKILL.md"
+    text = md.read_text(encoding="utf-8")
+    assert "\nname: rf-python-library\n" in text
+    assert 'uv run python "${CLAUDE_SKILL_DIR}/scripts/check_library.py"' in text
+    assert (md.parent / "scripts" / "check_library.py").is_file()
+    assert (md.parent / "assets" / "examples" / "ExampleLibrary.py").is_file()
+    manifest = (fake_home / ".rf-agentskills" / "installed.json").read_text(encoding="utf-8")
+    assert "skills/rf-python-library/scripts/check_library.py" in manifest.replace("\\\\", "/")

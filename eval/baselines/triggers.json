@@ -1,0 +1,272 @@
+{
+  "acceptance_basis": "decisions from two validation runs pooled (6 runs/query: compact-validation.json + final-val-repeat, task 5.2); 'validation' metrics are from the first run and are the gate reference",
+  "claude_code_version": "2.1.285",
+  "harness_version": "0.1.0",
+  "kind": "trigger-baseline",
+  "listing_budget": null,
+  "model": "claude-haiku-4-5-20251001",
+  "rebaseline_source": "openspec/changes/tune-skill-descriptions/evidence/rebaseline.json (variant 25e6b4b2b5f8)",
+  "runs_per_query": 3,
+  "schema_version": 1,
+  "skills": {
+    "rf-appium": {
+      "acceptance": {
+        "decision": "accepted",
+        "pooled_runs_per_query": 6,
+        "pooled_validation_recall": 1.0,
+        "rebaseline_validation_recall": 0.75,
+        "rule": "a",
+        "validation_recall": 1.0
+      },
+      "validation": {
+        "accuracy": 1.0,
+        "fn": 0,
+        "fp": 0,
+        "precision": 1.0,
+        "queries": 8,
+        "recall": 1.0,
+        "tn": 4,
+        "tp": 4
+      }
+    },
+    "rf-browser": {
+      "acceptance": {
+        "decision": "not_meeting_target",
+        "not_meeting_target": true,
+        "pooled_runs_per_query": 6,
+        "pooled_validation_recall": 0.75,
+        "rebaseline_validation_recall": 0.75,
+        "rule": null,
+        "shortfall": 0.05,
+        "shortfall_note": "pooled validation recall 0.75 equals the re-baseline 0.75; ships the compact text because the old one breaks the length rule",
+        "validation_recall": 0.75
+      },
+      "validation": {
+        "accuracy": 0.875,
+        "fn": 1,
+        "fp": 0,
+        "precision": 1.0,
+        "queries": 8,
+        "recall": 0.75,
+        "tn": 4,
+        "tp": 3
+      }
+    },
+    "rf-language": {
+      "acceptance": {
+        "decision": "accepted",
+        "pooled_runs_per_query": 6,
+        "pooled_validation_recall": 0.5,
+        "rebaseline_validation_recall": 0.0,
+        "rule": "b",
+        "shortfall": 0.3,
+        "shortfall_note": "pooled validation recall 0.50 is 0.30 below the 0.80 target; accepted under rule (b) (+0.50 vs re-baseline 0.00, should-not-trigger accuracy 1.00)",
+        "validation_recall": 0.5
+      },
+      "validation": {
+        "accuracy": 0.7273,
+        "fn": 3,
+        "fp": 0,
+        "precision": 1.0,
+        "queries": 11,
+        "recall": 0.5,
+        "tn": 5,
+        "tp": 3
+      }
+    },
+    "rf-libdoc": {
+      "acceptance": {
+        "decision": "accepted",
+        "pooled_runs_per_query": 6,
+        "pooled_validation_recall": 1.0,
+        "rebaseline_validation_recall": 0.25,
+        "rule": "a",
+        "validation_recall": 0.75
+      },
+      "validation": {
+        "accuracy": 0.875,
+        "fn": 1,
+        "fp": 0,
+        "precision": 1.0,
+        "queries": 8,
+        "recall": 0.75,
+        "tn": 4,
+        "tp": 3
+      }
+    },
+    "rf-platynui": {
+      "acceptance": {
+        "decision": "accepted",
+        "pooled_runs_per_query": 6,
+        "pooled_validation_recall": 1.0,
+        "rebaseline_validation_recall": 0.5,
+        "rule": "a",
+        "validation_recall": 1.0
+      },
+      "validation": {
+        "accuracy": 1.0,
+        "fn": 0,
+        "fp": 0,
+        "precision": 1.0,
+        "queries": 8,
+        "recall": 1.0,
+        "tn": 4,
+        "tp": 4
+      }
+    },
+    "rf-python-library": {
+      "acceptance": {
+        "decision": "accepted",
+        "pooled_runs_per_query": 6,
+        "pooled_validation_recall": 0.75,
+        "rebaseline_validation_recall": 0.25,
+        "rule": "b",
+        "shortfall": 0.05,
+        "shortfall_note": "pooled validation recall 0.75 is 0.05 below the 0.80 target; accepted under rule (b) (+0.50 vs re-baseline 0.25, should-not-trigger accuracy 1.00)",
+        "validation_recall": 0.5
+      },
+      "validation": {
+        "accuracy": 0.75,
+        "fn": 2,
+        "fp": 0,
+        "precision": 1.0,
+        "queries": 8,
+        "recall": 0.5,
+        "tn": 4,
+        "tp": 2
+      }
+    },
+    "rf-requests": {
+      "acceptance": {
+        "decision": "accepted",
+        "pooled_runs_per_query": 6,
+        "pooled_validation_recall": 1.0,
+        "rebaseline_validation_recall": 0.25,
+        "rule": "a",
+        "validation_recall": 1.0
+      },
+      "validation": {
+        "accuracy": 1.0,
+        "fn": 0,
+        "fp": 0,
+        "precision": 1.0,
+        "queries": 8,
+        "recall": 1.0,
+        "tn": 4,
+        "tp": 4
+      }
+    },
+    "rf-restinstance": {
+      "acceptance": {
+        "decision": "not_meeting_target",
+        "not_meeting_target": true,
+        "pooled_runs_per_query": 6,
+        "pooled_validation_recall": 0.75,
+        "rebaseline_validation_recall": 0.75,
+        "rule": null,
+        "shortfall": 0.05,
+        "shortfall_note": "pooled validation recall 0.75 equals the re-baseline 0.75; ships the compact text because the old one breaks the length rule",
+        "validation_recall": 0.75
+      },
+      "validation": {
+        "accuracy": 0.875,
+        "fn": 1,
+        "fp": 0,
+        "precision": 1.0,
+        "queries": 8,
+        "recall": 0.75,
+        "tn": 4,
+        "tp": 3
+      }
+    },
+    "rf-results": {
+      "acceptance": {
+        "decision": "accepted",
+        "pooled_runs_per_query": 6,
+        "pooled_validation_recall": 1.0,
+        "rebaseline_validation_recall": 0.0,
+        "rule": "a",
+        "validation_recall": 1.0
+      },
+      "validation": {
+        "accuracy": 1.0,
+        "fn": 0,
+        "fp": 0,
+        "precision": 1.0,
+        "queries": 8,
+        "recall": 1.0,
+        "tn": 4,
+        "tp": 4
+      }
+    },
+    "rf-robotcode": {
+      "acceptance": {
+        "decision": "accepted",
+        "pooled_runs_per_query": 6,
+        "pooled_validation_recall": 0.75,
+        "rebaseline_validation_recall": 0.5,
+        "rule": "b",
+        "shortfall": 0.05,
+        "shortfall_note": "pooled validation recall 0.75 is 0.05 below the 0.80 target; accepted under rule (b) (+0.25 vs re-baseline 0.50, should-not-trigger accuracy 1.00)",
+        "validation_recall": 0.75
+      },
+      "validation": {
+        "accuracy": 0.875,
+        "fn": 1,
+        "fp": 0,
+        "precision": 1.0,
+        "queries": 8,
+        "recall": 0.75,
+        "tn": 4,
+        "tp": 3
+      }
+    },
+    "rf-selenium": {
+      "acceptance": {
+        "decision": "accepted",
+        "pooled_runs_per_query": 6,
+        "pooled_validation_recall": 1.0,
+        "rebaseline_validation_recall": 0.75,
+        "rule": "a",
+        "validation_recall": 1.0
+      },
+      "validation": {
+        "accuracy": 1.0,
+        "fn": 0,
+        "fp": 0,
+        "precision": 1.0,
+        "queries": 8,
+        "recall": 1.0,
+        "tn": 4,
+        "tp": 4
+      }
+    },
+    "rf-setup": {
+      "acceptance": {
+        "decision": "accepted",
+        "pooled_runs_per_query": 6,
+        "pooled_validation_recall": 1.0,
+        "rebaseline_validation_recall": 0.5,
+        "rule": "a",
+        "validation_recall": 1.0
+      },
+      "validation": {
+        "accuracy": 1.0,
+        "fn": 0,
+        "fp": 0,
+        "precision": 1.0,
+        "queries": 8,
+        "recall": 1.0,
+        "tn": 4,
+        "tp": 4
+      }
+    }
+  },
+  "source": "openspec/changes/tune-skill-descriptions/evidence/compact-validation.json (task 5.1, compact set, default listing budget)",
+  "split": "validation",
+  "target": {
+    "accuracy_neg": 0.9,
+    "recall": 0.8
+  },
+  "variant_id": "7cfa7e52981c"
+}

@@ -31,7 +31,7 @@ from typing import Iterable
 
 from .. import _assets
 from .. import transforms as _x
-from ._base import AdapterBase, ConfigMergeOp, InstallOptions, InstallPlan, InstallTarget
+from ._base import AdapterBase, ConfigMergeOp, InstallOptions, InstallPlan, InstallTarget, skill_script_files
 
 
 HOOKS_KEY = "hooks"
@@ -45,6 +45,8 @@ class ClaudeCodeAdapter(AdapterBase):
     pretty: str = "Claude Code"
     user_root_subpath: tuple[str, ...] = (".claude",)
     project_root_subpath: tuple[str, ...] = (".claude",)
+    # Claude Code substitutes ${CLAUDE_SKILL_DIR} in personal/project skills.
+    expands_skill_dir: bool = True
 
     # ------------------------------------------------------------------
     # detect
@@ -119,7 +121,10 @@ class ClaudeCodeAdapter(AdapterBase):
                     rel = f.relative_to(src_root)
                     yield InstallTarget(
                         dst=root / rel,
-                        payload=self._read_with_substitution(f, plugin_root_abs),
+                        payload=self.render_skill_dir(
+                            self._read_with_substitution(f, plugin_root_abs),
+                            f, root / "skills" / rel.parts[1],
+                        ),
                         transform_name="plugin_root_substitution",
                     )
 
@@ -159,6 +164,14 @@ class ClaudeCodeAdapter(AdapterBase):
                         transform_name="plugin_root_substitution",
                         executable=f.suffix in (".sh", ".ps1") or f.name.endswith(".bash"),
                     )
+            # Per-skill scripts for the MCP server (<plugin_dst>/skills/<skill>/scripts/).
+            for f in skill_script_files(src_root):
+                rel = f.relative_to(src_root)
+                yield InstallTarget(
+                    dst=plugin_dst / rel,
+                    payload=f.read_bytes(),
+                    transform_name="skill_script_for_mcp_server",
+                )
             # Pin the install-time Python interpreter so hook .mjs scripts
             # use the env that has robotframework, not whatever `python` is
             # on PATH (matters for pipx / uv tool install / venv installs).

@@ -11,7 +11,11 @@ ROOT="$HOME/.claude"
 
 case "${1:-}" in
 --post-install)
-    need_file "$ROOT/skills/libdoc-search/SKILL.md" "^name: libdoc-search$"
+    need_file "$ROOT/skills/rf-libdoc/SKILL.md" "^name: rf-libdoc$"
+    # Merged into libdoc (content 2.0.0): the old libdoc skills are not shipped
+    need_no_file "$ROOT/skills/libdoc-search/SKILL.md"
+    need_no_file "$ROOT/skills/libdoc-explain/SKILL.md"
+    need_no_file "$ROOT/skills/libdoc/SKILL.md"   # renamed to rf-libdoc in content 2.0.0
     need_file "$ROOT/agents/rf-test-architect.md"
     need_file "$ROOT/settings.json"
     need_json_key "$ROOT/settings.json" 'hooks.PostToolUse'
@@ -20,7 +24,7 @@ case "${1:-}" in
     ;;
 
 --post-uninstall)
-    need_no_file "$ROOT/skills/libdoc-search/SKILL.md"
+    need_no_file "$ROOT/skills/rf-libdoc/SKILL.md"
     need_no_file "$ROOT/agents/rf-test-architect.md"
     if [ -f "$HOME/.mcp.json" ]; then
         if jq -e '.mcpServers."rf-tools"' "$HOME/.mcp.json" >/dev/null 2>&1; then

@@ -1,0 +1,54 @@
+# Trigger query set for rf-language (format: eval/triggers/README.md).
+# Tune descriptions on the train split only; never edit validation queries
+# to make a description pass (rotate them only when the skill's intent changes).
+#
+# Kept out on purpose (ambiguous between rf-language and a Python keyword
+# library, so it is neither a positive nor a negative):
+#   "Should this be a Python keyword or a user keyword?"
+skill: rf-language
+model: claude-haiku-4-5-20251001
+runs: 3
+threshold: 0.5
+queries:
+  # should trigger (train): test structure + keywords/resources/variables
+  - {id: lang-t01, split: train, should_trigger: true, query: "Turn these login tests into a data-driven table"}
+  - {id: lang-t02, split: train, should_trigger: true, query: "Write Given/When/Then scenarios for the checkout flow in Robot Framework"}
+  - {id: lang-t03, split: train, should_trigger: true, note: "indirect: pasted error with __init__.robot", query: "Why does my Test Setup in __init__.robot say No keyword with name 'Open Session' found in the child suites?"}
+  - {id: lang-t04, split: train, should_trigger: true, query: "How do I run only the robot tests tagged smoke but not slow?"}
+  - {id: lang-t05, split: train, should_trigger: true, query: "Make a reusable login keyword in resources/auth.resource with an optional remember-me flag"}
+  - {id: lang-t06, split: train, should_trigger: true, note: "indirect: pasted error", query: "Robot says Multiple keywords with name 'Open App' found - how do I fix it?"}
+  - {id: lang-t07, split: train, should_trigger: true, note: "edit existing file", query: "Replace Set Suite Variable and Run Keyword If in keywords/cart.resource with modern syntax"}
+  - {id: lang-t08, split: train, should_trigger: true, note: "indirect: embedded argument binding", query: "My keyword 'Select team ${city} ${team}' gets city=Los for Los Angeles Lakers"}
+  # should trigger (validation)
+  - {id: lang-t09, split: validation, should_trigger: true, query: "Review my *** Test Cases *** section, it has FOR loops and IF blocks inside the tests"}
+  - {id: lang-t10, split: validation, should_trigger: true, note: "edit existing file", query: "tests/search.robot has 12 tests that differ only in the search term and expected count - clean it up"}
+  - {id: lang-t11, split: validation, should_trigger: true, query: "Force Tags is flagged by robocop in our suites, what should the tags look like now?"}
+  - {id: lang-t12, split: validation, should_trigger: true, query: "Organize our resource files per domain and add dev and staging variable files"}
+  - {id: lang-t13, split: validation, should_trigger: true, query: "How do I declare a user keyword argument as int in Robot Framework?"}
+  - {id: lang-t14, split: validation, should_trigger: true, query: "Write the step keywords behind these Given/When/Then lines, taking the product name as an argument"}
+  # should NOT trigger (train): sibling skills, a Python library near miss, non-RF look-alikes
+  - {id: lang-n01, split: train, should_trigger: false, note: "sibling rf-python-library", query: "Write a Python keyword library for our SOAP API"}
+  - {id: lang-n02, split: train, should_trigger: false, note: "sibling rf-browser", query: "Which Browser library keyword waits for network idle?"}
+  - {id: lang-n03, split: train, should_trigger: false, note: "sibling rf-results", query: "Summarize the failures in results/output.xml"}
+  - {id: lang-n04, split: train, should_trigger: false, note: "sibling rf-libdoc", query: "What arguments does Browser's Click keyword take?"}
+  - {id: lang-n05, split: train, should_trigger: false, note: "non-RF look-alike", query: "Write pytest parametrized tests for the login function"}
+  - {id: lang-n06, split: train, should_trigger: false, note: "non-RF look-alike", query: "Write Cucumber step definitions in Java for these Gherkin steps"}
+  - {id: lang-n07, split: train, should_trigger: false, note: "non-RF look-alike", query: "Add type hints to this Python function"}
+  # should NOT trigger (validation)
+  - {id: lang-n08, split: validation, should_trigger: false, note: "sibling rf-setup", query: "Install Robot Framework and robocop with uv"}
+  - {id: lang-n09, split: validation, should_trigger: false, note: "sibling rf-robotcode", query: "Set up robot.toml profiles for dev and ci"}
+  - {id: lang-n10, split: validation, should_trigger: false, note: "sibling rf-selenium", query: "My SeleniumLibrary locator isn't found after the page reloads"}
+  - {id: lang-n11, split: validation, should_trigger: false, note: "non-RF look-alike", query: "Write Cucumber feature files with Given/When/Then for checkout in Java"}
+  - {id: lang-n12, split: validation, should_trigger: false, note: "non-RF look-alike", query: "How does Ansible variable precedence work between group_vars and extra vars?"}
+  # holdout (tune-skill-descriptions task 7.1): written after the descriptions shipped;
+  # never used to tune, select or accept a description. 5 should / 5 should-not trigger.
+  - {id: lang-h01, split: holdout, should_trigger: true, query: "Split tests/checkout.robot into smaller suites and move the shared setup into a suite init file"}
+  - {id: lang-h02, split: holdout, should_trigger: true, query: "What's the difference between Suite Setup and Test Setup in robot, and where should our login go?"}
+  - {id: lang-h03, split: holdout, should_trigger: true, note: "edit existing file", query: "tests/legacy.robot still uses [Return] and the old FOR loop syntax, bring it up to RF 7"}
+  - {id: lang-h04, split: holdout, should_trigger: true, query: "Write a user keyword that takes any number of product names and adds each one to the cart"}
+  - {id: lang-h05, split: holdout, should_trigger: true, note: "intent only", query: "Our robot tests all need ${BASE_URL}; where should that variable live so every suite can use it?"}
+  - {id: lang-h06, split: holdout, should_trigger: false, note: "sibling rf-python-library", query: "Our robot keyword has to parse a PDF invoice; write it as a Python library function the tests can call"}
+  - {id: lang-h07, split: holdout, should_trigger: false, note: "sibling rf-libdoc", query: "What are the arguments of Should Be Equal As Numbers in BuiltIn?"}
+  - {id: lang-h08, split: holdout, should_trigger: false, note: "sibling rf-results", query: "Which suites were skipped in yesterday's output.xml?"}
+  - {id: lang-h09, split: holdout, should_trigger: false, note: "non-RF look-alike", query: "Write Behave step implementations in Python for this Gherkin feature"}
+  - {id: lang-h10, split: holdout, should_trigger: false, note: "non-RF look-alike", query: "Refactor this Jest test file to use describe.each for the table of inputs"}

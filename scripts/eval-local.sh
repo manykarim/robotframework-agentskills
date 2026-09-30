@@ -17,21 +17,23 @@ _info "Gate 1/4: ruff check src tests/eval"
 uv run ruff check src tests/eval
 
 # Gate 2: unit tests
-_info "Gate 2/4: pytest tests/eval"
-uv run pytest tests/eval -v
+_info "Gate 2/4: mypy + pytest tests/eval"
+uv run mypy
+uv run pytest tests/eval -q
 
 # Gate 3: narrow-tier evaluation
 RUN_ROOT="eval/runs/local-$(date +%s)"
 NARROW_DIR="${RUN_ROOT}/narrow"
 _info "Gate 3/4: narrow-tier eval -> ${NARROW_DIR}"
 
+uv run rf-skill-eval validate-tasks eval/tasks
+uv run rf-skill-eval coverage
 uv run rf-skill-eval run-batch \
   --tasks-dir eval/tasks/narrow \
-  --profile treatment \
-  --output "${NARROW_DIR}" \
-  --concurrency 1
-
-uv run rf-skill-eval score-batch --runs-dir "${NARROW_DIR}" --tasks-dir eval/tasks/narrow
+  --arms "${EVAL_LOCAL_ARMS:-treatment}" \
+  --runs "${EVAL_LOCAL_RUNS:-3}" \
+  --max-cost-usd "${EVAL_LOCAL_MAX_COST_USD:-5}" \
+  --output "${NARROW_DIR}"
 
 # Gate 4: optional realistic tier
 run_realistic=0
@@ -52,16 +54,16 @@ if [[ "${run_realistic}" -eq 1 ]]; then
   _info "Gate 4/4: realistic-tier eval -> ${REALISTIC_DIR}"
   uv run rf-skill-eval run-batch \
     --tasks-dir eval/tasks/realistic \
-    --profile treatment \
-    --output "${REALISTIC_DIR}" \
-    --concurrency 1
-  uv run rf-skill-eval score-batch --runs-dir "${REALISTIC_DIR}" --tasks-dir eval/tasks/realistic
+    --arms "${EVAL_LOCAL_ARMS:-treatment}" \
+    --runs "${EVAL_LOCAL_RUNS:-3}" \
+    --max-cost-usd "${EVAL_LOCAL_MAX_COST_USD:-5}" \
+    --output "${REALISTIC_DIR}"
 fi
 
 # Final report
 REPORT_PATH="${RUN_ROOT}/report.md"
 _info "Generating combined report..."
-uv run rf-skill-eval report --runs-dir "${RUN_ROOT}" --format md --output "${REPORT_PATH}"
+uv run rf-skill-eval report --runs-dir "${RUN_ROOT}" --tasks-dir eval/tasks --format md --output "${REPORT_PATH}"
 
 _info "All gates passed."
 _info "Report: ${REPORT_PATH}"

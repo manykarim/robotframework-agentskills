@@ -6,7 +6,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/validate_robot.mjs\""
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/validate_robot.mjs\"",
+            "timeout": 45
           }
         ]
       }
@@ -17,7 +18,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/maybe_inject_rf_context.mjs\""
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/maybe_inject_rf_context.mjs\"",
+            "timeout": 15
           }
         ]
       }
@@ -28,7 +30,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/check_rf_environment.mjs\""
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/check_rf_environment.mjs\"",
+            "timeout": 15
           }
         ]
       }

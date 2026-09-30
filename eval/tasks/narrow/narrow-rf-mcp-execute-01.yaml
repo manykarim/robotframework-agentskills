@@ -1,5 +1,5 @@
 id: narrow-rf-mcp-execute-01
-skill: testcase-builder
+skill: plugin
 tier: narrow
 description: |
   Exercise session-based graders against rf-mcp usage. The agent must
@@ -22,9 +22,11 @@ prompt: |
 
   Prefer rf-mcp tools over guessing. Do not skip the rf-mcp execution
   steps — they are the subject of this evaluation.
-model: claude-haiku-4-5
+model: claude-haiku-4-5-20251001
 max_turns: 12
 timeout_seconds: 300
+mcp_servers:
+  - rf-mcp
 allowed_tools:
   - Read
   - Write

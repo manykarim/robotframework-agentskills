@@ -350,9 +350,13 @@ def test_claude_desktop_only_emits_mcp_and_scripts(install_prefix: Path) -> None
     cls = by_name("claude-desktop")
     assert cls is not None
     plan = cls().plan(InstallOptions(prefix=install_prefix))
-    # No skills/agents/hooks files
+    # No skills/agents/hooks files. The only skills/ paths are the per-skill
+    # scripts staged under rf-agentskills-files/ for the MCP server.
     targets_paths = [t.dst.as_posix() for t in plan.targets]
-    assert not any("/skills/" in p for p in targets_paths)
+    skill_paths = [p for p in targets_paths if "/skills/" in p]
+    assert skill_paths
+    assert all("/rf-agentskills-files/skills/" in p and "/scripts/" in p for p in skill_paths)
+    assert not any(p.endswith("SKILL.md") for p in targets_paths)
     assert not any("/agents/" in p and p.endswith(".md") for p in targets_paths)
     # Has co-located scripts/servers (for MCP path resolution)
     assert any("rf-agentskills-files" in p for p in targets_paths)
@@ -464,3 +468,50 @@ def test_plan_succeeds_with_windows_style_substitution_target(
             f"{agent}: payload for {tgt.dst} contains the pre-fix "
             f"backslash form of the substituted path"
         )
+
+
+# ---- skill script paths (harden-skill-script-execution) ------------------
+
+
+SKILL_AGENTS = ["codex", "cursor", "goose", "opencode", "copilot"]
+
+
+@pytest.mark.parametrize("agent", SKILL_AGENTS)
+def test_skill_script_paths_rendered_absolute_for_non_expanding_agents(
+    install_prefix: Path, fake_home: Path, agent: str
+) -> None:
+    """Agents that do not expand ${CLAUDE_SKILL_DIR} get the absolute path of
+    the installed script, and that file exists after install."""
+    cls = by_name(agent)
+    assert cls is not None and cls().expands_skill_dir is False
+    rc = main(["install", "--agent", agent, "--prefix", str(install_prefix)])
+    assert rc == 0
+    for skill, script in (
+        ("rf-libdoc", "rf_libdoc.py"),
+        ("rf-results", "rf_results.py"),
+        ("rf-language", "rf_conventions.py"),
+        ("rf-python-library", "check_library.py"),
+    ):
+        mds = [p for p in install_prefix.rglob("SKILL.md") if p.parent.name == skill]
+        assert mds, f"{agent}: {skill}/SKILL.md not installed"
+        for md in mds:
+            text = md.read_text(encoding="utf-8")
+            assert "${CLAUDE_SKILL_DIR}" not in text
+            abs_script = _x.to_native_path_string((md.parent / "scripts" / script).resolve())
+            assert f'uv run python "{abs_script}"' in text, (agent, md)
+            assert (md.parent / "scripts" / script).is_file()
+
+
+@pytest.mark.parametrize("agent", SECONDARY_AGENTS)
+def test_mcp_server_finds_per_skill_scripts(install_prefix: Path, fake_home: Path, agent: str) -> None:
+    """The staged rf-tools server resolves <plugin_root>/skills/<skill>/scripts/."""
+    rc = main(["install", "--agent", agent, "--prefix", str(install_prefix)])
+    assert rc == 0
+    servers = list(install_prefix.rglob("rf-agentskills-files/servers/rf-tools-server.py"))
+    assert servers, f"{agent}: rf-tools server not staged"
+    support = servers[0].parent.parent
+    assert (support / "skills" / "rf-libdoc" / "scripts" / "rf_libdoc.py").is_file()
+    assert (support / "skills" / "rf-results" / "scripts" / "rf_results.py").is_file()
+    assert (support / "skills" / "rf-language" / "scripts" / "rf_conventions.py").is_file()
+    assert (support / "skills" / "rf-python-library" / "scripts" / "check_library.py").is_file()
+    assert not list((support / "scripts").glob("*.py"))

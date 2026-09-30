@@ -1,0 +1,173 @@
+# Candidate descriptions for rf-language (tune-skill-descriptions D5/D6).
+# Train numbers: skill loads over 3 runs per query (Haiku 4.5); selection uses the train split only.
+# 'listing' says whether the run used Claude Code's default skill-listing budget or
+# SLASH_COMMAND_TOOL_CHAR_BUDGET=40000 (every description visible); see design.md Implementation Notes.
+skill: rf-language
+selected: 2
+iterations:
+- iteration: 0
+  text: 'Writes and reviews Robot Framework test cases and suites in keyword-driven, Given/When/Then (BDD)
+    or data-driven style (Test Template), and user keywords, resource files and variables: embedded and
+    typed arguments, RETURN, VAR scopes, control structures, YAML or Python variable files. Use when writing
+    or restructuring tests or keywords in .robot, .resource or __init__.robot files, choosing Test Tags
+    or [Arguments], replacing Force Tags, [Return], Run Keyword If or Set Suite Variable, or fixing ''Multiple
+    keywords with name''. Not for Python keyword libraries or listeners (use rf-python-library); for library
+    keywords use rf-browser, rf-requests or another library skill.'
+  listing: 'default budget (Haiku: 8000 chars)'
+  train_pos_loads: 7
+  train_pos_runs: 24
+  train_query_recall: 2/8
+  train_neg_loads: 0
+  variant_id: 25e6b4b2b5f8
+  run: evidence/rebaseline.json (re-baseline, train split)
+  listed_with_description: true
+  rationale: Current shipped description (re-baseline).
+- iteration: 1
+  text: 'Use this skill whenever Robot Framework test data is written, changed, reviewed or explained,
+    and load it first, before opening the .robot or .resource files or answering from memory: test cases
+    and suites, user keywords and variables in .resource files, tags and tag selection, setups and teardowns,
+    and __init__.robot suite files. Use when turning repetitive tests into a data-driven Test Template
+    table, writing Given/When/Then (BDD) scenarios or their step keywords, adding [Arguments] (optional,
+    typed or embedded), replacing Force Tags, [Return], Run Keyword If or Set Suite Variable with current
+    syntax, or fixing ''Multiple keywords with name'' and import scope between __init__.robot and child
+    suites, even if the user never says "syntax". Not for Python keyword libraries or listeners (use rf-python-library);
+    for library keywords use rf-browser, rf-requests or another library skill.'
+  listing: SLASH_COMMAND_TOOL_CHAR_BUDGET=40000
+  train_pos_loads: 19
+  train_pos_runs: 24
+  train_query_recall: 6/8
+  train_neg_loads: 0
+  variant_id: 65a02e3f4554
+  spent_usd: 1.344
+  run: scratchpad tune/runs/rf-language-it1
+  rationale: 'Re-baseline: RF syntax answered from memory, or Glob/Read of the named .robot/.resource
+    file first. Lead with the intent (test data written, changed, reviewed), tell the model to load before
+    opening the files or answering from memory, keep the user-phrased triggers.'
+- iteration: 2
+  text: 'Use this skill whenever Robot Framework test data is written, changed, reviewed or explained,
+    and load it first, before exploring or opening the .robot and .resource files or answering from memory:
+    test cases and suites, user keywords and variables in .resource files, tags, setups and teardowns,
+    and __init__.robot suite files. Use when turning repetitive tests into a data-driven Test Template
+    table, writing Given/When/Then (BDD) scenarios or their step keywords, adding [Arguments] (optional,
+    typed or embedded), replacing Force Tags, [Return], Run Keyword If or Set Suite Variable with current
+    syntax, selecting which tests run by tag on the robot command line, or fixing ''Multiple keywords
+    with name'' and import scope between __init__.robot and child suites, even if the user just says "tests"
+    or "keywords" and never says Robot Framework. Not for Python keyword libraries or listeners (use rf-python-library);
+    for library keywords use rf-browser, rf-requests or another library skill.'
+  listing: SLASH_COMMAND_TOOL_CHAR_BUDGET=40000
+  train_pos_loads: 22
+  train_pos_runs: 24
+  train_query_recall: 7/8
+  train_neg_loads: 0
+  variant_id: df10ab3a9e48
+  spent_usd: 1.413
+  run: scratchpad tune/runs/rf-language-it2
+  rationale: Candidate 1 missed the data-driven query without 'Robot Framework' in it (Glob first) and
+    CLI tag selection (answered directly). Add 'before exploring', tag selection on the robot command
+    line, and the nudge 'even if the user just says tests or keywords'.
+- iteration: 3
+  text: Use this skill whenever Robot Framework tests, suites or keywords are written, changed, reviewed
+    or explained, and load it first, before exploring or opening the .robot and .resource files and before
+    answering Robot Framework syntax questions from memory. It covers test cases, user keywords, variables,
+    tags and selecting tests by tag, setups and teardowns, and __init__.robot suite files. Use when turning
+    repetitive tests into a data-driven Test Template table, writing Given/When/Then (BDD) scenarios or
+    their step keywords, adding [Arguments] (optional, typed or embedded), replacing Force Tags, [Return],
+    Run Keyword If or Set Suite Variable with current syntax, or fixing 'Multiple keywords with name'
+    and import scope between __init__.robot and child suites, even if the user just says "tests" or "keywords".
+    Not for Python keyword libraries or listeners (use rf-python-library); for library keywords use rf-browser,
+    rf-requests or another library skill.
+  listing: SLASH_COMMAND_TOOL_CHAR_BUDGET=40000
+  train_pos_loads: 18
+  train_pos_runs: 24
+  train_query_recall: 6/8
+  train_neg_loads: 1
+  variant_id: 10db84e36d27
+  spent_usd: 1.342
+  run: scratchpad tune/runs/rf-language-it3
+  rationale: 'Candidate 2 still answered CLI tag selection directly. Restructured: intent + load-first
+    in one sentence, the coverage list as a second sentence (''It covers ...''), ''before answering Robot
+    Framework syntax questions from memory''. Worse than candidate 2 (lost data-driven and BDD queries,
+    one secondary load on a Browser keyword question); possibly noise, since the same split structure
+    worked for rf-python-library candidate 3.'
+- iteration: 4
+  text: 'Use this skill whenever Robot Framework test data is written, changed or explained, and load
+    it first, before exploring or opening the .robot and .resource files or answering from memory, even
+    for a quick one-line question: test cases and suites, user keywords and variables in .resource files,
+    tags, setups and teardowns, and __init__.robot suite files. Use when turning repetitive tests into
+    a data-driven Test Template table, writing Given/When/Then (BDD) scenarios or their step keywords,
+    adding [Arguments] (optional, typed or embedded), replacing Force Tags, [Return], Run Keyword If or
+    Set Suite Variable with current syntax, selecting which tests run by tag, or fixing ''Multiple keywords
+    with name'' and import scope between __init__.robot and child suites, even if the user just says "tests"
+    or "keywords" and never says Robot Framework. Not for Python keyword libraries or listeners (use rf-python-library);
+    for library keywords use rf-browser, rf-requests or another library skill.'
+  listing: SLASH_COMMAND_TOOL_CHAR_BUDGET=40000
+  train_pos_loads: 19
+  train_pos_runs: 24
+  train_query_recall: 8/8
+  train_neg_loads: 0
+  variant_id: 99ff843c9e08
+  spent_usd: 1.346
+  run: scratchpad tune/runs/rf-language-it4
+  rationale: Back to candidate 2's one-sentence structure, plus 'even for a quick one-line question' and
+    'never says Robot Framework'. Every query reached 2/3 or 3/3 (query recall 8/8) but single-run loads
+    fell to 19/24 from candidate 2's 22/24, so candidate 2 keeps the best train score (D6 counts loads).
+
+# Compact candidates (D11/D13): <= 160 characters each, all 12 listing lines <= 1700,
+# tuned together on the train split under the DEFAULT listing budget (no override).
+# Iterations are set iterations: iteration k of every skill was staged together in variant k
+# (iteration 2 re-ran rf-language, rf-robotcode, rf-libdoc, rf-results; iteration 3 rf-robotcode only).
+compact:
+  rebaseline_train:
+    train_pos_loads: 7
+    train_pos_runs: 24
+    train_query_recall: 2/8
+    train_neg_loads: 0
+    train_neg_accuracy: 7/7
+    note: current long description, default listing budget
+  selected: 2
+  iterations:
+  - iteration: 1
+    text: Use first, before opening .robot/.resource files or answering, to write or fix Robot Framework
+      tests, keywords, tags, templates.
+    chars: 128
+    listing: default budget (no override)
+    all_12_descriptions_visible: true
+    train_pos_loads: 13
+    train_pos_runs: 24
+    train_query_recall: 5/8
+    train_neg_loads: 0
+    train_neg_accuracy: 7/7
+    variant_id: b7a14079b54d
+    run: scratchpad tune/runs/compact-it1
+    rationale: 'Rich candidate 2 shortened: the model answered syntax questions from memory and Read .robot
+      files first, so the cue names opening .robot/.resource files; tests, keywords, tags, templates as
+      the intent words.'
+  - iteration: 2
+    text: 'Use first, before reading .robot/.resource files or answering: Robot Framework tests, keywords,
+      templates, imports, tag runs.'
+    chars: 125
+    listing: default budget (no override)
+    all_12_descriptions_visible: true
+    train_pos_loads: 18
+    train_pos_runs: 24
+    train_query_recall: 6/8
+    train_neg_loads: 0
+    train_neg_accuracy: 7/7
+    variant_id: 89165185ac66
+    run: scratchpad tune/runs/compact-it2
+    rationale: Iteration 1 lost lang-t03 to rf-libdoc and lang-t04 to rf-robotcode and Read files first.
+      'before reading .robot/.resource files', 'Robot Framework tests, keywords' as the object, and 'imports,
+      tag runs' for the suite-import and tag-selection intents.
+# '## When to use' body block (D12), drafted from the selected rich candidate; shipped by task 6.1.
+when_to_use: |
+  ## When to use
+
+  Load this skill first, before opening the .robot and .resource files or answering from memory, when Robot Framework test data is written, changed, reviewed or explained, even if the user just says "tests" or "keywords":
+
+  - test cases and suites, user keywords and variables in .resource files, tags, setups and teardowns, `__init__.robot` suite files;
+  - data-driven tests with a Test Template table; Given/When/Then (BDD) scenarios and their step keywords;
+  - `[Arguments]` (optional, typed or embedded); replacing Force Tags, `[Return]`, Run Keyword If or Set Suite Variable with current syntax;
+  - selecting tests by tag on the robot command line;
+  - `Multiple keywords with name '...'` and import scope between `__init__.robot` and child suites.
+
+  Not this skill: Python keyword libraries or listeners use `rf-python-library`; library keywords use `rf-browser`, `rf-requests` or another library skill.

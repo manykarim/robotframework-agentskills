@@ -30,7 +30,7 @@ from pathlib import Path
 
 from .. import _assets
 from .. import transforms as _x
-from ._base import AdapterBase, ConfigMergeOp, InstallOptions, InstallPlan, InstallTarget
+from ._base import AdapterBase, ConfigMergeOp, InstallOptions, InstallPlan, InstallTarget, skill_script_files
 
 
 EXTENSIONS_KEY = "extensions"
@@ -142,7 +142,10 @@ class GooseAdapter(AdapterBase):
                         rel = f.relative_to(skills_src)
                         targets.append(InstallTarget(
                             dst=skills_root / rel,
-                            payload=self._read_with_substitution(f, plugin_root_abs),
+                            payload=self.render_skill_dir(
+                                self._read_with_substitution(f, plugin_root_abs),
+                                f, skills_root / rel.parts[0],
+                            ),
                             transform_name="plugin_root_substitution",
                         ))
                     # Co-locate scripts/servers under <root>/rf-agentskills-files/
@@ -161,6 +164,14 @@ class GooseAdapter(AdapterBase):
                                 transform_name="plugin_root_substitution",
                                 executable=f.suffix in (".sh", ".ps1"),
                             ))
+                    # Per-skill scripts for the MCP server.
+                    for f in skill_script_files(src_root):
+                        rel = f.relative_to(src_root)
+                        targets.append(InstallTarget(
+                            dst=root / "rf-agentskills-files" / rel,
+                            payload=f.read_bytes(),
+                            transform_name="skill_script_for_mcp_server",
+                        ))
                     # Pin the install-time Python interpreter so hook
                     # .mjs scripts can find the env with robotframework
                     # if a user manually wires them up. Goose itself

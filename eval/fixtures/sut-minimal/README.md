@@ -2,7 +2,7 @@
 
 Minimal Robot Framework fixture used by narrow-tier evaluation tasks. It
 contains a shared resource file, a handful of pre-existing test files with
-intentionally duplicated setup blocks (for the resource-architect task), a
+intentionally duplicated setup blocks (for resource-extraction scenarios), a
 sample `output.xml` for the rf-results task, and a static JSON fixture for
 the API task. No browser or network dependency.
 

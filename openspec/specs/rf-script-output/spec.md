@@ -68,29 +68,35 @@ The `usage` breakdown SHALL expose each argument as a structured entry `{name, t
 - **WHEN** a keyword has arguments after a `*`/vararg sentinel (keyword-only args)
 - **THEN** those arguments have `kind: "named_only"` (distinct from ordinary `optional`)
 
-### Requirement: testcase_builder can emit a runnable suite
-
-`testcase_builder.py` SHALL provide an option (e.g. `--full-suite`) that wraps the generated test bodies in a `*** Test Cases ***` section so the artifact is a directly saveable, parseable Robot Framework file. The default fragment behavior MAY be preserved, and the fragment-vs-suite distinction SHALL be documented in the skill.
-
-#### Scenario: Full-suite output is parseable
-- **WHEN** `testcase_builder.py --full-suite` is run on a valid input
-- **THEN** the artifact contains a `*** Test Cases ***` header
-- **AND** the artifact parses as a Robot Framework suite (e.g. via `robot --dryrun` or `get_model`)
-
-#### Scenario: Fragment behavior documented
-- **WHEN** the default (no `--full-suite`) artifact is produced
-- **THEN** the skill documentation states it is a section fragment, not a standalone suite
-
 ### Requirement: In-repo consumers stay consistent with the contract
 
-The MCP server and skill documentation SHALL emit/describe the same output contract as `rf_libdoc.py`. Changes to the script's schema SHALL be reflected in `rf-tools-server.py` and the libdoc skill docs in the same change, and the cross-channel drift check SHALL pass.
+The MCP server and skill documentation SHALL emit/describe the same output contract as `rf_libdoc.py`. The contract SHALL be documented in the single `rf-libdoc` skill's `SKILL.md`. The MCP tools `rf_libdoc_search` and `rf_libdoc_explain` SHALL keep their names. Changes to the script's schema SHALL be reflected in `rf-tools-server.py` and the `rf-libdoc` skill doc in the same change, and the cross-channel drift check SHALL pass.
 
 #### Scenario: MCP server matches the script schema
-- **WHEN** the `rf-tools` MCP libdoc tools run
+- **WHEN** the `rf-tools` MCP libdoc tools (`rf_libdoc_search`, `rf_libdoc_explain`) run
 - **THEN** their output uses the same `mode`/`results` schema and minimal library references as the CLI script
+
+#### Scenario: Contract documented once
+- **WHEN** the shipped skills are searched for the output-contract description (`mode`, `results`, `usage.params`)
+- **THEN** it is found in the `rf-libdoc` skill and matches the script's behaviour
 
 #### Scenario: Channels stay in sync
 - **WHEN** `scripts/sync-skills.sh` and `scripts/check-drift.sh` run after the change
 - **THEN** the drift check reports no drift
-</content>
-</invoke>
+
+### Requirement: rf_results output carries no criticality grouping
+
+`rf_results.py` and the `rf_results_analyze` MCP tool SHALL NOT emit a `criticality` key in the `details` section, and the rf-results skill SHALL NOT describe criticality grouping. Robot Framework removed test criticality in 4.0. Tag-based grouping stays available through `details.tags`. This is a breaking change to the `details` shape, and the change that makes it SHALL record it in the installer CHANGELOG.
+
+#### Scenario: Details section without criticality
+- **WHEN** `rf_results.py --output output.xml --sections details` runs
+- **THEN** `details` contains `suites`, `failed_tests` and `tags`
+- **AND** `details` has no `criticality` key
+
+#### Scenario: Skill text has no criticality wording
+- **WHEN** the rf-results `SKILL.md` (frontmatter description and body) is read
+- **THEN** it does not mention criticality
+
+#### Scenario: Tags still cover critical-style grouping
+- **WHEN** a test carries a tag such as `critical` or `smoke`
+- **THEN** its counts appear under that tag's entry in `details.tags`

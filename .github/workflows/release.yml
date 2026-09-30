@@ -73,7 +73,7 @@ jobs:
       - name: Package Codex skills
         run: |
           mkdir -p .codex/skills
-          for d in skills/robotframework-*/; do
+          for d in skills/rf-*/; do
             name=$(basename "$d")
             cp -r "$d" ".codex/skills/$name"
           done
@@ -83,7 +83,7 @@ jobs:
       - name: Package Copilot skills
         run: |
           mkdir -p .github/copilot-skills
-          for d in skills/robotframework-*/; do
+          for d in skills/rf-*/; do
             name=$(basename "$d")
             cp -r "$d" ".github/copilot-skills/$name"
           done
@@ -93,6 +93,8 @@ jobs:
       - name: Generate changelog
         run: |
           PREV_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || git rev-list --max-parents=0 HEAD)
+          SKILL_COUNT=$(find skills -mindepth 2 -maxdepth 2 -name SKILL.md -path 'skills/rf-*/SKILL.md' | wc -l | tr -d ' ')
+          AGENT_COUNT=$(ls plugins/rf-agentskills/agents/*.md | wc -l | tr -d ' ')
           cat > CHANGELOG_BODY.md << 'HEADER'
           ## Robot Framework Agent Skills v${{ steps.version.outputs.version }}
 
@@ -118,24 +120,25 @@ jobs:
 
           | Artifact | Agent | Contents |
           |----------|-------|----------|
-          | `.vsix` | VS Code + Copilot Chat | Extension with 11 chat skills |
+          | `.vsix` | VS Code + Copilot Chat | Extension with @SKILL_COUNT@ chat skills |
           | `claude-plugin-*.tar.gz` | Claude Code | Plugin with skills, agents, hooks, MCP server |
-          | `skills-*.tar.gz` | Any agent | 11 standalone skill folders |
+          | `skills-*.tar.gz` | Any agent | @SKILL_COUNT@ standalone skill folders (`rf-*`) |
           | `skills-codex-*.tar.gz` | OpenAI Codex | Skills in `.codex/skills/` layout |
           | `skills-copilot-*.tar.gz` | GitHub Copilot | Skills in `.github/skills/` layout |
 
           HEADER
+          sed -i "s/@SKILL_COUNT@/${SKILL_COUNT}/g" CHANGELOG_BODY.md
 
           echo "### Changes" >> CHANGELOG_BODY.md
           echo "" >> CHANGELOG_BODY.md
           git log ${PREV_TAG}..HEAD --pretty=format:"- %s (%h)" --no-merges >> CHANGELOG_BODY.md
           echo "" >> CHANGELOG_BODY.md
 
-          echo "### Skills Included (11)" >> CHANGELOG_BODY.md
+          echo "### Skills Included (${SKILL_COUNT})" >> CHANGELOG_BODY.md
           echo "" >> CHANGELOG_BODY.md
           echo "| Skill | Type | Description |" >> CHANGELOG_BODY.md
           echo "|-------|------|-------------|" >> CHANGELOG_BODY.md
-          for skill_dir in skills/*/; do
+          for skill_dir in skills/rf-*/; do
             name=$(basename "$skill_dir")
             desc=$(head -5 "${skill_dir}SKILL.md" | grep "^description:" | sed 's/^description: //' | cut -c1-80)
             if [ -d "${skill_dir}scripts" ]; then
@@ -147,7 +150,7 @@ jobs:
           done
           echo "" >> CHANGELOG_BODY.md
 
-          echo "### Agents (4)" >> CHANGELOG_BODY.md
+          echo "### Agents (${AGENT_COUNT})" >> CHANGELOG_BODY.md
           echo "" >> CHANGELOG_BODY.md
           for agent in plugins/rf-agentskills/agents/*.md; do
             name=$(basename "$agent" .md)

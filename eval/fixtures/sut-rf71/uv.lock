@@ -1,0 +1,23 @@
+version = 1
+revision = 3
+requires-python = ">=3.10"
+
+[[package]]
+name = "robotframework"
+version = "7.1.1"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/d2/85/824b95cd3fcaf0eb6c353481b415871da4186e6414ba06a99772a48b960e/robotframework-7.1.1.zip", hash = "sha256:f85919c68c4d0837006e5f09dde1ef689f082eba2e7e64d5758753f9ee8bfea9", size = 761336, upload-time = "2024-10-19T12:34:23.091Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/bb/3c/a1f0971f4405c5accea879e84be91fb98956d778ff1cfc232410fc8558ae/robotframework-7.1.1-py3-none-any.whl", hash = "sha256:0461360be00dfb8ce1ab3f42370fa6eea3779e41c0b8d79a1f8ddcd2ec8e3679", size = 730648, upload-time = "2024-10-19T12:34:19.116Z" },
+]
+
+[[package]]
+name = "sut-rf71"
+version = "0.0.1"
+source = { editable = "." }
+dependencies = [
+    { name = "robotframework" },
+]
+
+[package.metadata]
+requires-dist = [{ name = "robotframework", specifier = "==7.1.1" }]

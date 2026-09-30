@@ -1,0 +1,143 @@
+{
+  "_comment": "PostToolUse stdin payloads of Claude Code 2.1.283 (tool_response = the tool's structured Output object, captured 2026-09-28 from a real Write/Edit sequence on one file; paths/session replaced by placeholders __FILE__, __CWD__, __SESSION__). Write(create) has an EMPTY structuredPatch; Write(update) and Edit carry unified-diff hunks {oldStart, oldLines, newStart, newLines, lines[' '|'-'|'+' prefixed]}.",
+  "write_create": {
+    "session_id": "__SESSION__",
+    "transcript_path": "/home/user/.claude/projects/-home-user-proj/__SESSION__.jsonl",
+    "cwd": "__CWD__",
+    "permission_mode": "default",
+    "hook_event_name": "PostToolUse",
+    "tool_use_id": "toolu_01EXAMPLE",
+    "tool_name": "Write",
+    "tool_input": {
+      "file_path": "__FILE__",
+      "content": "*** Keywords ***\nFirst\n    Log    one\n\nSecond\n    Log    two\n    Log    two\n"
+    },
+    "tool_response": {
+      "type": "create",
+      "filePath": "__FILE__",
+      "content": "*** Keywords ***\nFirst\n    Log    one\n\nSecond\n    Log    two\n    Log    two\n",
+      "structuredPatch": [],
+      "originalFile": null,
+      "userModified": false
+    }
+  },
+  "edit": {
+    "session_id": "__SESSION__",
+    "transcript_path": "/home/user/.claude/projects/-home-user-proj/__SESSION__.jsonl",
+    "cwd": "__CWD__",
+    "permission_mode": "default",
+    "hook_event_name": "PostToolUse",
+    "tool_use_id": "toolu_01EXAMPLE",
+    "tool_name": "Edit",
+    "tool_input": {
+      "file_path": "__FILE__",
+      "old_string": "    Log    one\n",
+      "new_string": "    Log    one\n    [Return]    x\n",
+      "replace_all": false
+    },
+    "tool_response": {
+      "filePath": "__FILE__",
+      "oldString": "    Log    one\n",
+      "newString": "    Log    one\n    [Return]    x\n",
+      "originalFile": "*** Keywords ***\nFirst\n    Log    one\n\nSecond\n    Log    two\n    Log    two\n",
+      "structuredPatch": [
+        {
+          "oldStart": 1,
+          "oldLines": 6,
+          "newStart": 1,
+          "newLines": 7,
+          "lines": [
+            " *** Keywords ***",
+            " First",
+            "     Log    one",
+            "+    [Return]    x",
+            " ",
+            " Second",
+            "     Log    two"
+          ]
+        }
+      ],
+      "userModified": false,
+      "replaceAll": false
+    }
+  },
+  "edit_replace_all": {
+    "session_id": "__SESSION__",
+    "transcript_path": "/home/user/.claude/projects/-home-user-proj/__SESSION__.jsonl",
+    "cwd": "__CWD__",
+    "permission_mode": "default",
+    "hook_event_name": "PostToolUse",
+    "tool_use_id": "toolu_01EXAMPLE",
+    "tool_name": "Edit",
+    "tool_input": {
+      "file_path": "__FILE__",
+      "old_string": "    Log    two",
+      "new_string": "    Log    deux",
+      "replace_all": true
+    },
+    "tool_response": {
+      "filePath": "__FILE__",
+      "oldString": "    Log    two",
+      "newString": "    Log    deux",
+      "originalFile": "*** Keywords ***\nFirst\n    Log    one\n    [Return]    x\n\nSecond\n    Log    two\n    Log    two\n",
+      "structuredPatch": [
+        {
+          "oldStart": 4,
+          "oldLines": 5,
+          "newStart": 4,
+          "newLines": 5,
+          "lines": [
+            "     [Return]    x",
+            " ",
+            " Second",
+            "-    Log    two",
+            "-    Log    two",
+            "+    Log    deux",
+            "+    Log    deux"
+          ]
+        }
+      ],
+      "userModified": false,
+      "replaceAll": true
+    }
+  },
+  "write_update": {
+    "session_id": "__SESSION__",
+    "transcript_path": "/home/user/.claude/projects/-home-user-proj/__SESSION__.jsonl",
+    "cwd": "__CWD__",
+    "permission_mode": "default",
+    "hook_event_name": "PostToolUse",
+    "tool_use_id": "toolu_01EXAMPLE",
+    "tool_name": "Write",
+    "tool_input": {
+      "file_path": "__FILE__",
+      "content": "*** Keywords ***\nFirst\n    RETURN    x\n"
+    },
+    "tool_response": {
+      "type": "update",
+      "filePath": "__FILE__",
+      "content": "*** Keywords ***\nFirst\n    RETURN    x\n",
+      "structuredPatch": [
+        {
+          "oldStart": 1,
+          "oldLines": 8,
+          "newStart": 1,
+          "newLines": 3,
+          "lines": [
+            " *** Keywords ***",
+            " First",
+            "-    Log    one",
+            "-    [Return]    x",
+            "-",
+            "-Second",
+            "-    Log    deux",
+            "-    Log    deux",
+            "+    RETURN    x"
+          ]
+        }
+      ],
+      "originalFile": "*** Keywords ***\nFirst\n    Log    one\n    [Return]    x\n\nSecond\n    Log    deux\n    Log    deux\n",
+      "userModified": false
+    }
+  }
+}

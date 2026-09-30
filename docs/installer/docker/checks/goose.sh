@@ -15,8 +15,15 @@ PLUGIN_FILES="$GOOSE_CONFIG/rf-agentskills-files"
 case "${1:-}" in
 --post-install)
     # Skills at the cross-vendor location
-    need_file "$AGENTS_SKILLS/libdoc-search/SKILL.md" "^name: libdoc-search$"
-    need_file "$AGENTS_SKILLS/keyword-builder/SKILL.md"
+    need_file "$AGENTS_SKILLS/rf-libdoc/SKILL.md" "^name: rf-libdoc$"
+    # Merged into libdoc (content 2.0.0): the old libdoc skills are not shipped
+    need_no_file "$AGENTS_SKILLS/libdoc-search/SKILL.md"
+    need_no_file "$AGENTS_SKILLS/libdoc-explain/SKILL.md"
+    need_no_file "$AGENTS_SKILLS/libdoc/SKILL.md"   # renamed to rf-libdoc in content 2.0.0
+    need_file "$AGENTS_SKILLS/rf-results/SKILL.md"
+    need_file "$AGENTS_SKILLS/rf-language/scripts/rf_conventions.py"
+    need_file "$AGENTS_SKILLS/rf-python-library/scripts/check_library.py"
+    need_no_file "$AGENTS_SKILLS/keyword-builder/SKILL.md"   # retired in content 2.0.0
     # MCP extension in config.yaml
     need_file "$GOOSE_CONFIG/config.yaml"
     need_yaml_key "$GOOSE_CONFIG/config.yaml" 'extensions.rf-tools'
@@ -36,7 +43,7 @@ case "${1:-}" in
     ;;
 
 --post-uninstall)
-    need_no_file "$AGENTS_SKILLS/libdoc-search/SKILL.md"
+    need_no_file "$AGENTS_SKILLS/rf-libdoc/SKILL.md"
     need_no_file "$HOME/.goosehints"
     if [ -f "$GOOSE_CONFIG/config.yaml" ]; then
         if python3 -c "
@@ -56,7 +63,7 @@ sys.exit(1 if 'rf-tools' in d.get('extensions', {}) else 0)
     if [ -z "${OPENROUTER_API_KEY:-}" ]; then
         skip "no OpenRouter token; configure OPENROUTER_API_KEY for Goose smoke"
     fi
-    if [ ! -f "$AGENTS_SKILLS/libdoc-search/SKILL.md" ]; then
+    if [ ! -f "$AGENTS_SKILLS/rf-libdoc/SKILL.md" ]; then
         skip "no install present"
     fi
     # Goose configures via env vars. The harness entrypoint should have
@@ -68,7 +75,7 @@ description: Smoke test for skill discovery
 instructions: "Reply 'ok' and stop."
 YAML
 )
-    if echo "$OUT" | grep -qiE 'libdoc-search|rf-tools|extension'; then
+    if echo "$OUT" | grep -qiE 'libdoc|rf-tools|extension'; then
         printf '  [check] goose surfaced skill / extension reference\n' >&2
     else
         printf '  [check] no skill reference in goose run output\n' >&2
