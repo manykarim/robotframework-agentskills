@@ -273,7 +273,7 @@ other skills loaded for failing queries. See
 
 | Option | Meaning |
 |---|---|
-| `--split train,validation,holdout` | Comma list; `holdout` runs only the post-tuning holdout queries. |
+| `--split train,validation,holdout2` | Comma list of `train`, `validation`, `holdout`, `holdout<N>`; a holdout name runs only that split's post-tuning queries, each reported in its own column. |
 | `--concurrency 1\|2` | Queries run at once (default 1; max 2, the ADR-002 OAuth cap). |
 | `--variant-root <dir>` | Stage `<dir>/plugins/rf-agentskills` instead of the shipped plugin. |
 | `--listing-budget <chars>` | Set `SLASH_COMMAND_TOOL_CHAR_BUDGET` (skill-listing budget) for the sessions; default: not set, Claude Code's own budget. |

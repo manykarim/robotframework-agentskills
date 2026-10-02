@@ -7,7 +7,7 @@ from collections.abc import Mapping
 from typing import Any
 
 from ..application.trigger_eval import TriggerEvalResult
-from ..domain.trigger import REQUIRED_SPLITS, TriggerMetrics
+from ..domain.trigger import REQUIRED_SPLITS, TriggerMetrics, is_holdout_split, ordered_splits
 
 
 def _pct(value: float | None) -> str:
@@ -26,11 +26,12 @@ def render_trigger_markdown(
     metrics = {(m.skill, m.split): m for m in result.metrics}
     skills = sorted({o.skill for o in result.outcomes})
     stored = (baseline or {}).get("skills", {})
-    # Holdout columns only appear when holdout queries ran (spec: own column).
-    splits: tuple[str, ...] = REQUIRED_SPLITS
-    if any(o.split == "holdout" for o in result.outcomes):
-        splits = (*REQUIRED_SPLITS, "holdout")
-    head = {"train": "Train", "validation": "Val", "holdout": "Holdout"}
+    # One column group per holdout split that ran (spec: own column), after
+    # train and validation: Holdout, Holdout2, ...
+    splits = ordered_splits(
+        [*REQUIRED_SPLITS, *(o.split for o in result.outcomes if is_holdout_split(o.split))]
+    )
+    head = {s: s.capitalize() for s in splits} | {"train": "Train", "validation": "Val"}
     header = " | ".join(
         f"{head[s]} TP/FP/TN/FN | {head[s]} P | {head[s]} R | {head[s]} Acc" for s in splits
     )

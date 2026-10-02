@@ -31,15 +31,27 @@ queries:
   - {id: ap-n08, split: validation, should_trigger: false, note: "sibling rf-requests", query: "Test the REST backend of our mobile app with RequestsLibrary"}
   - {id: ap-n09, split: validation, should_trigger: false, note: "non-RF look-alike", query: "Write an XCUITest UI test in Swift that taps the Sign In button"}
   - {id: ap-n10, split: validation, should_trigger: false, note: "non-RF look-alike", query: "Detox end-to-end test for our React Native app"}
-  # holdout (tune-skill-descriptions task 7.1): written after the descriptions shipped;
+  # retired holdout (tune-skill-descriptions task 7.1): its results were inspected in the
+  # 2026-09-30 evidence, so it moved to train (add-sibling-cues-to-descriptions D3).
+  - {id: ap-h01, split: train, should_trigger: true, note: "retired holdout (2026-09-30 evidence)", query: "Our Robot Framework mobile suite needs a test that long-presses a chat message in the Android app and picks 'Delete' from the popup"}
+  - {id: ap-h02, split: train, should_trigger: true, note: "retired holdout (2026-09-30 evidence)", query: "AppiumLibrary: the iPhone app shows a native date picker, how do I set it to next Friday in my robot test?"}
+  - {id: ap-h03, split: train, should_trigger: true, note: "indirect: symptom only; retired holdout (2026-09-30 evidence)", query: "robot test on a real Android phone: Input Text into the OTP field does nothing although the field looks focused"}
+  - {id: ap-h04, split: train, should_trigger: true, note: "retired holdout (2026-09-30 evidence)", query: "Put the app in the background for 5 seconds and bring it back in an AppiumLibrary test to check the user is still logged in"}
+  - {id: ap-h05, split: train, should_trigger: true, note: "intent only; retired holdout (2026-09-30 evidence)", query: "Our tablet app changes layout in landscape; write a Robot Framework check that rotates the device and verifies the sidebar appears"}
+  - {id: ap-h06, split: train, should_trigger: false, note: "sibling rf-platynui; retired holdout (2026-09-30 evidence)", query: "Robot Framework test for our Windows point-of-sale desktop client: press F2 and check that the 'Discount' dialog opens"}
+  - {id: ap-h07, split: train, should_trigger: false, note: "sibling rf-setup; retired holdout (2026-09-30 evidence)", query: "appium driver install uiautomator2 fails behind our company proxy, how do I get the driver installed for the robot mobile tests?"}
+  - {id: ap-h08, split: train, should_trigger: false, note: "sibling rf-browser; retired holdout (2026-09-30 evidence)", query: "Emulate an iPhone viewport in our Playwright-based Robot tests to check the mobile web menu"}
+  - {id: ap-h09, split: train, should_trigger: false, note: "non-RF look-alike; retired holdout (2026-09-30 evidence)", query: "Write a Maestro flow YAML that logs into our Flutter app"}
+  - {id: ap-h10, split: train, should_trigger: false, note: "non-RF look-alike; retired holdout (2026-09-30 evidence)", query: "How do I record a screen video of an adb shell session on my Pixel?"}
+  # holdout2 (add-sibling-cues-to-descriptions task 1.3): fresh queries written 2026-10-01,
   # never used to tune, select or accept a description. 5 should / 5 should-not trigger.
-  - {id: ap-h01, split: holdout, should_trigger: true, query: "Our Robot Framework mobile suite needs a test that long-presses a chat message in the Android app and picks 'Delete' from the popup"}
-  - {id: ap-h02, split: holdout, should_trigger: true, query: "AppiumLibrary: the iPhone app shows a native date picker, how do I set it to next Friday in my robot test?"}
-  - {id: ap-h03, split: holdout, should_trigger: true, note: "indirect: symptom only", query: "robot test on a real Android phone: Input Text into the OTP field does nothing although the field looks focused"}
-  - {id: ap-h04, split: holdout, should_trigger: true, query: "Put the app in the background for 5 seconds and bring it back in an AppiumLibrary test to check the user is still logged in"}
-  - {id: ap-h05, split: holdout, should_trigger: true, note: "intent only", query: "Our tablet app changes layout in landscape; write a Robot Framework check that rotates the device and verifies the sidebar appears"}
-  - {id: ap-h06, split: holdout, should_trigger: false, note: "sibling rf-platynui", query: "Robot Framework test for our Windows point-of-sale desktop client: press F2 and check that the 'Discount' dialog opens"}
-  - {id: ap-h07, split: holdout, should_trigger: false, note: "sibling rf-setup", query: "appium driver install uiautomator2 fails behind our company proxy, how do I get the driver installed for the robot mobile tests?"}
-  - {id: ap-h08, split: holdout, should_trigger: false, note: "sibling rf-browser", query: "Emulate an iPhone viewport in our Playwright-based Robot tests to check the mobile web menu"}
-  - {id: ap-h09, split: holdout, should_trigger: false, note: "non-RF look-alike", query: "Write a Maestro flow YAML that logs into our Flutter app"}
-  - {id: ap-h10, split: holdout, should_trigger: false, note: "non-RF look-alike", query: "How do I record a screen video of an adb shell session on my Pixel?"}
+  - {id: ap-k01, split: holdout2, should_trigger: true, note: "direct", query: "In our Robot Framework Android suite, check that the push notification text appears in the notification shade after an order is placed"}
+  - {id: ap-k02, split: holdout2, should_trigger: true, note: "direct", query: "AppiumLibrary: how do I pick the second option of a native iOS action sheet in my robot test?"}
+  - {id: ap-k03, split: holdout2, should_trigger: true, note: "indirect: symptom only", query: "robot test on the iOS simulator: Click Element on the 'Next' button passes but the screen never changes; the button sits under the keyboard"}
+  - {id: ap-k04, split: holdout2, should_trigger: true, note: "edit existing file", query: "In tests/mobile/checkout.robot, switch the Android device to wifi-only before the payment screen and check the offline banner disappears"}
+  - {id: ap-k05, split: holdout2, should_trigger: true, note: "indirect: no library named", query: "Our Robot mobile tests need the text of every row in a RecyclerView list, including rows further down that are not rendered yet"}
+  - {id: ap-k06, split: holdout2, should_trigger: false, note: "sibling rf-setup (env error near-miss)", query: "Set ANDROID_HOME and JAVA_HOME so the Appium server stops complaining before our Robot Framework mobile suite starts"}
+  - {id: ap-k07, split: holdout2, should_trigger: false, note: "sibling rf-setup (install near-miss)", query: "npm install -g appium fails with EACCES on our Robot Framework CI agent; how do I get Appium 2 installed there?"}
+  - {id: ap-k08, split: holdout2, should_trigger: false, note: "sibling rf-setup (install near-miss)", query: "Which pip package provides the AppiumLibrary keywords, and how do I add it to the uv lock file of our robot project?"}
+  - {id: ap-k09, split: holdout2, should_trigger: false, note: "sibling rf-robotcode (robotcode near-miss)", query: "robotcode is installed; list every test under tests/mobile tagged android without running them"}
+  - {id: ap-k10, split: holdout2, should_trigger: false, note: "non-RF look-alike", query: "Write a WebdriverIO + Appium test in JavaScript that taps the login button on Android"}

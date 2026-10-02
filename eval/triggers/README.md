@@ -21,12 +21,21 @@ Loader rules (enforced by `rf-skill-eval coverage` / `trigger` and by
 `tests/eval/test_trigger_sets.py`):
 
 - at least **8 should-trigger** and **8 should-not-trigger** queries;
-- every query has a `split` (`train`, `validation` or `holdout`), and both
+- every query has a `split` (`train`, `validation`, `holdout` or
+  `holdout<N>` such as `holdout2`; regex `^holdout\d*$`), and both
   polarities appear in `train` and `validation` (aim for ~60/40
-  train/validation per polarity);
-- `holdout` is optional and does not count toward the minimum of 8: it holds
-  queries written *after* description tuning and is never used to choose or
-  accept a description (`trigger --split holdout` runs only these);
+  train/validation per polarity; retired holdout queries are outside that
+  ratio);
+- holdout splits are optional and do not count toward the minimum of 8: they
+  hold queries written *after* the last description change and are never used
+  to choose or accept a description (`trigger --split holdout2` runs only
+  those; the report adds one column group per holdout split that ran, after
+  train and validation: Holdout, Holdout2, ...);
+- **retiring a holdout:** once a holdout split's results have been inspected
+  to diagnose failures it is no longer unseen. Move its queries to `train`
+  (keep the ids, add `retired holdout (<date> evidence)` to the note) and add
+  a new numbered holdout with fresh queries. The first holdout was retired
+  this way on 2026-09-30; the current one is `holdout2`;
 - `skill` names a shipped skill and the file is named `<skill>.yaml`;
 - query ids are unique within the set.
 
@@ -52,7 +61,7 @@ Robot Framework project (`pyproject.toml`, `tests/smoke.robot`,
 decides which skill fits. A run *loads* the skill when the transcript has a
 `Skill` call naming it (with or without the `rf-agentskills:` prefix) or a
 `Read` of its `SKILL.md`. The report gives TP/FP/TN/FN, precision, recall and
-accuracy per skill for **train, validation (and holdout) separately**, and
+accuracy per skill for **train, validation (and each holdout split) separately**, and
 lists which other skills were loaded for failing queries.
 
 - **Resume:** each finished query is appended to `<output>/outcomes.jsonl`;

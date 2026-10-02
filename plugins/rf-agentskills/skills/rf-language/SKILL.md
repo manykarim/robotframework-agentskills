@@ -1,6 +1,6 @@
 ---
 name: rf-language
-description: "Use first, before reading .robot/.resource files or answering: Robot Framework tests, keywords, templates, imports, tag runs."
+description: "Use first, before reading .robot/.resource files: Robot Framework tests, keywords, templates, imports, tag runs."
 license: Apache-2.0
 compatibility: "Requires Python 3.8+ with robotframework>=7 in the project environment for the bundled rf_conventions script; guidance is version-gated from RF 5.0 to 7.4 and the examples need RF 7.0+; robocop 9.x is optional for lint checks."
 metadata:

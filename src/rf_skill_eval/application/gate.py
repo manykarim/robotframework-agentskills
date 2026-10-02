@@ -35,6 +35,8 @@ FindingKind = Literal[
     "cost-cap",
 ]
 _EPS = 1e-9
+#: Stored trigger rates are rounded to 4 decimals.
+_ROUNDING_EPS = 5e-4
 
 
 @dataclass(frozen=True)
@@ -165,7 +167,13 @@ def gate_triggers(
             continue
         one_query = 1.0 / max(m.total, 1)
         drop = float(base["accuracy"]) - m.accuracy
-        if drop > one_query + _EPS:
+        if all(k in base for k in ("tp", "tn", "queries")) and int(base["queries"]) == m.total:
+            # Compare whole queries: stored rates are rounded to 4 decimals, so a
+            # one-query drop (e.g. 9/11 -> 8/11) would otherwise exceed 1/11 by rounding.
+            regressed = (int(base["tp"]) + int(base["tn"])) - (m.tp + m.tn) > 1
+        else:
+            regressed = drop > one_query + _ROUNDING_EPS
+        if regressed:
             report.findings.append(
                 GateFinding(
                     "trigger-accuracy",

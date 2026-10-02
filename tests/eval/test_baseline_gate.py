@@ -165,6 +165,21 @@ def test_trigger_gate_allows_one_query_drop_but_not_two() -> None:
     assert report.findings[0].kind == "trigger-accuracy"
 
 
+def test_trigger_gate_one_query_drop_survives_rounded_stored_rate() -> None:
+    # Regression: 9/11 stored as 0.8182 and a current 8/11 (0.72727...) differ by
+    # 0.09093 > 1/11 = 0.09091 only because of the 4-decimal rounding.
+    stored = build_trigger_baseline(_trigger_result(4, 2, 5, 0), harness_version="0.1.0")
+    assert stored["skills"]["rf-browser"]["validation"]["accuracy"] == 0.8182
+    assert gate_triggers(_trigger_result(3, 3, 5, 0), stored).status == "pass"
+    assert gate_triggers(_trigger_result(2, 4, 5, 0), stored).status == "fail"
+
+
+def test_trigger_gate_rate_fallback_without_counts() -> None:
+    stored = {"skills": {"rf-browser": {"validation": {"accuracy": 0.8182}}}}
+    assert gate_triggers(_trigger_result(3, 3, 5, 0), stored).status == "pass"
+    assert gate_triggers(_trigger_result(2, 4, 5, 0), stored).status == "fail"
+
+
 def test_trigger_gate_without_baseline_is_rebaseline_needed() -> None:
     assert gate_triggers(_trigger_result(4, 0, 4, 0), None).status == "rebaseline-needed"
 

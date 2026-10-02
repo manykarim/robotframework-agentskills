@@ -31,15 +31,15 @@ queries:
   - {id: rq-n08, split: validation, should_trigger: false, note: "sibling rf-setup", query: "Install RequestsLibrary into our Poetry-managed Robot Framework project"}
   - {id: rq-n09, split: validation, should_trigger: false, note: "non-RF look-alike", query: "Write pytest tests for our FastAPI endpoints using TestClient"}
   - {id: rq-n10, split: validation, should_trigger: false, note: "non-RF look-alike", query: "Mock HTTP calls in Python unit tests with the responses library"}
-  # holdout (tune-skill-descriptions task 7.1): written after the descriptions shipped;
-  # never used to tune, select or accept a description. 5 should / 5 should-not trigger.
-  - {id: rq-h01, split: holdout, should_trigger: true, query: "Robot Framework API test: PUT an updated address to /customers/42 and verify the change with a GET afterwards"}
-  - {id: rq-h02, split: holdout, should_trigger: true, note: "indirect: symptom only", query: "Our API returns 500 now and then; how do I retry a GET On Session a few times in robot before failing?"}
-  - {id: rq-h03, split: holdout, should_trigger: true, query: "Send a form-urlencoded login (username/password) to /oauth/token from a robot test and keep the access token"}
-  - {id: rq-h04, split: holdout, should_trigger: true, query: "RequestsLibrary: the endpoint returns a CSV file, how do I read its rows in my test?"}
-  - {id: rq-h05, split: holdout, should_trigger: true, note: "intent only", query: "Write robot tests for our pagination: fetch page 1 and page 2 of /products and make sure no id repeats"}
-  - {id: rq-h06, split: holdout, should_trigger: false, note: "sibling rf-restinstance", query: "Library    REST in our suite: check that response body tags is an Array of Strings"}
-  - {id: rq-h07, split: holdout, should_trigger: false, note: "sibling rf-restinstance", query: "Contract-test every endpoint against our swagger.json from Robot Framework"}
-  - {id: rq-h08, split: holdout, should_trigger: false, note: "sibling rf-setup", query: "Importing RequestsLibrary fails with No module named 'requests' in our CI job"}
-  - {id: rq-h09, split: holdout, should_trigger: false, note: "non-RF look-alike", query: "Write a k6 load test for GET /products"}
-  - {id: rq-h10, split: holdout, should_trigger: false, note: "non-RF look-alike", query: "Use httpx in async Python to call three APIs in parallel"}
+  # retired holdout (tune-skill-descriptions task 7.1): its results were inspected in the
+  # 2026-09-30 evidence, so it moved to train (add-sibling-cues-to-descriptions D3).
+  - {id: rq-h01, split: train, should_trigger: true, note: "retired holdout (2026-09-30 evidence)", query: "Robot Framework API test: PUT an updated address to /customers/42 and verify the change with a GET afterwards"}
+  - {id: rq-h02, split: train, should_trigger: true, note: "indirect: symptom only; retired holdout (2026-09-30 evidence)", query: "Our API returns 500 now and then; how do I retry a GET On Session a few times in robot before failing?"}
+  - {id: rq-h03, split: train, should_trigger: true, note: "retired holdout (2026-09-30 evidence)", query: "Send a form-urlencoded login (username/password) to /oauth/token from a robot test and keep the access token"}
+  - {id: rq-h04, split: train, should_trigger: true, note: "retired holdout (2026-09-30 evidence)", query: "RequestsLibrary: the endpoint returns a CSV file, how do I read its rows in my test?"}
+  - {id: rq-h05, split: train, should_trigger: true, note: "intent only; retired holdout (2026-09-30 evidence)", query: "Write robot tests for our pagination: fetch page 1 and page 2 of /products and make sure no id repeats"}
+  - {id: rq-h06, split: train, should_trigger: false, note: "sibling rf-restinstance; retired holdout (2026-09-30 evidence)", query: "Library    REST in our suite: check that response body tags is an Array of Strings"}
+  - {id: rq-h07, split: train, should_trigger: false, note: "sibling rf-restinstance; retired holdout (2026-09-30 evidence)", query: "Contract-test every endpoint against our swagger.json from Robot Framework"}
+  - {id: rq-h08, split: train, should_trigger: false, note: "sibling rf-setup; retired holdout (2026-09-30 evidence)", query: "Importing RequestsLibrary fails with No module named 'requests' in our CI job"}
+  - {id: rq-h09, split: train, should_trigger: false, note: "non-RF look-alike; retired holdout (2026-09-30 evidence)", query: "Write a k6 load test for GET /products"}
+  - {id: rq-h10, split: train, should_trigger: false, note: "non-RF look-alike; retired holdout (2026-09-30 evidence)", query: "Use httpx in async Python to call three APIs in parallel"}

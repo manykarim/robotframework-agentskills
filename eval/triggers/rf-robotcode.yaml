@@ -31,15 +31,27 @@ queries:
   - {id: rc-n08, split: validation, should_trigger: false, note: "sibling rf-appium", query: "Write an AppiumLibrary swipe test for our Android app"}
   - {id: rc-n09, split: validation, should_trigger: false, note: "non-RF look-alike", query: "Configure ruff and mypy in pyproject.toml"}
   - {id: rc-n10, split: validation, should_trigger: false, note: "non-RF look-alike", query: "Write a tox.ini with separate test environments"}
-  # holdout (tune-skill-descriptions task 7.1): written after the descriptions shipped;
+  # retired holdout (tune-skill-descriptions task 7.1): its results were inspected in the
+  # 2026-09-30 evidence, so it moved to train (add-sibling-cues-to-descriptions D3).
+  - {id: rc-h01, split: train, should_trigger: true, note: "retired holdout (2026-09-30 evidence)", query: "Show me the robot.toml profiles we have and what each one sets"}
+  - {id: rc-h02, split: train, should_trigger: true, note: "retired holdout (2026-09-30 evidence)", query: "robotcode: run only the tests whose name contains 'Checkout' with the staging profile"}
+  - {id: rc-h03, split: train, should_trigger: true, note: "retired holdout (2026-09-30 evidence)", query: "Step through the 'Refund Order' test with the robotcode debugger and stop at the failing keyword"}
+  - {id: rc-h04, split: train, should_trigger: true, note: "retired holdout (2026-09-30 evidence)", query: "Get a JSON list of all test names in tests/ via robotcode without executing them"}
+  - {id: rc-h05, split: train, should_trigger: true, note: "edit existing file; retired holdout (2026-09-30 evidence)", query: "Our robot.toml should pass --variable ENV:qa in the qa profile; add it and run that profile"}
+  - {id: rc-h06, split: train, should_trigger: false, note: "sibling rf-results; retired holdout (2026-09-30 evidence)", query: "robotcode isn't available on this machine; tell me which tests failed in results/output.xml"}
+  - {id: rc-h07, split: train, should_trigger: false, note: "sibling rf-libdoc; retired holdout (2026-09-30 evidence)", query: "No robotcode here: what arguments does Get Text take in Browser?"}
+  - {id: rc-h08, split: train, should_trigger: false, note: "sibling rf-setup; retired holdout (2026-09-30 evidence)", query: "Add robotcode[all] to our Poetry dev dependencies"}
+  - {id: rc-h09, split: train, should_trigger: false, note: "non-RF look-alike; retired holdout (2026-09-30 evidence)", query: "Configure launch.json in VS Code to debug a Node script"}
+  - {id: rc-h10, split: train, should_trigger: false, note: "non-RF look-alike; retired holdout (2026-09-30 evidence)", query: "Write a Makefile target that runs pytest with coverage"}
+  # holdout2 (add-sibling-cues-to-descriptions task 1.3): fresh queries written 2026-10-01,
   # never used to tune, select or accept a description. 5 should / 5 should-not trigger.
-  - {id: rc-h01, split: holdout, should_trigger: true, query: "Show me the robot.toml profiles we have and what each one sets"}
-  - {id: rc-h02, split: holdout, should_trigger: true, query: "robotcode: run only the tests whose name contains 'Checkout' with the staging profile"}
-  - {id: rc-h03, split: holdout, should_trigger: true, query: "Step through the 'Refund Order' test with the robotcode debugger and stop at the failing keyword"}
-  - {id: rc-h04, split: holdout, should_trigger: true, query: "Get a JSON list of all test names in tests/ via robotcode without executing them"}
-  - {id: rc-h05, split: holdout, should_trigger: true, note: "edit existing file", query: "Our robot.toml should pass --variable ENV:qa in the qa profile; add it and run that profile"}
-  - {id: rc-h06, split: holdout, should_trigger: false, note: "sibling rf-results", query: "robotcode isn't available on this machine; tell me which tests failed in results/output.xml"}
-  - {id: rc-h07, split: holdout, should_trigger: false, note: "sibling rf-libdoc", query: "No robotcode here: what arguments does Get Text take in Browser?"}
-  - {id: rc-h08, split: holdout, should_trigger: false, note: "sibling rf-setup", query: "Add robotcode[all] to our Poetry dev dependencies"}
-  - {id: rc-h09, split: holdout, should_trigger: false, note: "non-RF look-alike", query: "Configure launch.json in VS Code to debug a Node script"}
-  - {id: rc-h10, split: holdout, should_trigger: false, note: "non-RF look-alike", query: "Write a Makefile target that runs pytest with coverage"}
+  - {id: rc-k01, split: holdout2, should_trigger: true, note: "robotcode libdoc", query: "With robotcode, print the libdoc of resources/checkout.resource so I can see which keywords it defines"}
+  - {id: rc-k02, split: holdout2, should_trigger: true, note: "robotcode results", query: "robotcode results: summarise the failed tests of the latest run right in the terminal"}
+  - {id: rc-k03, split: holdout2, should_trigger: true, note: "robotcode discover", query: "Use robotcode discover to count how many tests each suite in tests/api contains"}
+  - {id: rc-k04, split: holdout2, should_trigger: true, note: "edit existing file", query: "Edit robot.toml so the default profile writes its outputs to build/robot, then run it with robotcode"}
+  - {id: rc-k05, split: holdout2, should_trigger: true, note: "indirect: pasted error", query: "robotcode analyze keeps reporting VariableNotFound in tests/orders.robot although the variable file is listed in robot.toml"}
+  - {id: rc-k06, split: holdout2, should_trigger: false, note: "sibling rf-setup (install near-miss)", query: "pipx install robotcode fails with 'No matching distribution found' on our Python 3.8 CI image; fix the environment"}
+  - {id: rc-k07, split: holdout2, should_trigger: false, note: "sibling rf-libdoc (no robotcode)", query: "Show the arguments of the Collections keyword Remove From List"}
+  - {id: rc-k08, split: holdout2, should_trigger: false, note: "sibling rf-results (no robotcode)", query: "Which suites in the release run's output.xml had a failing suite setup?"}
+  - {id: rc-k09, split: holdout2, should_trigger: false, note: "sibling rf-appium (writing tests near-miss)", query: "Write an AppiumLibrary test that scrolls the iOS product list and opens the third item"}
+  - {id: rc-k10, split: holdout2, should_trigger: false, note: "non-RF look-alike", query: "Run only the Go tests whose names match TestCheckout with go test -run"}

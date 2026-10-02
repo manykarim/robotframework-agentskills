@@ -1,6 +1,6 @@
 ---
 name: rf-selenium
-description: "Use first, before exploring or answering, for Robot Framework web tests with SeleniumLibrary (WebDriver): locators, waits, Grid."
+description: "Use first, before answering, for Robot Framework web tests with SeleniumLibrary. Not installs/drivers: rf-setup."
 license: Apache-2.0
 compatibility: Requires Python 3.10+, robotframework>=7 and robotframework-seleniumlibrary 6.x, plus a locally installed browser (drivers resolved by Selenium Manager) or a Selenium Grid URL.
 metadata:

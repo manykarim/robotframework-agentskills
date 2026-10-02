@@ -76,7 +76,7 @@ from .domain.profile import Profile, parse_arms
 from .domain.results import RunResult, aggregate_replicates
 from .domain.scorecard import Scorecard
 from .domain.task import Task
-from .domain.trigger import SPLITS, TriggerQuery, TriggerSet
+from .domain.trigger import SPLIT_NAMES, TriggerQuery, TriggerSet, is_valid_split
 from .errors import ModelNotAllowedError, RfSkillEvalError
 from .infrastructure.persistence.sqlite_repo import SqliteRunRepository
 from .infrastructure.runner.claude_code_runner import ClaudeCodeRunner
@@ -868,7 +868,9 @@ def _variant(variant_root: Path | None, root: Path) -> tuple[Path, str]:
 def trigger(
     skills: str | None = typer.Option(None, "--skills", help="Comma list (default: all sets)"),
     split: str = typer.Option(
-        "train,validation", "--split", help="Comma list of train, validation, holdout"
+        "train,validation",
+        "--split",
+        help="Comma list of train, validation, holdout, holdout<N> (e.g. holdout2)",
     ),
     runs: int | None = typer.Option(None, "--runs", min=1, max=20, help="Default: set's runs (3)"),
     model: str | None = typer.Option(None, "--model"),
@@ -923,8 +925,8 @@ def trigger(
         raise typer.Exit(code=2)
     selected = [sets[s] for s in (wanted or sorted(sets))]
     splits = tuple(_split_csv(split))
-    if not splits or any(s not in SPLITS for s in splits):
-        raise typer.BadParameter(f"--split must be a comma list of {', '.join(SPLITS)}")
+    if not splits or not all(is_valid_split(s) for s in splits):
+        raise typer.BadParameter(f"--split must be a comma list of {SPLIT_NAMES}")
     for m in sorted({model or s.model for s in selected}):
         _check_model(m, allow_opus, max_cost_usd)
     _require_auth()

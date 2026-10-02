@@ -1,6 +1,6 @@
 ---
 name: rf-setup
-description: "Use first, before reading pyproject.toml, to install or fix Robot Framework and libraries (uv, pip, venv). Not for writing tests."
+description: "Use first, before reading pyproject.toml, to install or fix Robot Framework and libraries (uv, pip, venv)."
 license: Apache-2.0
 compatibility: Requires one of uv (preferred), Python 3.10+ with venv and pip, or Poetry 1.8+; network access to PyPI.
 metadata:

@@ -1,6 +1,6 @@
 ---
 name: rf-python-library
-description: "Use first, before exploring or answering, to write or fix Robot Framework keyword libraries or listeners in Python."
+description: "Use first, before answering, to write or fix Robot Framework keyword libraries or listeners in Python."
 license: Apache-2.0
 compatibility: "Requires Python 3.10+ with robotframework>=7 in the project environment for the bundled check_library script; guidance is version-gated from RF 6.1 to 7.5 and the examples need RF 7.0+."
 metadata:

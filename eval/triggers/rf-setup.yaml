@@ -31,15 +31,27 @@ queries:
   - {id: su-n08, split: validation, should_trigger: false, note: "sibling rf-appium", query: "Write an AppiumLibrary test that swipes to the settings screen"}
   - {id: su-n09, split: validation, should_trigger: false, note: "non-RF look-alike", query: "Set up a Node.js project with pnpm and TypeScript"}
   - {id: su-n10, split: validation, should_trigger: false, note: "non-RF look-alike", query: "Configure a Python virtualenv for our Flask API with pip-tools"}
-  # holdout (tune-skill-descriptions task 7.1): written after the descriptions shipped;
+  # retired holdout (tune-skill-descriptions task 7.1): its results were inspected in the
+  # 2026-09-30 evidence, so it moved to train (add-sibling-cues-to-descriptions D3).
+  - {id: su-h01, split: train, should_trigger: true, note: "retired holdout (2026-09-30 evidence)", query: "Bootstrap a Robot Framework repo for our QA team with a pinned Python 3.12 and a lock file"}
+  - {id: su-h02, split: train, should_trigger: true, note: "indirect: pasted error; retired holdout (2026-09-30 evidence)", query: "After adding robotframework-appiumlibrary with uv, robot still says Importing library 'AppiumLibrary' failed"}
+  - {id: su-h03, split: train, should_trigger: true, note: "retired holdout (2026-09-30 evidence)", query: "Our GitHub Actions job needs Robot Framework and Browser library ready before the tests run; write the setup steps"}
+  - {id: su-h04, split: train, should_trigger: true, note: "retired holdout (2026-09-30 evidence)", query: "Move our RF project from requirements.txt + pip to uv without breaking the installed libraries"}
+  - {id: su-h05, split: train, should_trigger: true, note: "indirect: symptom only; retired holdout (2026-09-30 evidence)", query: "robot works in my shell but the IDE terminal says No module named robot; how do I make both use the project venv?"}
+  - {id: su-h06, split: train, should_trigger: false, note: "sibling rf-browser; retired holdout (2026-09-30 evidence)", query: "Browser library is installed now; write the first login test for http://localhost:3000"}
+  - {id: su-h07, split: train, should_trigger: false, note: "sibling rf-language; retired holdout (2026-09-30 evidence)", query: "Write a data-driven robot test for the login form with five username/password pairs"}
+  - {id: su-h08, split: train, should_trigger: false, note: "sibling rf-robotcode; retired holdout (2026-09-30 evidence)", query: "Use robotcode to discover which tests carry the wip tag"}
+  - {id: su-h09, split: train, should_trigger: false, note: "non-RF look-alike; retired holdout (2026-09-30 evidence)", query: "Install CUDA-enabled PyTorch into a conda environment"}
+  - {id: su-h10, split: train, should_trigger: false, note: "non-RF look-alike; retired holdout (2026-09-30 evidence)", query: "Fix gem install permission errors for Jekyll on macOS"}
+  # holdout2 (add-sibling-cues-to-descriptions task 1.3): fresh queries written 2026-10-01,
   # never used to tune, select or accept a description. 5 should / 5 should-not trigger.
-  - {id: su-h01, split: holdout, should_trigger: true, query: "Bootstrap a Robot Framework repo for our QA team with a pinned Python 3.12 and a lock file"}
-  - {id: su-h02, split: holdout, should_trigger: true, note: "indirect: pasted error", query: "After adding robotframework-appiumlibrary with uv, robot still says Importing library 'AppiumLibrary' failed"}
-  - {id: su-h03, split: holdout, should_trigger: true, query: "Our GitHub Actions job needs Robot Framework and Browser library ready before the tests run; write the setup steps"}
-  - {id: su-h04, split: holdout, should_trigger: true, query: "Move our RF project from requirements.txt + pip to uv without breaking the installed libraries"}
-  - {id: su-h05, split: holdout, should_trigger: true, note: "indirect: symptom only", query: "robot works in my shell but the IDE terminal says No module named robot; how do I make both use the project venv?"}
-  - {id: su-h06, split: holdout, should_trigger: false, note: "sibling rf-browser", query: "Browser library is installed now; write the first login test for http://localhost:3000"}
-  - {id: su-h07, split: holdout, should_trigger: false, note: "sibling rf-language", query: "Write a data-driven robot test for the login form with five username/password pairs"}
-  - {id: su-h08, split: holdout, should_trigger: false, note: "sibling rf-robotcode", query: "Use robotcode to discover which tests carry the wip tag"}
-  - {id: su-h09, split: holdout, should_trigger: false, note: "non-RF look-alike", query: "Install CUDA-enabled PyTorch into a conda environment"}
-  - {id: su-h10, split: holdout, should_trigger: false, note: "non-RF look-alike", query: "Fix gem install permission errors for Jekyll on macOS"}
+  - {id: su-k01, split: holdout2, should_trigger: true, note: "driver", query: "Get Firefox and geckodriver working for the SeleniumLibrary tests on our Ubuntu build agent"}
+  - {id: su-k02, split: holdout2, should_trigger: true, note: "indirect: pasted error", query: "robot fails at startup with \"Importing library 'Browser' failed: Error: Cannot find module 'playwright-core'\""}
+  - {id: su-k03, split: holdout2, should_trigger: true, note: "env", query: "Set up a fresh Windows laptop so our Robot Framework suite runs: Python, a venv and the project's libraries"}
+  - {id: su-k04, split: holdout2, should_trigger: true, note: "edit existing file", query: "Our requirements-dev.txt pins robotframework 6.1; bump it to 7.x and make sure all our libraries still install"}
+  - {id: su-k05, split: holdout2, should_trigger: true, note: "driver", query: "Which Appium 2 driver does AppiumLibrary need for iOS, and how do I install the XCUITest driver on the Mac mini?"}
+  - {id: su-k06, split: holdout2, should_trigger: false, note: "sibling rf-appium (writing tests near-miss)", query: "Write an AppiumLibrary test that fills the signup form in our Android app and taps Register"}
+  - {id: su-k07, split: holdout2, should_trigger: false, note: "sibling rf-robotcode (robotcode near-miss)", query: "Run the smoke profile from robot.toml via robotcode and stop at the first failure"}
+  - {id: su-k08, split: holdout2, should_trigger: false, note: "sibling rf-libdoc (keyword docs near-miss)", query: "What are the arguments of Wait Until Keyword Succeeds and how is the retry value written?"}
+  - {id: su-k09, split: holdout2, should_trigger: false, note: "sibling rf-selenium (writing tests near-miss)", query: "chromedriver works now; make the SeleniumLibrary login test wait for the dashboard before clicking Logout"}
+  - {id: su-k10, split: holdout2, should_trigger: false, note: "non-RF look-alike", query: "Install Homebrew and set up rbenv with Ruby 3.3 on a new Mac"}
