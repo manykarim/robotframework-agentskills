@@ -302,7 +302,10 @@ def test_cli_rejects_malformed_holdout_split(monkeypatch: pytest.MonkeyPatch, ba
     res = cli_runner.invoke(cli.app, ["trigger", "--skills", "rf-browser", "--split", bad,
                                       "--triggers-dir", str(_REPO / "eval" / "triggers")])
     assert res.exit_code == 2
-    assert "holdout<N>" in res.output
+    # Rich colours and wraps the usage error to the terminal width (CI differs
+    # from local), so strip ANSI codes and whitespace before matching.
+    plain = "".join(re.sub(r"\x1b\[[0-9;]*m", "", res.output).split())
+    assert "holdout<N>" in plain
 
 
 def test_cli_split_holdout2_runs_only_those(tmp_path: Path, monkeypatch: pytest.MonkeyPatch

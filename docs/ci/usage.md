@@ -396,7 +396,7 @@ amendment).
 
 | Trigger | Jobs | Scope | Arms | N | Model | Cap |
 |---|---|---|---|---|---|---|
-| `pull_request` | `preflight` → `pr-eval` | narrow tasks of changed skills + `plugin` canaries (all narrow tasks when the harness changed); validation-split trigger evals when a SKILL.md `description` changed | treatment | 3 | `claude-haiku-4-5-20251001` | `PR_NARROW_CAP_USD`=6, `PR_TRIGGER_CAP_USD`=12 |
+| `pull_request` | `preflight` → `pr-eval` | narrow tasks of changed skills + `plugin` canaries (all narrow tasks when the harness changed); validation-split trigger evals when a SKILL.md `description` changed | treatment | 3 | `claude-haiku-4-5-20251001` | `PR_NARROW_CAP_USD`=10, `PR_TRIGGER_CAP_USD`=20 |
 | `schedule` (Sun 04:00 UTC) | `preflight` → `full-eval` | all tiers + all trigger sets | treatment, baseline | 3 | tier defaults | 12 + 12 + 8 + 8 = $40 |
 | `workflow_dispatch` | `preflight` → `full-eval` | inputs `tiers`, `arms`, `runs`, `model`, `allow_opus`, `max_cost_usd`, `triggers` | input | input | input | `max_cost_usd` per invocation |
 | all | `harness-tests` | ruff, mypy, `pytest tests/eval` (no API calls) | – | – | – | – |
