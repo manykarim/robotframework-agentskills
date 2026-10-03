@@ -201,6 +201,13 @@ scripts/eval-local.sh
 Lint + unit tests, then the narrow tier in the treatment arm with `--runs 3`
 (and optionally the realistic tier), then a report.
 
+> **Write run output outside the repository** (e.g. `--output /tmp/rf-eval/...`).
+> A workspace under the checkout makes Claude Code treat this repo as the
+> project: in CI the agent read and edited the repo's own `pyproject.toml`,
+> and trigger rates dropped. The runner logs a warning when this happens; CI
+> writes to `$RUNNER_TEMP/eval-runs`. The `eval/runs/...` paths below are
+> shorthand.
+
 ### One task, one arm
 
 ```bash
