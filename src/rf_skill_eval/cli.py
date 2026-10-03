@@ -1034,7 +1034,7 @@ def gate(
     baseline: Path = typer.Option(Path("eval/baselines/narrow.json"), "--baseline"),
     tasks_dir: Path = typer.Option(Path("eval/tasks"), "--tasks-dir"),
     tolerance: float | None = typer.Option(
-        None, "--tolerance", help="Allowed pass-rate drop (default: > 1/N fails)"
+        None, "--tolerance", help="Allowed pass-rate drop; default: Fisher exact p < 0.05 vs a >=6-run baseline, else > 1/N fails"
     ),
     token_budget: float = typer.Option(0.30, "--token-budget", help="Allowed input-token rise"),
     trigger_results: Path | None = typer.Option(None, "--trigger-results"),

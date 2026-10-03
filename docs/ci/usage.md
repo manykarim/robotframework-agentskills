@@ -65,7 +65,7 @@ Install these once per machine:
 | Tool                | Minimum version | Notes                                   |
 | ------------------- | --------------- | --------------------------------------- |
 | `uv`                | 0.4             | Python toolchain manager                |
-| Node.js             | 20              | Required by Claude Code CLI             |
+| Node.js             | 22              | Required by Claude Code CLI (>= 22)     |
 | Claude Code CLI     | latest          | `npm i -g @anthropic-ai/claude-code`    |
 | Git                 | 2.40            | Worktrees for fixture provisioning      |
 | Python              | 3.12            | Installed automatically by `uv sync`    |
@@ -349,8 +349,9 @@ uv run rf-skill-eval gate --runs-dir eval/runs/pr --baseline eval/baselines/narr
 uv run rf-skill-eval gate --trigger-results eval/runs/triggers/trigger-results.json
 ```
 
-`gate` exits 0 (pass), 1 (fail: pass-rate drop > 1/N, mean input tokens
-+30 %, incomplete runs, trigger validation accuracy down by more than one
+`gate` exits 0 (pass), 1 (fail: pass rate below the baseline — Fisher exact
+p < 0.05 when the baseline has ≥ 6 runs, otherwise a drop > 1/N — mean input
+tokens above `--token-budget` (default +30 %; the PR job uses +75 %), incomplete runs, trigger validation accuracy down by more than one
 query, cost over `--max-cost-usd`) or 3 (`rebaseline-needed` only: the task
 definition, fixture or model changed, or no baseline entry exists — never a
 pass). Baseline files are promoted through a reviewed PR
@@ -371,7 +372,7 @@ whose type equals the task's `primary_metric`, or that set `gating: true`.
 The Mann-Whitney / Cliff's δ / SHIP-ITERATE-HOLD model in
 [ADR-004](architecture/adr/ADR-004-scoring-model.md) remains the long-term
 target; with N=3 it is underpowered, so reports show raw rates and deltas and
-the gate uses the tolerances above (see the ADR-004 amendment).
+the gate uses the rules above (see the ADR-004 amendments).
 
 ---
 

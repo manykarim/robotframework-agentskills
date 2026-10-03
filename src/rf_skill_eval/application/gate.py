@@ -6,8 +6,11 @@ Per gating task (tier != adversarial) in the treatment arm:
   gating check and its reason);
 * no baseline entry, or task hash / model differs -> ``rebaseline-needed``
   (excluded from comparison, never counted as passing);
-* pass-rate drop > tolerance (default: more than one replicate's worth,
-  i.e. > 1/N) -> **fail**;
+* pass rate significantly below the baseline -> **fail**. With a baseline of
+  at least ``MIN_FISHER_BASELINE_RUNS`` replicates the default test is a
+  one-sided Fisher exact test (p < ``FISHER_ALPHA``) on pass/fail counts;
+  with a smaller baseline, or an explicit ``tolerance``, a drop of more than
+  the tolerance (default one replicate's worth, i.e. > 1/N) fails;
 * mean input tokens up by more than the budget (default 30%) -> **fail**.
 
 Trigger check: validation-split accuracy may not drop by more than one
@@ -20,6 +23,7 @@ from __future__ import annotations
 
 from collections.abc import Iterable, Mapping
 from dataclasses import dataclass, field
+from math import comb
 from typing import Any, Literal
 
 from ..domain.results import ReplicateStats
@@ -37,6 +41,21 @@ FindingKind = Literal[
 _EPS = 1e-9
 #: Stored trigger rates are rounded to 4 decimals.
 _ROUNDING_EPS = 5e-4
+#: A 3-run baseline cannot reach p < 0.05 against 3 PR runs (3/3 vs 0/3 gives
+#: p = 0.05), so Fisher is used only when the baseline has this many runs.
+MIN_FISHER_BASELINE_RUNS = 6
+FISHER_ALPHA = 0.05
+
+
+def fisher_lower_p(passes: int, runs: int, base_passes: int, base_runs: int) -> float:
+    """One-sided Fisher exact p: chance of ``passes`` or fewer in ``runs`` if both
+    samples share one pass rate (hypergeometric lower tail)."""
+    total, successes = runs + base_runs, passes + base_passes
+    denom = comb(total, runs)
+    return (
+        sum(comb(successes, i) * comb(total - successes, runs - i) for i in range(passes + 1))
+        / denom
+    )
 
 
 @dataclass(frozen=True)
@@ -72,6 +91,32 @@ class GateReport:
         for f in self.findings:
             lines.append(f"- [{f.kind}] {f.subject}: {f.message}")
         return "\n".join(lines)
+
+
+def _pass_rate_finding(
+    s: ReplicateStats, entry: Mapping[str, Any], tolerance: float | None
+) -> GateFinding | None:
+    base_rate = float(entry.get("pass_rate", 0.0))
+    base_runs = int(entry.get("runs", 0))
+    if tolerance is None and base_runs >= MIN_FISHER_BASELINE_RUNS:
+        p = fisher_lower_p(s.passes, s.runs, round(base_rate * base_runs), base_runs)
+        if p >= FISHER_ALPHA:
+            return None
+        return GateFinding(
+            "pass-rate",
+            s.task_id,
+            f"treatment pass rate {s.pass_rate:.2f} (N={s.runs}) vs baseline "
+            f"{base_rate:.2f} (N={base_runs}); Fisher p={p:.3f} < {FISHER_ALPHA}",
+        )
+    tol = tolerance if tolerance is not None else 1.0 / max(s.runs, 1)
+    if base_rate - s.pass_rate <= tol + _EPS:
+        return None
+    return GateFinding(
+        "pass-rate",
+        s.task_id,
+        f"treatment pass rate {s.pass_rate:.2f} vs baseline {base_rate:.2f} "
+        f"(tolerance {tol:.2f}, N={s.runs})",
+    )
 
 
 def gate_tasks(
@@ -117,17 +162,9 @@ def gate_tasks(
                 )
             )
             continue
-        tol = tolerance if tolerance is not None else 1.0 / max(s.runs, 1)
-        base_rate = float(entry.get("pass_rate", 0.0))
-        if base_rate - s.pass_rate > tol + _EPS:
-            report.findings.append(
-                GateFinding(
-                    "pass-rate",
-                    s.task_id,
-                    f"treatment pass rate {s.pass_rate:.2f} vs baseline {base_rate:.2f} "
-                    f"(tolerance {tol:.2f}, N={s.runs})",
-                )
-            )
+        finding = _pass_rate_finding(s, entry, tolerance)
+        if finding is not None:
+            report.findings.append(finding)
         base_tokens = entry.get("mean_input_tokens")
         if base_tokens and s.input_tokens is not None:
             increase = s.input_tokens.mean / float(base_tokens) - 1.0

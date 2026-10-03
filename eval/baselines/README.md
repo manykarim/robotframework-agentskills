@@ -19,6 +19,11 @@ hand**, and promoted through a reviewed pull request.
 3. Review: pass-rate / token changes should be explained by skill or task
    changes in the same period.
 
+Record `narrow.json` from **at least 9 treatment runs per task**
+(`run-batch --tier narrow --arms treatment --runs 9`). The PR gate applies a
+Fisher exact test only to baselines with ≥ 6 runs; a 3-run baseline falls back
+to the coarse > 1/N rule (ADR-004 amendment 2026-10-03).
+
 Until the first weekly baseline is promoted these files do not exist and
 `gate` reports every task as `rebaseline-needed` (exit 3 — never a pass). The
 PR gate becomes a *required* status check only after two weekly baselines

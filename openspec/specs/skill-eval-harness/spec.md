@@ -235,11 +235,15 @@ The `adversarial` tier SHALL contain tasks that tempt known failure modes. At le
 
 ### Requirement: Regression gate against a stored baseline
 
-The repository SHALL contain a baseline results file for each gated tier. For every task×arm it SHALL record pass rate, replicate count, mean tokens, turns, duration and cost, along with the model id, the harness version and a content hash of the task definition. A gate command SHALL compare a new treatment result with the stored baseline. It SHALL fail when a gating task's treatment pass rate drops by more than the configured tolerance (default: more than one replicate's worth, i.e. > 1/N). It SHALL also fail when mean input tokens rise by more than the configured budget (default 30%). Tasks whose definition hash or model differs from the baseline entry SHALL be reported as `rebaseline-needed` and excluded from the comparison. They SHALL NOT be treated as passing. Updating the baseline file SHALL be an explicit command whose output is committed via a reviewed pull request.
+The repository SHALL contain a baseline results file for each gated tier. For every task×arm it SHALL record pass rate, replicate count, mean tokens, turns, duration and cost, along with the model id, the harness version and a content hash of the task definition. A gate command SHALL compare a new treatment result with the stored baseline. It SHALL fail when a gating task's treatment pass rate is below the baseline: by default, when the baseline entry has at least 6 replicates, a one-sided Fisher exact test on pass/fail counts with p < 0.05; with fewer baseline replicates or an explicit tolerance, a drop of more than the tolerance (default: more than one replicate's worth, i.e. > 1/N). It SHALL also fail when mean input tokens rise by more than the configured budget (default 30%; the PR job MAY pass a wider budget calibrated from measured run-to-run variance). Tasks whose definition hash or model differs from the baseline entry SHALL be reported as `rebaseline-needed` and excluded from the comparison. They SHALL NOT be treated as passing. Updating the baseline file SHALL be an explicit command whose output is committed via a reviewed pull request.
 
 #### Scenario: Pass-rate regression
 - **WHEN** a gating task had baseline treatment pass rate 1.00 (N=3) and the new run has 0.33
 - **THEN** the gate fails and names the task and both pass rates
+
+#### Scenario: Flaky task against a 9-run baseline
+- **WHEN** a gating task had baseline treatment pass rate 5/9 and the new run has 1/3
+- **THEN** the gate passes (Fisher p = 0.24); against a 9/9 baseline, 1/3 fails (p = 0.045)
 
 #### Scenario: Token budget regression
 - **WHEN** a task's mean input tokens rise by 45% against the baseline with the default 30% budget

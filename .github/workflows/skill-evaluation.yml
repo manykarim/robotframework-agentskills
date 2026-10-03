@@ -231,10 +231,14 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          # Claude Code requires Node >= 22; on Node 20 npm silently resolves
+          # the newest compatible release (2.1.197), not the current one.
+          node-version: "22"
 
       - name: Install Claude Code CLI
-        run: npm install -g @anthropic-ai/claude-code
+        run: |
+          npm install -g @anthropic-ai/claude-code
+          claude --version
 
       - name: Install Python dependencies
         run: uv sync --all-packages
@@ -278,6 +282,7 @@ jobs:
             --runs-dir eval/runs/pr \
             --baseline eval/baselines/narrow.json \
             --tasks-dir eval/tasks \
+            --token-budget 0.75 \
             --max-cost-usd "${PR_NARROW_CAP_USD}" \
             --report-output gate.txt
           echo "exit_code=$?" >> "$GITHUB_OUTPUT"
@@ -423,10 +428,14 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          # Claude Code requires Node >= 22; on Node 20 npm silently resolves
+          # the newest compatible release (2.1.197), not the current one.
+          node-version: "22"
 
       - name: Install Claude Code CLI
-        run: npm install -g @anthropic-ai/claude-code
+        run: |
+          npm install -g @anthropic-ai/claude-code
+          claude --version
 
       - name: Install Python dependencies
         run: uv sync --all-packages
