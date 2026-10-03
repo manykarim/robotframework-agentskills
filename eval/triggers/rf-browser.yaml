@@ -31,15 +31,15 @@ queries:
   - {id: br-n08, split: validation, should_trigger: false, note: "sibling rf-requests", query: "Call the /login REST endpoint from a Robot Framework test and check the token"}
   - {id: br-n09, split: validation, should_trigger: false, note: "non-RF look-alike", query: "Scrape product prices with Playwright for Python and save them as CSV"}
   - {id: br-n10, split: validation, should_trigger: false, note: "sibling rf-appium", query: "Automate the login screen of our Android app (.apk on the emulator) with Robot Framework"}
-  # holdout (tune-skill-descriptions task 7.1): written after the descriptions shipped;
-  # never used to tune, select or accept a description. 5 should / 5 should-not trigger.
-  - {id: br-h01, split: holdout, should_trigger: true, query: "Record a Playwright trace in my Robot Framework Browser suite, but only when a test fails"}
-  - {id: br-h02, split: holdout, should_trigger: true, note: "indirect: symptom only", query: "In our RF web tests the cookie consent overlay blocks every click (Library    Browser), how do I dismiss it once per context?"}
-  - {id: br-h03, split: holdout, should_trigger: true, query: "robot browser library: intercept the /api/prices call and return fake JSON so the page shows a sale price"}
-  - {id: br-h04, split: holdout, should_trigger: true, query: "Check with Browser library that the 'Submit' button stays disabled until all required fields are filled"}
-  - {id: br-h05, split: holdout, should_trigger: true, query: "Run our Robot Framework Browser tests in Firefox and WebKit too, not only Chromium"}
-  - {id: br-h06, split: holdout, should_trigger: false, note: "sibling rf-selenium", query: "SeleniumLibrary Open Browser should use a Firefox profile with a custom download folder"}
-  - {id: br-h07, split: holdout, should_trigger: false, note: "sibling rf-selenium", query: "Our old WebDriver-based robot suite: Mouse Over on the main menu doesn't open the submenu"}
-  - {id: br-h08, split: holdout, should_trigger: false, note: "sibling rf-setup", query: "After upgrading robotframework-browser, robot says the Playwright browsers are missing; reinstall them in our uv environment"}
-  - {id: br-h09, split: holdout, should_trigger: false, note: "non-RF look-alike", query: "Write a Puppeteer script that screenshots our landing page every hour"}
-  - {id: br-h10, split: holdout, should_trigger: false, note: "non-RF look-alike", query: "Set up Playwright Test sharding across 4 GitHub Actions runners"}
+  # retired holdout (tune-skill-descriptions task 7.1): its results were inspected in the
+  # 2026-09-30 evidence, so it moved to train (add-sibling-cues-to-descriptions D3).
+  - {id: br-h01, split: train, should_trigger: true, note: "retired holdout (2026-09-30 evidence)", query: "Record a Playwright trace in my Robot Framework Browser suite, but only when a test fails"}
+  - {id: br-h02, split: train, should_trigger: true, note: "indirect: symptom only; retired holdout (2026-09-30 evidence)", query: "In our RF web tests the cookie consent overlay blocks every click (Library    Browser), how do I dismiss it once per context?"}
+  - {id: br-h03, split: train, should_trigger: true, note: "retired holdout (2026-09-30 evidence)", query: "robot browser library: intercept the /api/prices call and return fake JSON so the page shows a sale price"}
+  - {id: br-h04, split: train, should_trigger: true, note: "retired holdout (2026-09-30 evidence)", query: "Check with Browser library that the 'Submit' button stays disabled until all required fields are filled"}
+  - {id: br-h05, split: train, should_trigger: true, note: "retired holdout (2026-09-30 evidence)", query: "Run our Robot Framework Browser tests in Firefox and WebKit too, not only Chromium"}
+  - {id: br-h06, split: train, should_trigger: false, note: "sibling rf-selenium; retired holdout (2026-09-30 evidence)", query: "SeleniumLibrary Open Browser should use a Firefox profile with a custom download folder"}
+  - {id: br-h07, split: train, should_trigger: false, note: "sibling rf-selenium; retired holdout (2026-09-30 evidence)", query: "Our old WebDriver-based robot suite: Mouse Over on the main menu doesn't open the submenu"}
+  - {id: br-h08, split: train, should_trigger: false, note: "sibling rf-setup; retired holdout (2026-09-30 evidence)", query: "After upgrading robotframework-browser, robot says the Playwright browsers are missing; reinstall them in our uv environment"}
+  - {id: br-h09, split: train, should_trigger: false, note: "non-RF look-alike; retired holdout (2026-09-30 evidence)", query: "Write a Puppeteer script that screenshots our landing page every hour"}
+  - {id: br-h10, split: train, should_trigger: false, note: "non-RF look-alike; retired holdout (2026-09-30 evidence)", query: "Set up Playwright Test sharding across 4 GitHub Actions runners"}

@@ -34,15 +34,15 @@ queries:
   - {id: pylib-n08, split: validation, should_trigger: false, note: "sibling rf-libdoc", query: "What arguments does Browser's Click keyword take?"}
   - {id: pylib-n09, split: validation, should_trigger: false, note: "non-RF look-alike", query: "Write a Flask route that returns JSON"}
   - {id: pylib-n10, split: validation, should_trigger: false, note: "non-RF look-alike", query: "Add an event listener in JavaScript that tracks button clicks"}
-  # holdout (tune-skill-descriptions task 7.1): written after the descriptions shipped;
-  # never used to tune, select or accept a description. 5 should / 5 should-not trigger.
-  - {id: pylib-h01, split: holdout, should_trigger: true, query: "Write a keyword library in Python that talks to our MQTT broker so Robot tests can publish and wait for messages"}
-  - {id: pylib-h02, split: holdout, should_trigger: true, query: "My Python keyword should fail the robot test with a clear message instead of a stack trace, how?"}
-  - {id: pylib-h03, split: holdout, should_trigger: true, query: "A keyword in my .py library takes a timeout like '10 seconds'; convert it to a timedelta automatically"}
-  - {id: pylib-h04, split: holdout, should_trigger: true, query: "Write a listener that takes a screenshot whenever a robot keyword fails"}
-  - {id: pylib-h05, split: holdout, should_trigger: true, query: "Make my Python library log an HTML table into the robot log.html"}
-  - {id: pylib-h06, split: holdout, should_trigger: false, note: "sibling rf-language", query: "Write a user keyword in keywords/orders.resource that creates an order and returns its id"}
-  - {id: pylib-h07, split: holdout, should_trigger: false, note: "sibling rf-requests", query: "Call our /payments endpoint with RequestsLibrary and check the response JSON"}
-  - {id: pylib-h08, split: holdout, should_trigger: false, note: "sibling rf-libdoc", query: "Which BuiltIn keyword evaluates a Python expression?"}
-  - {id: pylib-h09, split: holdout, should_trigger: false, note: "non-RF look-alike", query: "Write a Click CLI command in Python with two options"}
-  - {id: pylib-h10, split: holdout, should_trigger: false, note: "non-RF look-alike", query: "Package my Python module for PyPI with hatchling"}
+  # retired holdout (tune-skill-descriptions task 7.1): its results were inspected in the
+  # 2026-09-30 evidence, so it moved to train (add-sibling-cues-to-descriptions D3).
+  - {id: pylib-h01, split: train, should_trigger: true, note: "retired holdout (2026-09-30 evidence)", query: "Write a keyword library in Python that talks to our MQTT broker so Robot tests can publish and wait for messages"}
+  - {id: pylib-h02, split: train, should_trigger: true, note: "retired holdout (2026-09-30 evidence)", query: "My Python keyword should fail the robot test with a clear message instead of a stack trace, how?"}
+  - {id: pylib-h03, split: train, should_trigger: true, note: "retired holdout (2026-09-30 evidence)", query: "A keyword in my .py library takes a timeout like '10 seconds'; convert it to a timedelta automatically"}
+  - {id: pylib-h04, split: train, should_trigger: true, note: "retired holdout (2026-09-30 evidence)", query: "Write a listener that takes a screenshot whenever a robot keyword fails"}
+  - {id: pylib-h05, split: train, should_trigger: true, note: "retired holdout (2026-09-30 evidence)", query: "Make my Python library log an HTML table into the robot log.html"}
+  - {id: pylib-h06, split: train, should_trigger: false, note: "sibling rf-language; retired holdout (2026-09-30 evidence)", query: "Write a user keyword in keywords/orders.resource that creates an order and returns its id"}
+  - {id: pylib-h07, split: train, should_trigger: false, note: "sibling rf-requests; retired holdout (2026-09-30 evidence)", query: "Call our /payments endpoint with RequestsLibrary and check the response JSON"}
+  - {id: pylib-h08, split: train, should_trigger: false, note: "sibling rf-libdoc; retired holdout (2026-09-30 evidence)", query: "Which BuiltIn keyword evaluates a Python expression?"}
+  - {id: pylib-h09, split: train, should_trigger: false, note: "non-RF look-alike; retired holdout (2026-09-30 evidence)", query: "Write a Click CLI command in Python with two options"}
+  - {id: pylib-h10, split: train, should_trigger: false, note: "non-RF look-alike; retired holdout (2026-09-30 evidence)", query: "Package my Python module for PyPI with hatchling"}

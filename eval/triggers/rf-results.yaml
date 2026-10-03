@@ -31,15 +31,27 @@ queries:
   - {id: rs-n08, split: validation, should_trigger: false, note: "sibling rf-requests", query: "Write a RequestsLibrary test for GET /health"}
   - {id: rs-n09, split: validation, should_trigger: false, note: "non-RF look-alike", query: "Create a pytest-html report with screenshots"}
   - {id: rs-n10, split: validation, should_trigger: false, note: "non-RF look-alike", query: "Summarise the failing jobs in this GitHub Actions log"}
-  # holdout (tune-skill-descriptions task 7.1): written after the descriptions shipped;
+  # retired holdout (tune-skill-descriptions task 7.1): its results were inspected in the
+  # 2026-09-30 evidence, so it moved to train (add-sibling-cues-to-descriptions D3).
+  - {id: rs-h01, split: train, should_trigger: true, note: "indirect: no file named; retired holdout (2026-09-30 evidence)", query: "The robot run in CI went red; which test broke first and what was the error?"}
+  - {id: rs-h02, split: train, should_trigger: true, note: "retired holdout (2026-09-30 evidence)", query: "Give me a table of suite pass rates from results/output.xml for the sprint review"}
+  - {id: rs-h03, split: train, should_trigger: true, note: "retired holdout (2026-09-30 evidence)", query: "We ran the suites in 4 parallel shards; join the four outputs into one log and report"}
+  - {id: rs-h04, split: train, should_trigger: true, note: "retired holdout (2026-09-30 evidence)", query: "Did any robot tests get skipped in the release run, and why?"}
+  - {id: rs-h05, split: train, should_trigger: true, note: "retired holdout (2026-09-30 evidence)", query: "How many tests tagged critical passed in the output.xml of the release candidate run?"}
+  - {id: rs-h06, split: train, should_trigger: false, note: "sibling rf-robotcode; retired holdout (2026-09-30 evidence)", query: "robotcode is set up here; summarize the latest output.xml with robotcode results"}
+  - {id: rs-h07, split: train, should_trigger: false, note: "sibling rf-language; retired holdout (2026-09-30 evidence)", query: "Add the tag flaky to the three unstable tests in tests/login.robot"}
+  - {id: rs-h08, split: train, should_trigger: false, note: "sibling rf-libdoc; retired holdout (2026-09-30 evidence)", query: "Which keyword in Collections compares two lists ignoring order?"}
+  - {id: rs-h09, split: train, should_trigger: false, note: "non-RF look-alike; retired holdout (2026-09-30 evidence)", query: "Count the failures in a Cucumber JSON report with jq"}
+  - {id: rs-h10, split: train, should_trigger: false, note: "non-RF look-alike; retired holdout (2026-09-30 evidence)", query: "Summarize this JMeter .jtl results file"}
+  # holdout2 (add-sibling-cues-to-descriptions task 1.3): fresh queries written 2026-10-01,
   # never used to tune, select or accept a description. 5 should / 5 should-not trigger.
-  - {id: rs-h01, split: holdout, should_trigger: true, note: "indirect: no file named", query: "The robot run in CI went red; which test broke first and what was the error?"}
-  - {id: rs-h02, split: holdout, should_trigger: true, query: "Give me a table of suite pass rates from results/output.xml for the sprint review"}
-  - {id: rs-h03, split: holdout, should_trigger: true, query: "We ran the suites in 4 parallel shards; join the four outputs into one log and report"}
-  - {id: rs-h04, split: holdout, should_trigger: true, query: "Did any robot tests get skipped in the release run, and why?"}
-  - {id: rs-h05, split: holdout, should_trigger: true, query: "How many tests tagged critical passed in the output.xml of the release candidate run?"}
-  - {id: rs-h06, split: holdout, should_trigger: false, note: "sibling rf-robotcode", query: "robotcode is set up here; summarize the latest output.xml with robotcode results"}
-  - {id: rs-h07, split: holdout, should_trigger: false, note: "sibling rf-language", query: "Add the tag flaky to the three unstable tests in tests/login.robot"}
-  - {id: rs-h08, split: holdout, should_trigger: false, note: "sibling rf-libdoc", query: "Which keyword in Collections compares two lists ignoring order?"}
-  - {id: rs-h09, split: holdout, should_trigger: false, note: "non-RF look-alike", query: "Count the failures in a Cucumber JSON report with jq"}
-  - {id: rs-h10, split: holdout, should_trigger: false, note: "non-RF look-alike", query: "Summarize this JMeter .jtl results file"}
+  - {id: rs-k01, split: holdout2, should_trigger: true, note: "direct", query: "Which test cases in results/output.xml failed in their teardown rather than in the test body?"}
+  - {id: rs-k02, split: holdout2, should_trigger: true, note: "direct", query: "Turn results/output.xml into an xUnit file so GitLab shows the robot test results in the merge request"}
+  - {id: rs-k03, split: holdout2, should_trigger: true, note: "indirect: symptom only", query: "The nightly regression log.html is 300 MB and will not open; shrink it by dropping the keywords of passed tests"}
+  - {id: rs-k04, split: holdout2, should_trigger: true, note: "edit existing file", query: "Append this week's robot pass rate from results/output.xml to reports/trend.csv"}
+  - {id: rs-k05, split: holdout2, should_trigger: true, note: "direct", query: "Group the failing tests in output.xml by their error message so I can see which failures share a cause"}
+  - {id: rs-k06, split: holdout2, should_trigger: false, note: "sibling rf-robotcode (robotcode near-miss)", query: "We use robotcode; print the test statistics of results/output.xml with its results command"}
+  - {id: rs-k07, split: holdout2, should_trigger: false, note: "sibling rf-robotcode (robotcode near-miss)", query: "With robotcode, rerun only the tests that failed last time using our ci profile"}
+  - {id: rs-k08, split: holdout2, should_trigger: false, note: "sibling rf-setup (install near-miss)", query: "rebot: command not found on the build agent that merges our robot outputs; get it installed"}
+  - {id: rs-k09, split: holdout2, should_trigger: false, note: "sibling rf-setup (env error near-miss)", query: "pip install robotframework-metrics fails with a dependency conflict on robotframework 7; fix our environment"}
+  - {id: rs-k10, split: holdout2, should_trigger: false, note: "non-RF look-alike", query: "Parse this TestNG testng-results.xml and list the failed methods"}

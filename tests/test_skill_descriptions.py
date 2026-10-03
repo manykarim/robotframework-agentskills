@@ -48,22 +48,27 @@ TRIGGERS = REPO / "eval" / "triggers"
 # descriptions first; the other skills keep theirs in alphabetical order while
 # they still fit and are listed by name only after that.
 #
-# MAX_LISTING_TOTAL was measured on 2026-09-29 with Claude Code 2.1.284 and
-# claude-haiku-4-5 at the default budget of 8000: in every re-baseline
-# session the ``skill_listing`` attachment was 7974 characters, of which the
-# bundled skills plus the "- <name>" lines of all skills used 6266, leaving
-# 1734 for the rf-* descriptions. 1700 keeps a small margin. The test sums
-# whole "- <name>: <description>" lines (joined by newlines), so it is stricter
-# than the measured room by the ~180 characters of the name prefixes.
+# LISTING_ROOM is the room left for the rf-* descriptions, measured on
+# 2026-10-02 with Claude Code 2.1.286 and claude-haiku-4-5 at the default
+# budget of 8000: 99 trigger sessions all gave 1423, with the bundled
+# ``plugin-authoring`` skill listed in every session (it was 1600 on 2026-10-01
+# before that skill appeared, and 1734 with 2.1.284 on 2026-09-29). Claude Code spends
+# that room on ": <description>" per shown skill, so the test sums exactly that
+# and allows 95% of the room (MAX_DESCRIPTION_TEXT) as a margin for the next
+# Claude Code update.
 #
 # To re-measure (after a Claude Code upgrade or a change in bundled skills):
 # run one trigger session (``rf-skill-eval trigger --skills rf-results --split
 # validation --runs 1``), open ``<run>/session.jsonl``, find the attachment with
 # ``"type": "skill_listing"`` and compute
 #     budget - (len(content) - sum(len(": " + d) for each shown rf-* description d))
-# which is the room left for the rf-* descriptions.
+# which is the room left for the rf-* descriptions. Update the three LISTING_*
+# constants below.
+LISTING_ROOM = 1423
+LISTING_ROOM_CLAUDE_CODE = "2.1.286"
+LISTING_ROOM_MEASURED = "2026-10-02"
+MAX_DESCRIPTION_TEXT = int(LISTING_ROOM * 0.95)
 MAX_COMPACT = 160
-MAX_LISTING_TOTAL = 1700
 WHEN_TO_USE_WITHIN = 20  # the "## When to use" heading must be within this many body lines
 MAX_API_NAMES = 2
 #: Portability limit of the Agent Skills format, applies regardless.
@@ -346,22 +351,40 @@ def compact_problems(name: str, desc: str, keyword_names: set[str] | None = None
     return probs + catalog_problems(name, desc, keyword_names)
 
 
-def listing_lines(descriptions: dict[str, str]) -> list[str]:
-    """The ``- <name>: <description>`` lines Claude Code lists (name order)."""
-    return [f"- {name}: {desc}" for name, desc in sorted(descriptions.items())]
+def description_text_total(descriptions: dict[str, str]) -> int:
+    """Characters Claude Code spends on the rf-* descriptions: ``": " + description`` each."""
+    return sum(len(": " + d) for d in descriptions.values())
 
 
 def listing_problems(descriptions: dict[str, str]) -> list[str]:
-    """Combined listing over :data:`MAX_LISTING_TOTAL`: the total and the three longest."""
-    total = len("\n".join(listing_lines(descriptions)))
-    if total <= MAX_LISTING_TOTAL:
+    """Description text over :data:`MAX_DESCRIPTION_TEXT`: total, limit, CC version, three longest."""
+    total = description_text_total(descriptions)
+    if total <= MAX_DESCRIPTION_TEXT:
         return []
     longest = sorted(descriptions.items(), key=lambda kv: (-len(kv[1]), kv[0]))[:3]
     named = ", ".join(f"{n} ({len(d)})" for n, d in longest)
     return [
-        f"combined listing lines are {total} characters (max {MAX_LISTING_TOTAL}); "
-        f"longest descriptions: {named}"
+        f"description text is {total} characters (max {MAX_DESCRIPTION_TEXT} = 95% of the "
+        f"{LISTING_ROOM}-character room measured with Claude Code {LISTING_ROOM_CLAUDE_CODE} "
+        f"on {LISTING_ROOM_MEASURED}); longest descriptions: {named}"
     ]
+
+
+#: Skills with a recorded near-miss load of a sibling's query carry a short cue
+#: naming that sibling (skill-triggering spec; add-sibling-cues-to-descriptions).
+SIBLING_CUES: dict[str, str] = {
+    "rf-appium": "rf-setup",
+    "rf-selenium": "rf-setup",
+    "rf-libdoc": "rf-robotcode",
+    "rf-results": "rf-robotcode",
+}
+
+
+def sibling_cue_problems(name: str, desc: str) -> list[str]:
+    sibling = SIBLING_CUES.get(name)
+    if sibling and sibling not in desc:
+        return [f"{name}: description has no sibling cue naming {sibling}"]
+    return []
 
 
 def _skill_name_problems(name: str, desc: str) -> list[str]:
@@ -501,6 +524,9 @@ def test_every_shipped_skill_is_covered_by_the_contract() -> None:
 _PENDING_REASON = "compact rewrite pending (tasks 4.4–6.1)"
 COMPACT_PENDING: frozenset[str] = frozenset()
 WHEN_TO_USE_PENDING: frozenset[str] = COMPACT_PENDING
+#: Sibling cues not shipped yet (add-sibling-cues-to-descriptions task 4.2 empties it).
+_CUES_REASON = "sibling cue pending (add-sibling-cues-to-descriptions 4.2)"
+CUES_PENDING: frozenset[str] = frozenset()
 
 
 def _params(pending: frozenset[str]) -> list[object]:
@@ -534,9 +560,32 @@ def test_compact_description_rules(name: str) -> None:
     assert not problems, "\n".join(problems)
 
 
-@pytest.mark.xfail(bool(COMPACT_PENDING), strict=True, reason=_PENDING_REASON)
+# The 2026-10-01 re-measurement (room 1600) shows the shipped texts at 1528 > 1520;
+# add-sibling-cues-to-descriptions task 4.2 trims them and sets this to False.
+LISTING_OVER_PENDING = False
+
+
+@pytest.mark.xfail(
+    bool(COMPACT_PENDING) or LISTING_OVER_PENDING,
+    strict=True,
+    reason="description text over the re-measured 95% limit until add-sibling-cues 4.2",
+)
 def test_combined_listing_fits_default_budget() -> None:
     problems = listing_problems({name: _description(name) for name in SKILLS})
+    assert not problems, "\n".join(problems)
+
+
+@pytest.mark.parametrize(
+    "name",
+    [
+        pytest.param(n, marks=pytest.mark.xfail(strict=True, reason=_CUES_REASON))
+        if n in CUES_PENDING
+        else n
+        for n in sorted(SIBLING_CUES)
+    ],
+)
+def test_sibling_cue_present(name: str) -> None:
+    problems = sibling_cue_problems(name, _description(name))
     assert not problems, "\n".join(problems)
 
 
@@ -579,13 +628,18 @@ def test_trigger_set_exists_with_shape(name: str) -> None:
     assert data["skill"] == name
     queries = data["queries"]
     for polarity in (True, False):
-        # the optional holdout split is not counted (tune-skill-descriptions)
+        # optional holdout splits (holdout, holdout<N>) are not counted
         items = [
-            q for q in queries if q["should_trigger"] is polarity and q["split"] != "holdout"
+            q
+            for q in queries
+            if q["should_trigger"] is polarity and q["split"] in ("train", "validation")
         ]
         assert len(items) >= 8, (name, polarity, len(items))
         assert {q["split"] for q in items} == {"train", "validation"}, (name, polarity)
-    assert {q["split"] for q in queries} <= {"train", "validation", "holdout"}, name
+    for q in queries:
+        assert q["split"] in ("train", "validation") or re.fullmatch(
+            r"holdout\d*", q["split"]
+        ), (name, q["id"], q["split"])
     for q in queries:
         leaked = re.findall(r"\brf-[a-z0-9-]+\b", q["query"])
         assert not leaked, f"{name} {q['id']}: query names a skill id {leaked}"
@@ -603,8 +657,8 @@ _GOOD = "Writes Robot Framework web tests with Browser Library. Use first when a
 
 
 def test_contract_constants() -> None:
-    assert (MAX_COMPACT, MAX_LISTING_TOTAL, WHEN_TO_USE_WITHIN, MAX_API_NAMES) == (
-        160, 1700, 20, 2)
+    assert (MAX_COMPACT, WHEN_TO_USE_WITHIN, MAX_API_NAMES) == (160, 20, 2)
+    assert MAX_DESCRIPTION_TEXT == int(LISTING_ROOM * 0.95) == 1351
     assert MAX_DESCRIPTION == 1024
 
 
@@ -631,16 +685,31 @@ def test_portability_length_rejected_regardless() -> None:
 
 
 def test_combined_listing_budget() -> None:
-    descs = {f"rf-s{i:02d}": "d" * 130 for i in range(11)}
-    total = len("\n".join(listing_lines(descs)))
-    assert total <= MAX_LISTING_TOTAL and listing_problems(descs) == []
-    descs["rf-zz"] = "e" * 160
+    # 10 x (": " + 120) = 1220 <= 1351
+    descs = {f"rf-s{i:02d}": "d" * 120 for i in range(10)}
+    assert description_text_total(descs) == 10 * 122 and listing_problems(descs) == []
+    descs["rf-zz"] = "e" * 160  # +162 -> 1382 > 1351
     descs["rf-s03"] = "f" * 155
     probs = listing_problems(descs)
     assert len(probs) == 1
-    total = len("\n".join(listing_lines(descs)))
-    assert f"are {total} characters (max 1700)" in probs[0]
-    assert "rf-zz (160), rf-s03 (155), rf-s00 (130)" in probs[0]
+    total = description_text_total(descs)
+    assert f"is {total} characters (max 1351 = 95% of the 1423-character room" in probs[0]
+    assert "Claude Code 2.1.286" in probs[0]
+    assert "rf-zz (160), rf-s03 (155), rf-s00 (120)" in probs[0]
+
+
+def test_listing_counts_description_text_not_name_prefixes() -> None:
+    # Name length must not matter: Claude Code lists names even when it drops descriptions.
+    short = {"rf-a": "x" * 100}
+    long = {"rf-a-very-long-skill-name": "x" * 100}
+    assert description_text_total(short) == description_text_total(long) == 102
+
+
+def test_sibling_cue_rule() -> None:
+    assert sibling_cue_problems("rf-results", "Use first … rebot. With robotcode: rf-robotcode.") == []
+    assert sibling_cue_problems("rf-results", "Use first … rebot.") == [
+        "rf-results: description has no sibling cue naming rf-robotcode"]
+    assert sibling_cue_problems("rf-browser", "anything") == []  # no recorded near-miss
 
 
 def test_rf_and_subject_required() -> None:

@@ -1,11 +1,11 @@
 {
-  "acceptance_basis": "decisions from two validation runs pooled (6 runs/query: compact-validation.json + final-val-repeat, task 5.2); 'validation' metrics are from the first run and are the gate reference",
-  "claude_code_version": "2.1.285",
+  "acceptance_basis": "pooled two validation runs (6 runs/query); 'validation' metrics are from the first run and are the gate reference",
+  "claude_code_version": "2.1.286",
   "harness_version": "0.1.0",
   "kind": "trigger-baseline",
   "listing_budget": null,
+  "listing_room": 1423,
   "model": "claude-haiku-4-5-20251001",
-  "rebaseline_source": "openspec/changes/tune-skill-descriptions/evidence/rebaseline.json (variant 25e6b4b2b5f8)",
   "runs_per_query": 3,
   "schema_version": 1,
   "skills": {
@@ -14,9 +14,8 @@
         "decision": "accepted",
         "pooled_runs_per_query": 6,
         "pooled_validation_recall": 1.0,
-        "rebaseline_validation_recall": 0.75,
-        "rule": "a",
-        "validation_recall": 1.0
+        "previous_pooled_recall": 1.0,
+        "rule": "not-below-stored-baseline (add-sibling-cues-to-descriptions D6)"
       },
       "validation": {
         "accuracy": 1.0,
@@ -31,47 +30,42 @@
     },
     "rf-browser": {
       "acceptance": {
-        "decision": "not_meeting_target",
-        "not_meeting_target": true,
+        "decision": "accepted",
         "pooled_runs_per_query": 6,
-        "pooled_validation_recall": 0.75,
-        "rebaseline_validation_recall": 0.75,
-        "rule": null,
-        "shortfall": 0.05,
-        "shortfall_note": "pooled validation recall 0.75 equals the re-baseline 0.75; ships the compact text because the old one breaks the length rule",
-        "validation_recall": 0.75
+        "pooled_validation_recall": 1.0,
+        "previous_pooled_recall": 0.75,
+        "rule": "not-below-stored-baseline (add-sibling-cues-to-descriptions D6)"
       },
       "validation": {
-        "accuracy": 0.875,
-        "fn": 1,
+        "accuracy": 1.0,
+        "fn": 0,
         "fp": 0,
         "precision": 1.0,
         "queries": 8,
-        "recall": 0.75,
+        "recall": 1.0,
         "tn": 4,
-        "tp": 3
+        "tp": 4
       }
     },
     "rf-language": {
       "acceptance": {
         "decision": "accepted",
         "pooled_runs_per_query": 6,
-        "pooled_validation_recall": 0.5,
-        "rebaseline_validation_recall": 0.0,
-        "rule": "b",
-        "shortfall": 0.3,
-        "shortfall_note": "pooled validation recall 0.50 is 0.30 below the 0.80 target; accepted under rule (b) (+0.50 vs re-baseline 0.00, should-not-trigger accuracy 1.00)",
-        "validation_recall": 0.5
+        "pooled_validation_recall": 0.67,
+        "previous_pooled_recall": 0.5,
+        "rule": "not-below-stored-baseline (add-sibling-cues-to-descriptions D6)",
+        "shortfall": 0.13,
+        "shortfall_note": "pooled validation recall 0.67 below the 0.80 target (not below the stored 0.5)"
       },
       "validation": {
-        "accuracy": 0.7273,
-        "fn": 3,
+        "accuracy": 0.8182,
+        "fn": 2,
         "fp": 0,
         "precision": 1.0,
         "queries": 11,
-        "recall": 0.5,
+        "recall": 0.6667,
         "tn": 5,
-        "tp": 3
+        "tp": 4
       }
     },
     "rf-libdoc": {
@@ -79,19 +73,18 @@
         "decision": "accepted",
         "pooled_runs_per_query": 6,
         "pooled_validation_recall": 1.0,
-        "rebaseline_validation_recall": 0.25,
-        "rule": "a",
-        "validation_recall": 0.75
+        "previous_pooled_recall": 1.0,
+        "rule": "not-below-stored-baseline (add-sibling-cues-to-descriptions D6)"
       },
       "validation": {
-        "accuracy": 0.875,
-        "fn": 1,
+        "accuracy": 1.0,
+        "fn": 0,
         "fp": 0,
         "precision": 1.0,
         "queries": 8,
-        "recall": 0.75,
+        "recall": 1.0,
         "tn": 4,
-        "tp": 3
+        "tp": 4
       }
     },
     "rf-platynui": {
@@ -99,9 +92,8 @@
         "decision": "accepted",
         "pooled_runs_per_query": 6,
         "pooled_validation_recall": 1.0,
-        "rebaseline_validation_recall": 0.5,
-        "rule": "a",
-        "validation_recall": 1.0
+        "previous_pooled_recall": 1.0,
+        "rule": "not-below-stored-baseline (add-sibling-cues-to-descriptions D6)"
       },
       "validation": {
         "accuracy": 1.0,
@@ -119,21 +111,20 @@
         "decision": "accepted",
         "pooled_runs_per_query": 6,
         "pooled_validation_recall": 0.75,
-        "rebaseline_validation_recall": 0.25,
-        "rule": "b",
+        "previous_pooled_recall": 0.75,
+        "rule": "not-below-stored-baseline (add-sibling-cues-to-descriptions D6)",
         "shortfall": 0.05,
-        "shortfall_note": "pooled validation recall 0.75 is 0.05 below the 0.80 target; accepted under rule (b) (+0.50 vs re-baseline 0.25, should-not-trigger accuracy 1.00)",
-        "validation_recall": 0.5
+        "shortfall_note": "pooled validation recall 0.75 below the 0.80 target (not below the stored 0.75)"
       },
       "validation": {
-        "accuracy": 0.75,
-        "fn": 2,
+        "accuracy": 0.875,
+        "fn": 1,
         "fp": 0,
         "precision": 1.0,
         "queries": 8,
-        "recall": 0.5,
+        "recall": 0.75,
         "tn": 4,
-        "tp": 2
+        "tp": 3
       }
     },
     "rf-requests": {
@@ -141,9 +132,8 @@
         "decision": "accepted",
         "pooled_runs_per_query": 6,
         "pooled_validation_recall": 1.0,
-        "rebaseline_validation_recall": 0.25,
-        "rule": "a",
-        "validation_recall": 1.0
+        "previous_pooled_recall": 1.0,
+        "rule": "not-below-stored-baseline (add-sibling-cues-to-descriptions D6)"
       },
       "validation": {
         "accuracy": 1.0,
@@ -158,25 +148,21 @@
     },
     "rf-restinstance": {
       "acceptance": {
-        "decision": "not_meeting_target",
-        "not_meeting_target": true,
+        "decision": "accepted",
         "pooled_runs_per_query": 6,
-        "pooled_validation_recall": 0.75,
-        "rebaseline_validation_recall": 0.75,
-        "rule": null,
-        "shortfall": 0.05,
-        "shortfall_note": "pooled validation recall 0.75 equals the re-baseline 0.75; ships the compact text because the old one breaks the length rule",
-        "validation_recall": 0.75
+        "pooled_validation_recall": 1.0,
+        "previous_pooled_recall": 0.75,
+        "rule": "not-below-stored-baseline (add-sibling-cues-to-descriptions D6)"
       },
       "validation": {
-        "accuracy": 0.875,
-        "fn": 1,
+        "accuracy": 1.0,
+        "fn": 0,
         "fp": 0,
         "precision": 1.0,
         "queries": 8,
-        "recall": 0.75,
+        "recall": 1.0,
         "tn": 4,
-        "tp": 3
+        "tp": 4
       }
     },
     "rf-results": {
@@ -184,9 +170,8 @@
         "decision": "accepted",
         "pooled_runs_per_query": 6,
         "pooled_validation_recall": 1.0,
-        "rebaseline_validation_recall": 0.0,
-        "rule": "a",
-        "validation_recall": 1.0
+        "previous_pooled_recall": 1.0,
+        "rule": "not-below-stored-baseline (add-sibling-cues-to-descriptions D6)"
       },
       "validation": {
         "accuracy": 1.0,
@@ -204,11 +189,10 @@
         "decision": "accepted",
         "pooled_runs_per_query": 6,
         "pooled_validation_recall": 0.75,
-        "rebaseline_validation_recall": 0.5,
-        "rule": "b",
+        "previous_pooled_recall": 0.75,
+        "rule": "not-below-stored-baseline (add-sibling-cues-to-descriptions D6)",
         "shortfall": 0.05,
-        "shortfall_note": "pooled validation recall 0.75 is 0.05 below the 0.80 target; accepted under rule (b) (+0.25 vs re-baseline 0.50, should-not-trigger accuracy 1.00)",
-        "validation_recall": 0.75
+        "shortfall_note": "pooled validation recall 0.75 below the 0.80 target (not below the stored 0.75)"
       },
       "validation": {
         "accuracy": 0.875,
@@ -226,9 +210,8 @@
         "decision": "accepted",
         "pooled_runs_per_query": 6,
         "pooled_validation_recall": 1.0,
-        "rebaseline_validation_recall": 0.75,
-        "rule": "a",
-        "validation_recall": 1.0
+        "previous_pooled_recall": 1.0,
+        "rule": "not-below-stored-baseline (add-sibling-cues-to-descriptions D6)"
       },
       "validation": {
         "accuracy": 1.0,
@@ -246,9 +229,8 @@
         "decision": "accepted",
         "pooled_runs_per_query": 6,
         "pooled_validation_recall": 1.0,
-        "rebaseline_validation_recall": 0.5,
-        "rule": "a",
-        "validation_recall": 1.0
+        "previous_pooled_recall": 1.0,
+        "rule": "not-below-stored-baseline (add-sibling-cues-to-descriptions D6)"
       },
       "validation": {
         "accuracy": 1.0,
@@ -262,11 +244,7 @@
       }
     }
   },
-  "source": "openspec/changes/tune-skill-descriptions/evidence/compact-validation.json (task 5.1, compact set, default listing budget)",
+  "source": "add-sibling-cues-to-descriptions 3.5 (s-val); decisions pool s-val + s-val-r2",
   "split": "validation",
-  "target": {
-    "accuracy_neg": 0.9,
-    "recall": 0.8
-  },
-  "variant_id": "7cfa7e52981c"
+  "variant_id": "e8dcbb109c1b"
 }

@@ -263,6 +263,108 @@ def test_holdout_reported_in_own_column(tmp_path: Path) -> None:
     assert "Holdout TP/FP/TN/FN" in md
 
 
+# ── numbered holdout splits (add-sibling-cues-to-descriptions 1.1) ──────────
+
+
+def _with_split(queries: list[dict[str, object]], split: str, n: int, prefix: str
+                ) -> list[dict[str, object]]:
+    return queries + [
+        {"id": f"{prefix}{i}", "query": f"{prefix} {i}", "should_trigger": i % 2 == 0,
+         "split": split}
+        for i in range(n)
+    ]
+
+
+def test_numbered_holdout_loads_and_is_selectable(tmp_path: Path) -> None:
+    queries = _with_split(_queries(holdout=4), "holdout2", 10, "k")
+    tset = load_trigger_set(_write_set(tmp_path, queries), skills=_SKILLS)
+    assert len(tset.select(("holdout2",))) == 10
+    assert {q.split for q in tset.select(("holdout2",))} == {"holdout2"}
+    assert len(tset.select(("holdout",))) == 4
+
+
+def test_numbered_holdout_does_not_count_toward_minimum(tmp_path: Path) -> None:
+    queries = _with_split(_queries(8, 7), "holdout2", 10, "k")
+    with pytest.raises(ValueError, match="minimum 8"):
+        load_trigger_set(_write_set(tmp_path, queries), skills=_SKILLS)
+
+
+@pytest.mark.parametrize("bad", ["holdoutX", "hold2", "holdout-2", "Holdout2", "holdout2a"])
+def test_malformed_holdout_names_rejected(tmp_path: Path, bad: str) -> None:
+    queries = _with_split(_queries(), bad, 2, "k")
+    with pytest.raises(ValueError, match="split"):
+        load_trigger_set(_write_set(tmp_path, queries), skills=_SKILLS)
+
+
+@pytest.mark.parametrize("bad", ["holdoutX", "hold2"])
+def test_cli_rejects_malformed_holdout_split(monkeypatch: pytest.MonkeyPatch, bad: str) -> None:
+    monkeypatch.setenv("CLAUDE_CODE_OAUTH_TOKEN", "fake")
+    res = cli_runner.invoke(cli.app, ["trigger", "--skills", "rf-browser", "--split", bad,
+                                      "--triggers-dir", str(_REPO / "eval" / "triggers")])
+    assert res.exit_code == 2
+    # Rich colours and wraps the usage error to the terminal width (CI differs
+    # from local), so strip ANSI codes and whitespace before matching.
+    plain = "".join(re.sub(r"\x1b\[[0-9;]*m", "", res.output).split())
+    assert "holdout<N>" in plain
+
+
+def test_cli_split_holdout2_runs_only_those(tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+                                            ) -> None:
+    monkeypatch.setenv("CLAUDE_CODE_OAUTH_TOKEN", "fake")
+    triggers = tmp_path / "triggers"
+    triggers.mkdir()
+    queries = _with_split(_queries(holdout=4), "holdout2", 6, "k")
+    _write_set(triggers, queries)
+    seen: list[str] = []
+
+    def behaviour(task, profile, replicate):  # type: ignore[no-untyped-def]
+        seen.append(task.id)
+        return {}, [], 0.001
+
+    monkeypatch.setattr(cli, "RUNNER_FACTORY", lambda: FakeRunner(behaviour))
+    out = tmp_path / "trig"
+    res = cli_runner.invoke(cli.app, [
+        "trigger", "--skills", "rf-browser", "--split", "holdout2", "--runs", "1",
+        "--output", str(out), "--triggers-dir", str(triggers),
+        "--baseline", str(tmp_path / "none.json"),
+    ])
+    assert res.exit_code == 0, res.output
+    data = json.loads((out / "trigger-results.json").read_text())
+    assert {o["split"] for o in data["outcomes"]} == {"holdout2"}
+    assert len(data["outcomes"]) == 6
+    md = (out / "trigger-report.md").read_text()
+    assert "Holdout2 TP/FP/TN/FN" in md
+    assert "| Holdout TP/FP/TN/FN" not in md
+
+
+def test_one_report_column_per_holdout_split_in_order(tmp_path: Path) -> None:
+    from rf_skill_eval.reporting.trigger_report import render_trigger_markdown
+
+    queries = _with_split(_with_split(_queries(holdout=2), "holdout10", 2, "x"), "holdout2", 2,
+                          "k")
+    tset = TriggerSet.model_validate({"skill": "rf-browser", "queries": queries})
+
+    def fn(ts: TriggerSet, q: TriggerQuery, idx: int) -> TriggerRun:
+        return TriggerRun(transcript=_transcript(tmp_path / f"{q.id}-{idx}.jsonl", []))
+
+    result = evaluate_trigger_sets([tset], fn, splits=("holdout10", "holdout2", "train"),
+                                   runs=1, name_to_dir=_NAMES)
+    assert [m.split for m in result.metrics] == ["train", "holdout2", "holdout10"]
+    header = next(line for line in render_trigger_markdown(result).splitlines()
+                  if line.startswith("| Skill"))
+    groups = re.findall(r"(\w+) TP/FP/TN/FN", header)
+    assert groups == ["Train", "Val", "Holdout2", "Holdout10"]
+
+
+def test_split_order_and_names() -> None:
+    from rf_skill_eval.domain.trigger import is_valid_split, ordered_splits
+
+    assert ordered_splits(["holdout2", "validation", "holdout", "train", "holdout2"]) == (
+        "train", "validation", "holdout", "holdout2")
+    assert all(is_valid_split(s) for s in ("train", "validation", "holdout", "holdout3"))
+    assert not any(is_valid_split(s) for s in ("holdoutX", "hold2", "test", ""))
+
+
 # ── 1.4 persistence and resume ──────────────────────────────────────────────
 
 

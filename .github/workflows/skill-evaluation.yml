@@ -86,8 +86,8 @@ permissions:
 env:
   HAIKU_MODEL: claude-haiku-4-5-20251001
   # Initial caps (design D9 open question) - tune after the first weekly run.
-  PR_NARROW_CAP_USD: "6"
-  PR_TRIGGER_CAP_USD: "12"
+  PR_NARROW_CAP_USD: "10"
+  PR_TRIGGER_CAP_USD: "20"
   WEEKLY_NARROW_CAP_USD: "12"
   WEEKLY_REALISTIC_CAP_USD: "12"
   WEEKLY_ADVERSARIAL_CAP_USD: "8"
@@ -231,10 +231,14 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          # Claude Code requires Node >= 22; on Node 20 npm silently resolves
+          # the newest compatible release (2.1.197), not the current one.
+          node-version: "22"
 
       - name: Install Claude Code CLI
-        run: npm install -g @anthropic-ai/claude-code
+        run: |
+          npm install -g @anthropic-ai/claude-code
+          claude --version
 
       - name: Install Python dependencies
         run: uv sync --all-packages
@@ -266,7 +270,7 @@ jobs:
             --runs 3 \
             --model "${HAIKU_MODEL}" \
             --max-cost-usd "${PR_NARROW_CAP_USD}" \
-            --output eval/runs/pr
+            --output "${RUNNER_TEMP}"/eval-runs/pr
           echo "exit_code=$?" >> "$GITHUB_OUTPUT"
 
       - name: Gate against stored baseline
@@ -275,9 +279,10 @@ jobs:
         run: |
           set +e
           uv run rf-skill-eval gate \
-            --runs-dir eval/runs/pr \
+            --runs-dir "${RUNNER_TEMP}"/eval-runs/pr \
             --baseline eval/baselines/narrow.json \
             --tasks-dir eval/tasks \
+            --token-budget 0.75 \
             --max-cost-usd "${PR_NARROW_CAP_USD}" \
             --report-output gate.txt
           echo "exit_code=$?" >> "$GITHUB_OUTPUT"
@@ -297,10 +302,10 @@ jobs:
             --model "${HAIKU_MODEL}" \
             --concurrency 2 \
             --max-cost-usd "${PR_TRIGGER_CAP_USD}" \
-            --output eval/runs/triggers
+            --output "${RUNNER_TEMP}"/eval-runs/triggers
           code=$?
           uv run rf-skill-eval gate \
-            --trigger-results eval/runs/triggers/trigger-results.json \
+            --trigger-results "${RUNNER_TEMP}"/eval-runs/triggers/trigger-results.json \
             --trigger-baseline eval/baselines/triggers.json \
             --report-output trigger-gate.txt
           gate=$?
@@ -310,7 +315,7 @@ jobs:
         if: always()
         run: |
           uv run rf-skill-eval report \
-            --runs-dir eval/runs/pr \
+            --runs-dir "${RUNNER_TEMP}"/eval-runs/pr \
             --tasks-dir eval/tasks \
             --baseline eval/baselines/narrow.json \
             --format md \
@@ -325,7 +330,7 @@ jobs:
               echo '```'
               cat trigger-gate.txt
               echo '```'
-              cat eval/runs/triggers/trigger-report.md 2>/dev/null || true
+              cat "${RUNNER_TEMP}"/eval-runs/triggers/trigger-report.md 2>/dev/null || true
             fi
             echo
             cat eval-report.md
@@ -340,13 +345,13 @@ jobs:
         with:
           name: skill-eval-pr-${{ github.run_id }}
           path: |
-            eval/runs/pr
-            eval/runs/triggers
+            ${{ runner.temp }}/eval-runs/pr
+            ${{ runner.temp }}/eval-runs/triggers
             eval-report.md
             gate.txt
             trigger-gate.txt
-            !eval/runs/**/workspace/.venv
-            !eval/runs/**/workspace/node_modules
+            !${{ runner.temp }}/eval-runs/**/workspace/.venv
+            !${{ runner.temp }}/eval-runs/**/workspace/node_modules
           # v4 silently strips dotfiles by default. We need .mcp.json,
           # .claude/, and other hidden config artifacts visible for
           # post-run debugging.
@@ -423,10 +428,14 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          # Claude Code requires Node >= 22; on Node 20 npm silently resolves
+          # the newest compatible release (2.1.197), not the current one.
+          node-version: "22"
 
       - name: Install Claude Code CLI
-        run: npm install -g @anthropic-ai/claude-code
+        run: |
+          npm install -g @anthropic-ai/claude-code
+          claude --version
 
       - name: Install Python dependencies
         run: uv sync --all-packages
@@ -468,7 +477,7 @@ jobs:
               --runs "${RUNS}" \
               "${MODEL_ARGS[@]}" \
               --max-cost-usd "${cap}" \
-              --output "eval/runs/full/${tier}"
+              --output "${RUNNER_TEMP}/eval-runs/full/${tier}"
             code=$?
             if [ "$code" -ne 0 ]; then overall=$code; fi
           done
@@ -490,24 +499,24 @@ jobs:
             --split train,validation \
             "${MODEL_ARGS[@]}" \
             --max-cost-usd "${cap}" \
-            --output eval/runs/full/triggers
+            --output "${RUNNER_TEMP}"/eval-runs/full/triggers
           echo "exit_code=$?" >> "$GITHUB_OUTPUT"
 
       - name: Candidate baseline and report
         if: always()
         run: |
           uv run rf-skill-eval baseline update \
-            --from eval/runs/full \
+            --from "${RUNNER_TEMP}"/eval-runs/full \
             --tasks-dir eval/tasks \
             --output-dir candidate-baseline || true
           uv run rf-skill-eval report \
-            --runs-dir eval/runs/full \
+            --runs-dir "${RUNNER_TEMP}"/eval-runs/full \
             --tasks-dir eval/tasks \
             --format md \
             --output eval-report.md || echo "_no report_" > eval-report.md
           set +e
           uv run rf-skill-eval gate \
-            --runs-dir eval/runs/full \
+            --runs-dir "${RUNNER_TEMP}"/eval-runs/full \
             --baseline eval/baselines/narrow.json \
             --tasks-dir eval/tasks \
             --report-output gate.txt
@@ -517,7 +526,7 @@ jobs:
             echo '```'
             cat gate.txt 2>/dev/null
             echo '```'
-            cat eval/runs/full/triggers/trigger-report.md 2>/dev/null || true
+            cat "${RUNNER_TEMP}"/eval-runs/full/triggers/trigger-report.md 2>/dev/null || true
             cat eval-report.md
           } >> "$GITHUB_STEP_SUMMARY"
 
@@ -527,11 +536,11 @@ jobs:
         with:
           name: skill-eval-full-${{ github.run_id }}
           path: |
-            eval/runs/full
+            ${{ runner.temp }}/eval-runs/full
             eval-report.md
             gate.txt
-            !eval/runs/**/workspace/.venv
-            !eval/runs/**/workspace/node_modules
+            !${{ runner.temp }}/eval-runs/**/workspace/.venv
+            !${{ runner.temp }}/eval-runs/**/workspace/node_modules
           include-hidden-files: true
           if-no-files-found: ignore
           retention-days: 30

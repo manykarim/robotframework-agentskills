@@ -110,6 +110,36 @@ def test_gate_tolerates_one_replicate_worth() -> None:
     assert gate_tasks(_current(["passed", "passed", "failed"]), base, {"t": "h1"}).status == "pass"
 
 
+def test_fisher_lower_p_matches_hypergeometric_tail() -> None:
+    from rf_skill_eval.application.gate import fisher_lower_p
+
+    assert fisher_lower_p(1, 3, 9, 9) == pytest.approx(10 / 220)
+    assert fisher_lower_p(0, 3, 9, 9) == pytest.approx(1 / 220)
+    assert fisher_lower_p(3, 3, 0, 9) == pytest.approx(1.0)
+
+
+def test_gate_fisher_with_nine_run_baseline() -> None:
+    base = _baseline([make_result("t", "treatment", i) for i in range(9)])
+    # 2/3 vs 9/9: p = 0.25 -> noise; 1/3 vs 9/9: p = 0.045 -> regression
+    assert gate_tasks(_current(["passed", "passed", "failed"]), base, {"t": "h1"}).status == "pass"
+    report = gate_tasks(_current(["passed", "failed", "failed"]), base, {"t": "h1"})
+    [finding] = report.findings
+    assert finding.kind == "pass-rate" and "Fisher p=0.045" in finding.message
+
+
+def test_gate_fisher_tolerates_flaky_baseline_task() -> None:
+    # a task passing 5/9 in the baseline may pass 1/3 in a PR (p = 0.24)
+    rates = ["passed"] * 5 + ["failed"] * 4
+    base = _baseline([make_result("t", "treatment", i, gating=g) for i, g in enumerate(rates)])  # type: ignore[arg-type]
+    assert gate_tasks(_current(["passed", "failed", "failed"]), base, {"t": "h1"}).status == "pass"
+
+
+def test_gate_explicit_tolerance_overrides_fisher() -> None:
+    base = _baseline([make_result("t", "treatment", i) for i in range(9)])
+    report = gate_tasks(_current(["passed", "passed", "failed"]), base, {"t": "h1"}, tolerance=0.2)
+    assert [f.kind for f in report.findings] == ["pass-rate"]
+
+
 def test_gate_token_budget_regression() -> None:
     base = _baseline([make_result("t", "treatment", i) for i in range(3)])
     report = gate_tasks(_current(["passed"] * 3, input_tokens=1450), base, {"t": "h1"})
@@ -163,6 +193,21 @@ def test_trigger_gate_allows_one_query_drop_but_not_two() -> None:
     report = gate_triggers(_trigger_result(3, 1, 3, 1), stored)
     assert report.status == "fail"
     assert report.findings[0].kind == "trigger-accuracy"
+
+
+def test_trigger_gate_one_query_drop_survives_rounded_stored_rate() -> None:
+    # Regression: 9/11 stored as 0.8182 and a current 8/11 (0.72727...) differ by
+    # 0.09093 > 1/11 = 0.09091 only because of the 4-decimal rounding.
+    stored = build_trigger_baseline(_trigger_result(4, 2, 5, 0), harness_version="0.1.0")
+    assert stored["skills"]["rf-browser"]["validation"]["accuracy"] == 0.8182
+    assert gate_triggers(_trigger_result(3, 3, 5, 0), stored).status == "pass"
+    assert gate_triggers(_trigger_result(2, 4, 5, 0), stored).status == "fail"
+
+
+def test_trigger_gate_rate_fallback_without_counts() -> None:
+    stored = {"skills": {"rf-browser": {"validation": {"accuracy": 0.8182}}}}
+    assert gate_triggers(_trigger_result(3, 3, 5, 0), stored).status == "pass"
+    assert gate_triggers(_trigger_result(2, 4, 5, 0), stored).status == "fail"
 
 
 def test_trigger_gate_without_baseline_is_rebaseline_needed() -> None:

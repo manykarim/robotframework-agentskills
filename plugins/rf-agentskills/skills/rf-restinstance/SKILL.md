@@ -1,6 +1,6 @@
 ---
 name: rf-restinstance
-description: "Use first, before exploring or answering, for Robot Framework API tests with RESTinstance: JSON types, JSON Schema, OpenAPI."
+description: "Use first, before answering, for Robot Framework API tests with RESTinstance: JSON Schema, OpenAPI."
 license: Apache-2.0
 compatibility: Requires Python 3.11+, robotframework>=7 and RESTinstance.
 metadata:

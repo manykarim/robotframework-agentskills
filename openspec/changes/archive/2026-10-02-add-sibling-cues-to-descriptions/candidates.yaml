@@ -1,0 +1,255 @@
+# Sibling-cue candidates (add-sibling-cues-to-descriptions, tasks 3.2 / 4.1).
+#
+# Only rf-appium, rf-selenium, rf-libdoc and rf-results are edited; the other 8
+# descriptions keep their shipped text. Every candidate set satisfies the compact
+# rules of tests/test_skill_descriptions.py (<= 160 chars, RF + subject term, load
+# cue, <= 2 API names, sibling cue) and the description-text total
+# sum(len(": " + d)) <= MAX_DESCRIPTION_TEXT = 1520, checked offline before running.
+#
+# Train runs: Haiku 4.5 (claude-haiku-4-5-20251001), Claude Code 2.1.286, default
+# listing budget, 3 runs/query, concurrency 2, all 12 skills staged, train split of
+# the 6 affected skills (rf-appium, rf-selenium, rf-libdoc, rf-results, rf-setup,
+# rf-robotcode; 414 sessions). Numbers: TP/FP/TN/FN per skill (query level, rate >= 0.5);
+# near-miss = loads/runs of the wrong skill on the targeted train query.
+# Run outputs live in the session scratchpad (cues/<run>), not in the repo.
+
+pre_change:
+  variant_id: 7cfa7e52981c
+  total: 1528
+  texts:
+    rf-appium: "Use first, before exploring or answering, for Robot Framework mobile tests with AppiumLibrary: Android/iOS, locators, gestures."
+    rf-selenium: "Use first, before exploring or answering, for Robot Framework web tests with SeleniumLibrary (WebDriver): locators, waits, Grid."
+    rf-libdoc: "Use first, not memory, for exact Robot Framework keyword names, arguments and docs via libdoc, or 'No keyword with name' errors."
+    rf-results: "Use first, before reading output.xml yourself, to summarise, explain or merge Robot Framework run results (output.xml, rebot)."
+  lengths: {rf-appium: 127, rf-selenium: 128, rf-libdoc: 128, rf-results: 126}
+  train: {rf-appium: 12/1/10/0, rf-selenium: 12/1/10/0, rf-libdoc: 9/1/10/3, rf-results: 9/1/10/3, rf-setup: 12/1/10/0, rf-robotcode: 11/0/11/1}
+  near_miss: {ap-h07: 3/3, se-h08: 3/3, ld-h06: 2/3, rs-h06: 2/3}
+  visibility: 414/414 for all 12
+  spend_usd: 10.65
+
+iterations:
+- iteration: 1
+  variant_id: f527e0a7dcba
+  rationale: >-
+    Design D2 draft cues appended; capability lists dropped to pay for them
+    (appium keeps the platforms as "Android/iOS tests", libdoc drops the
+    'No keyword with name' clause, results drops "(output.xml, rebot)" and "merge").
+  texts:
+    rf-appium: "Use first, before exploring or answering, for Robot Framework Android/iOS tests with AppiumLibrary. Installs, drivers: rf-setup."
+    rf-selenium: "Use first, before exploring or answering, for Robot Framework web tests with SeleniumLibrary. Installs, drivers: rf-setup."
+    rf-libdoc: "Use first, not memory, for exact Robot Framework keyword names, arguments and docs via libdoc. With robotcode: rf-robotcode."
+    rf-results: "Use first, before reading output.xml yourself, to summarise, explain Robot Framework run results. With robotcode: rf-robotcode."
+  lengths: {rf-appium: 128, rf-selenium: 122, rf-libdoc: 124, rf-results: 127}
+  total: 1520
+  train: {rf-appium: 12/2/9/0, rf-selenium: 12/1/10/0, rf-libdoc: 11/0/11/1, rf-results: 11/1/10/1, rf-setup: 10/0/11/2, rf-robotcode: 12/0/11/0}
+  near_miss: {ap-h07: 2/3, se-h08: 0/3, ld-h06: 0/3, rs-h06: 3/3}
+  new_failures: >-
+    ap-n03 (install Appium server + UiAutomator2) 2/3 rf-appium load; se-h07
+    (brand-new web project) 2/3 rf-selenium load; rs-h03 (merge 4 shards) 0/3;
+    rf-setup positives su-h02 1/3 and su-t05 1/3.
+  visibility: >-
+    413/414 for rf-setup, 414/414 for the others. The one miss is an rs-h06
+    session whose listing carried an extra bundled skill (plugin-authoring,
+    ~180 chars), shrinking the room to 1423 for that session; Claude Code
+    rollout variance, not the candidate's length (see evidence/README.md).
+  spend_usd: 10.81
+  verdict: rejected (ap-h07 and rs-h06 still >= 0.5; rf-setup train recall 1.00 -> 0.83)
+- iteration: 2
+  variant_id: 3b1d1855f97a
+  rationale: >-
+    The it1 cue "Installs, drivers: rf-setup" read as a capability: rf-appium and
+    rf-selenium took install queries (ap-n03, se-h07) and rf-setup lost recall. it2
+    words the appium/selenium cues as an exclusion ("Not installs/drivers: rf-setup")
+    and goes back to "mobile tests". libdoc keeps its it1 text (its cue worked).
+    rf-results keeps "merge" (rs-h03 regressed in it1) and words its cue as an
+    exclusion ("Not via robotcode: rf-robotcode").
+  texts:
+    rf-appium: "Use first, before exploring or answering, for Robot Framework mobile tests with AppiumLibrary. Not installs/drivers: rf-setup."
+    rf-selenium: "Use first, before exploring or answering, for Robot Framework web tests with SeleniumLibrary. Not installs/drivers: rf-setup."
+    rf-libdoc: "Use first, not memory, for exact Robot Framework keyword names, arguments and docs via libdoc. With robotcode: rf-robotcode."
+    rf-results: "Use first, before reading output.xml yourself, to summarise or merge Robot Framework results. Not via robotcode: rf-robotcode."
+  lengths: {rf-appium: 126, rf-selenium: 125, rf-libdoc: 124, rf-results: 126}
+  total: 1520
+  train: {rf-appium: 12/0/11/0, rf-selenium: 12/0/11/0, rf-libdoc: 11/0/11/1, rf-results: 9/1/10/3, rf-setup: 12/0/11/0, rf-robotcode: 11/0/11/1}
+  near_miss: {ap-h07: 0/3, se-h08: 0/3, ld-h06: 0/3, rs-h06: 2/3}
+  failures: >-
+    rs-h06 2/3 (rf-results still loads); rf-results positives rs-h03 1/3,
+    rs-h05 1/3, rs-t07 1/3 (pre-change failed rs-h01, rs-h05, rs-t06: same
+    count 9/12); ld-t05 0/3 (also pre-change); rc-t03 0/3 (also pre-change).
+  visibility: 414/414 for all 12
+  spend_usd: 10.52  # the run was stopped after 2 queries and resumed; one output dir
+  verdict: >-
+    rejected as a whole (rs-h06 >= 0.5). rf-appium, rf-selenium and rf-libdoc meet
+    every criterion, with no new should-not-trigger loads and no recall loss, so
+    iteration 3 keeps their texts and changes rf-results only.
+- iteration: 3
+  variant_id: f7eb140ac494
+  rationale: >-
+    rf-appium, rf-selenium and rf-libdoc keep their it2 texts. rf-results drops
+    "yourself" to pay for a directive cue that names the signal ("With robotcode
+    installed, use rf-robotcode."): the exclusion form in it2 did not stop rs-h06.
+  texts:
+    rf-appium: "Use first, before exploring or answering, for Robot Framework mobile tests with AppiumLibrary. Not installs/drivers: rf-setup."
+    rf-selenium: "Use first, before exploring or answering, for Robot Framework web tests with SeleniumLibrary. Not installs/drivers: rf-setup."
+    rf-libdoc: "Use first, not memory, for exact Robot Framework keyword names, arguments and docs via libdoc. With robotcode: rf-robotcode."
+    rf-results: "Use first, before reading output.xml, to summarise, merge Robot Framework results. With robotcode installed, use rf-robotcode."
+  lengths: {rf-appium: 126, rf-selenium: 125, rf-libdoc: 124, rf-results: 126}
+  total: 1520
+  train: {rf-appium: 12/1/10/0, rf-selenium: 12/0/11/0, rf-libdoc: 10/0/11/2, rf-results: 9/0/11/3, rf-setup: 12/0/11/0, rf-robotcode: 9/0/11/3}
+  near_miss: {ap-h07: 2/3, se-h08: 1/3, ld-h06: 1/3, rs-h06: 0/3}
+  failures: >-
+    ap-h07 2/3 (same rf-appium text scored 0/3 in it2); rf-libdoc ld-h04 1/3,
+    ld-t05 0/3; rf-results rs-h03 1/3, rs-h04 1/3, rs-h05 0/3; rf-robotcode
+    rc-h03 1/3, rc-h05 1/3, rc-t03 0/3 (rf-robotcode text unchanged in every iteration).
+  visibility: 414/414 for all 12
+  spend_usd: 10.74
+  repeat_run:
+    # The first run's near-miss rates disagreed with it2 for identical texts
+    # (ap-h07 0/3 in it2, 2/3 here), so the same set was run a second time and pooled.
+    train: {rf-appium: 12/0/11/0, rf-selenium: 11/0/11/1, rf-libdoc: 9/0/11/3, rf-results: 10/0/11/2, rf-setup: 12/0/11/0, rf-robotcode: 11/1/10/1}
+    near_miss: {ap-h07: 0/3, se-h08: 1/3, ld-h06: 1/3, rs-h06: 1/3}
+    visibility: 414/414 for all 12
+    spend_usd: 10.76
+  pooled_6_runs:
+    train: {rf-appium: 12/0/11/0, rf-selenium: 12/0/11/0, rf-libdoc: 10/0/11/2, rf-results: 11/0/11/1, rf-setup: 12/0/11/0, rf-robotcode: 11/1/10/1}
+    near_miss: {ap-h07: 2/6, se-h08: 2/6, ld-h06: 2/6, rs-h06: 1/6}
+    caveat: >-
+      rc-n04 (VS Code settings for the RobotCode extension; rf-robotcode, whose
+      text is unchanged) pooled 3/6 = 0.50, exactly the threshold. Across runs it
+      went 0/3 (pre-change), 0/3 (it1), 1/3 (it2), 1/3 and 2/3 (it3); ap-n03
+      (1, 2, 0, 0, 1 of 3) and su-n01 (2/3 pre-change, then 0/3) vary just as much.
+      Recorded as borderline variance, not a cue effect; rf-robotcode
+      should-not-trigger accuracy is re-checked on validation in 4.1.
+  verdict: >-
+    selected. Pooled targeted near-misses all < 0.5; train recall at or above
+    pre-change for all 6 skills (libdoc 10 vs 9, results 11 vs 9, robotcode 11 vs 11,
+    others 12 vs 12); no new should-not-trigger loads on the 4 edited skills
+    (appium/selenium/libdoc/results FP 0 pooled, vs 1 each pre-change); visibility 100%.
+
+selected: 3
+selected_texts:
+  rf-appium: "Use first, before exploring or answering, for Robot Framework mobile tests with AppiumLibrary. Not installs/drivers: rf-setup."
+  rf-selenium: "Use first, before exploring or answering, for Robot Framework web tests with SeleniumLibrary. Not installs/drivers: rf-setup."
+  rf-libdoc: "Use first, not memory, for exact Robot Framework keyword names, arguments and docs via libdoc. With robotcode: rf-robotcode."
+  rf-results: "Use first, before reading output.xml, to summarise, merge Robot Framework results. With robotcode installed, use rf-robotcode."
+
+# ── Trim tuning (tasks 3.3-3.5, design D6): room 1423 (Claude Code 2.1.286, plugin-authoring
+# bundled), limit floor(1423*0.95) = 1351. All 12 descriptions edited and staged; train split of
+# all 12 skills (277 queries, 831 sessions per run).
+trim_iterations:
+- iteration: 1
+  variant_id: d2a1ff1f8713
+  rationale: >-
+    D6 levers 1+2: capability lists cut to 1-2 terms, preamble "before exploring or answering" ->
+    "before answering" (7 skills), sibling cues kept verbatim, "Robot Framework" kept everywhere.
+    rf-setup drops "Not for writing tests."; rf-robotcode drops "REPL".
+  texts:
+    rf-appium: "Use first, before answering, for Robot Framework mobile tests with AppiumLibrary. Not installs/drivers: rf-setup."
+    rf-browser: "Use first, before answering, for Robot Framework web tests with Browser Library (Playwright): selectors, waits."
+    rf-language: "Use first, before reading .robot/.resource files: Robot Framework tests, keywords, templates, imports, tags."
+    rf-libdoc: "Use first, not memory, for exact Robot Framework keyword names, arguments, docs via libdoc. With robotcode: rf-robotcode."
+    rf-platynui: "Use first, before answering, for Robot Framework desktop app tests with PlatynUI: windows, dialogs."
+    rf-python-library: "Use first, before answering, to write or fix Robot Framework keyword libraries or listeners in Python."
+    rf-requests: "Use first, before answering, for Robot Framework HTTP API tests with RequestsLibrary: sessions, auth."
+    rf-restinstance: "Use first, before answering, for Robot Framework API tests with RESTinstance: JSON Schema, OpenAPI."
+    rf-results: "Use first, before reading output.xml, to summarise, merge Robot Framework results. With robotcode installed, use rf-robotcode."
+    rf-robotcode: "Use first for the robotcode CLI and robot.toml in Robot Framework: profiles, discover, debug. Not VS Code extension."
+    rf-selenium: "Use first, before answering, for Robot Framework web tests with SeleniumLibrary. Not installs/drivers: rf-setup."
+    rf-setup: "Use first, before reading pyproject.toml, to install or fix Robot Framework and libraries (uv, pip, venv)."
+  lengths: {rf-appium: 113, rf-browser: 111, rf-language: 108, rf-libdoc: 121, rf-platynui: 99, rf-python-library: 102, rf-requests: 101, rf-restinstance: 99, rf-results: 126, rf-robotcode: 116, rf-selenium: 112, rf-setup: 106}
+  total: 1338
+  train: {rf-appium: 12/0/11/0, rf-browser: 12/0/11/0, rf-language: 12/0/12/1, rf-libdoc: 10/0/11/2, rf-platynui: 12/0/11/0, rf-python-library: 11/0/11/0, rf-requests: 12/0/11/0, rf-restinstance: 11/0/11/1, rf-results: 12/0/11/0, rf-robotcode: 9/0/11/3, rf-selenium: 12/0/11/0, rf-setup: 12/0/11/0}
+  summed_train: {tp: 137, fp: 0, tn: 133, fn: 7}
+  near_miss: {ap-h07: 0/3, se-h08: 1/3, ld-h06: 0/3, rs-h06: 0/3}
+  visibility: 831/831 for all 12
+  spend_usd: 21.65
+  verdict: >-
+    rejected: rf-robotcode train recall 9/12 vs 11/12 (it3 pooled reference); rc-t06 (REPL) 0/3
+    after "REPL" was dropped, rc-h01 1/3. Iteration 2 restores "REPL" (+6, total 1344).
+- iteration: 2
+  variant_id: 5095b114b78b
+  rationale: Iteration 1 with "REPL" restored in rf-robotcode (+6). The other 11 texts are identical to iteration 1.
+  texts_changed_vs_1:
+    rf-robotcode: "Use first for the robotcode CLI and robot.toml in Robot Framework: profiles, discover, debug, REPL. Not VS Code extension."
+  lengths_changed_vs_1: {rf-robotcode: 122}
+  total: 1344
+  train: {rf-appium: 12/0/11/0, rf-browser: 12/0/11/0, rf-language: 9/0/12/4, rf-libdoc: 10/0/11/2, rf-platynui: 12/0/11/0, rf-python-library: 11/0/11/0, rf-requests: 12/0/11/0, rf-restinstance: 11/0/11/1, rf-results: 12/0/11/0, rf-robotcode: 10/0/11/2, rf-selenium: 12/1/10/0, rf-setup: 12/0/11/0}
+  summed_train: {tp: 135, fp: 1, tn: 132, fn: 9}
+  near_miss: {ap-h07: 0/3, se-h08: 0/3, ld-h06: 0/3, rs-h06: 1/3}
+  visibility: 831/831 for all 12
+  spend_usd: 21.55
+  verdict: >-
+    rejected. rf-robotcode is back to 10/12 (rc-t06 REPL 3/3). But rf-language fell to 9/13
+    on a text identical to iteration 1 (12/13), which is run-to-run noise on a skill whose
+    stored validation recall is 0.50. rf-restinstance lost ri-t05 in both iterations (1/3, 0/3)
+    against 3/3 in the reference. rf-selenium loaded on se-h07 at 2/3 (it was 1/3 and 0/3 in
+    the cue tuning). Iteration 3 restores "JSON types" (rf-restinstance) and "tag runs"
+    (rf-language), and pays for them with rf-setup "(uv, pip, venv)" -> "(uv, pip)" and
+    rf-platynui "desktop app tests" -> "desktop tests".
+- iteration: 3
+  variant_id: 8125b869eba0
+  rationale: >-
+    Iteration 2 plus: "tag runs" restored (rf-language), "JSON types" restored (rf-restinstance),
+    paid for by rf-setup "(uv, pip)" and rf-platynui "desktop tests". Run twice and pooled
+    (6 runs/query), because iterations 1 and 2 showed run-to-run swings of up to 3 queries on identical texts.
+  texts_changed_vs_2:
+    rf-language: "Use first, before reading .robot/.resource files: Robot Framework tests, keywords, templates, imports, tag runs."
+    rf-restinstance: "Use first, before answering, for Robot Framework API tests with RESTinstance: JSON types, JSON Schema, OpenAPI."
+    rf-setup: "Use first, before reading pyproject.toml, to install or fix Robot Framework and libraries (uv, pip)."
+    rf-platynui: "Use first, before answering, for Robot Framework desktop tests with PlatynUI: windows, dialogs."
+  lengths_changed_vs_2: {rf-language: 112, rf-restinstance: 111, rf-setup: 100, rf-platynui: 95}
+  total: 1350
+  train_run1: {rf-appium: 12/0/11/0, rf-browser: 12/0/11/0, rf-language: 12/0/12/1, rf-libdoc: 9/0/11/3, rf-platynui: 12/1/10/0, rf-python-library: 11/0/11/0, rf-requests: 12/0/11/0, rf-restinstance: 12/1/10/0, rf-results: 12/0/11/0, rf-robotcode: 12/1/10/0, rf-selenium: 12/0/11/0, rf-setup: 12/0/11/0}
+  train_run2: {rf-appium: 12/0/11/0, rf-browser: 12/0/11/0, rf-language: 11/0/12/2, rf-libdoc: 8/0/11/4, rf-platynui: 12/0/11/0, rf-python-library: 11/0/11/0, rf-requests: 12/0/11/0, rf-restinstance: 12/1/10/0, rf-results: 11/0/11/1, rf-robotcode: 11/0/11/1, rf-selenium: 12/1/10/0, rf-setup: 12/0/11/0}
+  train_pooled: {rf-appium: 12/0/11/0, rf-browser: 12/0/11/0, rf-language: 12/0/12/1, rf-libdoc: 9/0/11/3, rf-platynui: 12/0/11/0, rf-python-library: 11/0/11/0, rf-requests: 12/0/11/0, rf-restinstance: 12/1/10/0, rf-results: 12/0/11/0, rf-robotcode: 11/1/10/1, rf-selenium: 12/1/10/0, rf-setup: 12/0/11/0}
+  summed_train_pooled: {tp: 139, fp: 3, tn: 130, fn: 5}
+  near_miss_pooled: {ap-h07: 2/6, se-h08: 1/6, ld-h06: 0/6, rs-h06: 1/6}
+  visibility: 1662/1662 for all 12
+  spend_usd: 43.22  # 21.74 + 21.48
+  findings: >-
+    "JSON types" fixed ri-t05 (2/3 twice, against 1/3 and 0/3 without it) but brought in
+    ri-h07 (a generic /health endpoint test, which belongs to rf-requests) at 4/6; it was 0/3 in the
+    reference (shipped rf-restinstance text) and 1/3, 0/3 in iterations 1 and 2.
+    "desktop tests" gave pu-h07 2/3 once (0/3 pooled overall: 2/6). rf-setup "(uv, pip)"
+    vs "(uv, pip, venv)": 12/0/11/0 either way. se-h07 and rc-n04 are borderline in every
+    iteration (0-2 of 3 on unchanged texts).
+  verdict: >-
+    not selected as a whole: it adds should-not-trigger loads (ri-h07 4/6, rc-n04 3/6, se-h07 3/6).
+
+reference_unchanged_texts:
+  # Train reference for the 6 skills without a cue (pre-trim texts = cue-tuning it3 set,
+  # variant f7eb140ac494), measured at room 1423 (rf-setup listed by name only, which is why
+  # the install-type negatives br-h08, br-n03, pu-h07, pu-n03, rq-h08 loaded the library skills).
+  # The 6 cue skills' reference is the cue-tuning it3 pooled result (room 1600).
+  run: cues/ref6-train
+  train: {rf-browser: 12/2/9/0, rf-language: 12/0/12/1, rf-platynui: 12/2/9/0, rf-python-library: 11/0/11/0, rf-requests: 12/1/10/0, rf-restinstance: 12/0/11/0}
+  spend_usd: 11.03
+
+trim_selected:
+  method: >-
+    Per-skill selection among the three measured iterations (as in tune-skill-descriptions,
+    where each skill had its own selected iteration). Every selected text was measured on train
+    with all 12 staged. No new text was written after iteration 3.
+  choice:
+    rf-language: iteration 3 ("tag runs"; pooled 12/0/12/1 vs 12/0/12/1 and 9/0/12/4 for "tags")
+    rf-restinstance: iteration 1/2 (no "JSON types"; 11/0/11/1 twice, no should-not-trigger load, vs 12/1/10/0 pooled)
+    rf-platynui: iteration 1/2 ("desktop app tests"; 12/0/11/0 twice)
+    rf-setup: iteration 1/2 ("(uv, pip, venv)"; 12/0/11/0, the same as "(uv, pip)", fits the budget)
+    rf-robotcode: iterations 2/3 ("REPL"; 10/0/11/2, then 12/1/10/0 and 11/0/11/1, vs 9/0/11/3 without it)
+    others: the same text in all three iterations
+  variant_id: e8dcbb109c1b
+  total: 1348
+  texts:
+    rf-appium: "Use first, before answering, for Robot Framework mobile tests with AppiumLibrary. Not installs/drivers: rf-setup."
+    rf-browser: "Use first, before answering, for Robot Framework web tests with Browser Library (Playwright): selectors, waits."
+    rf-language: "Use first, before reading .robot/.resource files: Robot Framework tests, keywords, templates, imports, tag runs."
+    rf-libdoc: "Use first, not memory, for exact Robot Framework keyword names, arguments, docs via libdoc. With robotcode: rf-robotcode."
+    rf-platynui: "Use first, before answering, for Robot Framework desktop app tests with PlatynUI: windows, dialogs."
+    rf-python-library: "Use first, before answering, to write or fix Robot Framework keyword libraries or listeners in Python."
+    rf-requests: "Use first, before answering, for Robot Framework HTTP API tests with RequestsLibrary: sessions, auth."
+    rf-restinstance: "Use first, before answering, for Robot Framework API tests with RESTinstance: JSON Schema, OpenAPI."
+    rf-results: "Use first, before reading output.xml, to summarise, merge Robot Framework results. With robotcode installed, use rf-robotcode."
+    rf-robotcode: "Use first for the robotcode CLI and robot.toml in Robot Framework: profiles, discover, debug, REPL. Not VS Code extension."
+    rf-selenium: "Use first, before answering, for Robot Framework web tests with SeleniumLibrary. Not installs/drivers: rf-setup."
+    rf-setup: "Use first, before reading pyproject.toml, to install or fix Robot Framework and libraries (uv, pip, venv)."
+  lengths: {rf-appium: 113, rf-browser: 111, rf-language: 112, rf-libdoc: 121, rf-platynui: 99, rf-python-library: 102, rf-requests: 101, rf-restinstance: 99, rf-results: 126, rf-robotcode: 122, rf-selenium: 112, rf-setup: 106}

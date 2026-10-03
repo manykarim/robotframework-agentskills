@@ -31,15 +31,27 @@ queries:
   - {id: ld-n08, split: validation, should_trigger: false, note: "sibling rf-results", query: "Merge the output.xml files from our pabot run"}
   - {id: ld-n09, split: validation, should_trigger: false, note: "non-RF look-alike", query: "What arguments does pandas.read_csv take?"}
   - {id: ld-n10, split: validation, should_trigger: false, note: "non-RF look-alike", query: "Explain the parameters of JUnit's @ParameterizedTest"}
-  # holdout (tune-skill-descriptions task 7.1): written after the descriptions shipped;
+  # retired holdout (tune-skill-descriptions task 7.1): its results were inspected in the
+  # 2026-09-30 evidence, so it moved to train (add-sibling-cues-to-descriptions D3).
+  - {id: ld-h01, split: train, should_trigger: true, note: "retired holdout (2026-09-30 evidence)", query: "Is there a keyword in the OperatingSystem library that waits until a file exists?"}
+  - {id: ld-h02, split: train, should_trigger: true, note: "indirect: pasted error; retired holdout (2026-09-30 evidence)", query: "Robot fails with \"Keyword 'Should Contain' got unexpected named argument 'case_insensitive'\", which arguments does it actually accept?"}
+  - {id: ld-h03, split: train, should_trigger: true, note: "file name; retired holdout (2026-09-30 evidence)", query: "Does our keywords/checkout.resource already have a keyword for applying a coupon, and what does it expect as input?"}
+  - {id: ld-h04, split: train, should_trigger: true, note: "retired holdout (2026-09-30 evidence)", query: "What's the default timeout of Wait For Elements State in Browser library?"}
+  - {id: ld-h05, split: train, should_trigger: true, note: "retired holdout (2026-09-30 evidence)", query: "Which DateTime keyword adds 3 days to a date string in robot?"}
+  - {id: ld-h06, split: train, should_trigger: false, note: "sibling rf-robotcode; retired holdout (2026-09-30 evidence)", query: "We have robotcode installed; show the arguments of Get Element Count with robotcode libdoc"}
+  - {id: ld-h07, split: train, should_trigger: false, note: "sibling rf-browser; retired holdout (2026-09-30 evidence)", query: "Write a Browser library test that waits for the toast message and checks its text"}
+  - {id: ld-h08, split: train, should_trigger: false, note: "sibling rf-python-library; retired holdout (2026-09-30 evidence)", query: "Add docstrings to the keywords of our Python library so libdoc renders them nicely"}
+  - {id: ld-h09, split: train, should_trigger: false, note: "non-RF look-alike; retired holdout (2026-09-30 evidence)", query: "What parameters does numpy.linspace take?"}
+  - {id: ld-h10, split: train, should_trigger: false, note: "non-RF look-alike; retired holdout (2026-09-30 evidence)", query: "Explain the rsync options --delete and --backup-dir"}
+  # holdout2 (add-sibling-cues-to-descriptions task 1.3): fresh queries written 2026-10-01,
   # never used to tune, select or accept a description. 5 should / 5 should-not trigger.
-  - {id: ld-h01, split: holdout, should_trigger: true, query: "Is there a keyword in the OperatingSystem library that waits until a file exists?"}
-  - {id: ld-h02, split: holdout, should_trigger: true, note: "indirect: pasted error", query: "Robot fails with \"Keyword 'Should Contain' got unexpected named argument 'case_insensitive'\", which arguments does it actually accept?"}
-  - {id: ld-h03, split: holdout, should_trigger: true, note: "file name", query: "Does our keywords/checkout.resource already have a keyword for applying a coupon, and what does it expect as input?"}
-  - {id: ld-h04, split: holdout, should_trigger: true, query: "What's the default timeout of Wait For Elements State in Browser library?"}
-  - {id: ld-h05, split: holdout, should_trigger: true, query: "Which DateTime keyword adds 3 days to a date string in robot?"}
-  - {id: ld-h06, split: holdout, should_trigger: false, note: "sibling rf-robotcode", query: "We have robotcode installed; show the arguments of Get Element Count with robotcode libdoc"}
-  - {id: ld-h07, split: holdout, should_trigger: false, note: "sibling rf-browser", query: "Write a Browser library test that waits for the toast message and checks its text"}
-  - {id: ld-h08, split: holdout, should_trigger: false, note: "sibling rf-python-library", query: "Add docstrings to the keywords of our Python library so libdoc renders them nicely"}
-  - {id: ld-h09, split: holdout, should_trigger: false, note: "non-RF look-alike", query: "What parameters does numpy.linspace take?"}
-  - {id: ld-h10, split: holdout, should_trigger: false, note: "non-RF look-alike", query: "Explain the rsync options --delete and --backup-dir"}
+  - {id: ld-k01, split: holdout2, should_trigger: true, note: "direct", query: "What does the 'modules' argument of the BuiltIn keyword Evaluate do?"}
+  - {id: ld-k02, split: holdout2, should_trigger: true, note: "indirect: intent only", query: "I need to compare two XML documents in a robot test; is there a keyword in the XML library for that, and what does it take?"}
+  - {id: ld-k03, split: holdout2, should_trigger: true, note: "direct", query: "Which arguments of Run Process let me set the working directory and extra environment variables?"}
+  - {id: ld-k04, split: holdout2, should_trigger: true, note: "indirect: pasted error", query: "Robot fails with \"Keyword 'Set Suite Variable' got positional argument after named arguments\"; what argument order does it expect?"}
+  - {id: ld-k05, split: holdout2, should_trigger: true, note: "indirect: file name", query: "List the keywords that our libraries/InventoryLib.py exposes to robot, with their arguments"}
+  - {id: ld-k06, split: holdout2, should_trigger: false, note: "sibling rf-robotcode (robotcode near-miss)", query: "Generate an HTML keyword documentation file for resources/common.resource using robotcode libdoc"}
+  - {id: ld-k07, split: holdout2, should_trigger: false, note: "sibling rf-robotcode (robotcode near-miss)", query: "robotcode is in our dev dependencies; export the keyword docs of PaymentLib.py to docs/ with it"}
+  - {id: ld-k08, split: holdout2, should_trigger: false, note: "sibling rf-setup (env error near-miss)", query: "Robot says \"Importing library 'DatabaseLibrary' failed: No module named pymysql\"; install what is missing"}
+  - {id: ld-k09, split: holdout2, should_trigger: false, note: "sibling rf-setup (install near-miss)", query: "libdoc: command not found. How do I get Robot Framework's libdoc tool into our project venv?"}
+  - {id: ld-k10, split: holdout2, should_trigger: false, note: "non-RF look-alike", query: "What options does Python's argparse add_argument accept?"}

@@ -1,6 +1,6 @@
 ---
 name: rf-browser
-description: "Use first, before exploring or answering, for Robot Framework web tests with Browser Library (Playwright): selectors, waits."
+description: "Use first, before answering, for Robot Framework web tests with Browser Library (Playwright): selectors, waits."
 license: Apache-2.0
 compatibility: Requires Python 3.10+, robotframework>=7 and robotframework-browser in the project environment. Node.js 22+ LTS only when the robotframework-browser[bb] batteries extra is not used. Needs network access for rfbrowser install.
 metadata:

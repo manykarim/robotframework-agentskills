@@ -149,6 +149,7 @@ before release.
   (`rf_results_analyze`).
 
 ### Changed
+- **Skill descriptions re-fitted to the skill listing (Claude Code 2.1.286 lists `plugin-authoring`, room 1423 chars):** all 12 descriptions trimmed to 1348 chars total so every description stays visible (rf-setup was name-only). rf-appium/rf-selenium now say "Not installs/drivers: rf-setup." and rf-libdoc/rf-results point to rf-robotcode when robotcode is installed, fixing recorded wrong-skill loads.
 - **Subagents rewritten as thin routers** (`rf-test-architect`,
   `rf-keyword-consultant`, `rf-migration-guide`, `rf-debug-expert`, ≤ 120
   lines each): they keep only agent-owned content (library selection, layout,

@@ -16,6 +16,8 @@ rf-agentskills install --agent copilot
 
 ## 2.0.0 (unreleased)
 
+- Skill descriptions trimmed to fit Claude Code's skill listing again (all 12 visible) and sibling cues added (rf-appium/rf-selenium → rf-setup for installs, rf-libdoc/rf-results → rf-robotcode when robotcode is installed).
+
 - rf-language: concrete embedded-argument recipe (`${team:\S+}`, text between arguments is literal) and the "No keyword with name … for an `[Arguments]` keyword" gotcha.
 
 Breaking content release. Later changes in this release cycle add their

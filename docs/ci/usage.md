@@ -65,7 +65,7 @@ Install these once per machine:
 | Tool                | Minimum version | Notes                                   |
 | ------------------- | --------------- | --------------------------------------- |
 | `uv`                | 0.4             | Python toolchain manager                |
-| Node.js             | 20              | Required by Claude Code CLI             |
+| Node.js             | 22              | Required by Claude Code CLI (>= 22)     |
 | Claude Code CLI     | latest          | `npm i -g @anthropic-ai/claude-code`    |
 | Git                 | 2.40            | Worktrees for fixture provisioning      |
 | Python              | 3.12            | Installed automatically by `uv sync`    |
@@ -201,6 +201,13 @@ scripts/eval-local.sh
 Lint + unit tests, then the narrow tier in the treatment arm with `--runs 3`
 (and optionally the realistic tier), then a report.
 
+> **Write run output outside the repository** (e.g. `--output /tmp/rf-eval/...`).
+> A workspace under the checkout makes Claude Code treat this repo as the
+> project: in CI the agent read and edited the repo's own `pyproject.toml`,
+> and trigger rates dropped. The runner logs a warning when this happens; CI
+> writes to `$RUNNER_TEMP/eval-runs`. The `eval/runs/...` paths below are
+> shorthand.
+
 ### One task, one arm
 
 ```bash
@@ -273,7 +280,7 @@ other skills loaded for failing queries. See
 
 | Option | Meaning |
 |---|---|
-| `--split train,validation,holdout` | Comma list; `holdout` runs only the post-tuning holdout queries. |
+| `--split train,validation,holdout2` | Comma list of `train`, `validation`, `holdout`, `holdout<N>`; a holdout name runs only that split's post-tuning queries, each reported in its own column. |
 | `--concurrency 1\|2` | Queries run at once (default 1; max 2, the ADR-002 OAuth cap). |
 | `--variant-root <dir>` | Stage `<dir>/plugins/rf-agentskills` instead of the shipped plugin. |
 | `--listing-budget <chars>` | Set `SLASH_COMMAND_TOOL_CHAR_BUDGET` (skill-listing budget) for the sessions; default: not set, Claude Code's own budget. |
@@ -349,8 +356,9 @@ uv run rf-skill-eval gate --runs-dir eval/runs/pr --baseline eval/baselines/narr
 uv run rf-skill-eval gate --trigger-results eval/runs/triggers/trigger-results.json
 ```
 
-`gate` exits 0 (pass), 1 (fail: pass-rate drop > 1/N, mean input tokens
-+30 %, incomplete runs, trigger validation accuracy down by more than one
+`gate` exits 0 (pass), 1 (fail: pass rate below the baseline — Fisher exact
+p < 0.05 when the baseline has ≥ 6 runs, otherwise a drop > 1/N — mean input
+tokens above `--token-budget` (default +30 %; the PR job uses +75 %), incomplete runs, trigger validation accuracy down by more than one
 query, cost over `--max-cost-usd`) or 3 (`rebaseline-needed` only: the task
 definition, fixture or model changed, or no baseline entry exists — never a
 pass). Baseline files are promoted through a reviewed PR
@@ -371,7 +379,7 @@ whose type equals the task's `primary_metric`, or that set `gating: true`.
 The Mann-Whitney / Cliff's δ / SHIP-ITERATE-HOLD model in
 [ADR-004](architecture/adr/ADR-004-scoring-model.md) remains the long-term
 target; with N=3 it is underpowered, so reports show raw rates and deltas and
-the gate uses the tolerances above (see the ADR-004 amendment).
+the gate uses the rules above (see the ADR-004 amendments).
 
 ---
 
@@ -396,7 +404,7 @@ amendment).
 
 | Trigger | Jobs | Scope | Arms | N | Model | Cap |
 |---|---|---|---|---|---|---|
-| `pull_request` | `preflight` → `pr-eval` | narrow tasks of changed skills + `plugin` canaries (all narrow tasks when the harness changed); validation-split trigger evals when a SKILL.md `description` changed | treatment | 3 | `claude-haiku-4-5-20251001` | `PR_NARROW_CAP_USD`=6, `PR_TRIGGER_CAP_USD`=12 |
+| `pull_request` | `preflight` → `pr-eval` | narrow tasks of changed skills + `plugin` canaries (all narrow tasks when the harness changed); validation-split trigger evals when a SKILL.md `description` changed | treatment | 3 | `claude-haiku-4-5-20251001` | `PR_NARROW_CAP_USD`=10, `PR_TRIGGER_CAP_USD`=20 |
 | `schedule` (Sun 04:00 UTC) | `preflight` → `full-eval` | all tiers + all trigger sets | treatment, baseline | 3 | tier defaults | 12 + 12 + 8 + 8 = $40 |
 | `workflow_dispatch` | `preflight` → `full-eval` | inputs `tiers`, `arms`, `runs`, `model`, `allow_opus`, `max_cost_usd`, `triggers` | input | input | input | `max_cost_usd` per invocation |
 | all | `harness-tests` | ruff, mypy, `pytest tests/eval` (no API calls) | – | – | – | – |

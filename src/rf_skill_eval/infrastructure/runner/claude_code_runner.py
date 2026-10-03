@@ -57,6 +57,7 @@ class ClaudeCodeRunner:
         self._grace_seconds = grace_seconds
         self._fixtures_root = fixtures_root
         self._repo_root = (repo_root or Path.cwd()).resolve()
+        self._warned_inside_repo = False
         self._plugin_root = (
             plugin_root.resolve()
             if plugin_root is not None
@@ -263,8 +264,21 @@ class ClaudeCodeRunner:
         known.update(skill_dir_map(self._repo_root / "skills"))
         return known
 
+    def _warn_if_inside_repo(self, artifacts_dir: Path) -> None:
+        """Runs under the repo checkout see it as "our project" (and may edit it)."""
+        if self._warned_inside_repo or not artifacts_dir.resolve().is_relative_to(self._repo_root):
+            return
+        self._warned_inside_repo = True
+        _log.warning(
+            "run artifacts %s are inside the repository %s: the agent sees the repo as its "
+            "project, which skews triggering and tokens; pass an --output outside the repo",
+            artifacts_dir,
+            self._repo_root,
+        )
+
     def _workspace_for(self, task: Task, profile: Profile, artifacts_dir: Path) -> Path:
         """Task fixture, else the profile's fixture, else an empty dir (if isolated)."""
+        self._warn_if_inside_repo(artifacts_dir)
         workspace_dir = self._provision_workspace(task, artifacts_dir)
         if workspace_dir != artifacts_dir:
             return workspace_dir
