@@ -273,6 +273,8 @@ The plugin includes an MCP server that exposes all script-based tools:
 | `rf_conventions` | Report a project's Robot Framework conventions and version as JSON (rf-language skill) |
 | `rf_check_library` | Check the project's own Python keyword libraries: keywords, scope, API style and defect findings as JSON (rf-python-library skill; always a subprocess, never imports user code into the server) |
 
+The server is started with `python3` from PATH and needs the `mcp` package. When that interpreter lacks it (a fresh machine), the server re-launches itself through `uv run --no-project --with "mcp>=1,<2"`, so [uv](https://docs.astral.sh/uv/) on PATH is enough; without uv, install it with `python3 -m pip install "mcp>=1,<2"`.
+
 The server runs a script in-process when its own interpreter can import Robot Framework 7+ and the requested libraries. Otherwise it runs the script with the project interpreter found in the working directory (`uv run --frozen python` for a uv project, then `.venv`, then `$VIRTUAL_ENV`).
 
 Test the MCP server:

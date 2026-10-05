@@ -34,6 +34,9 @@ Design decisions:
 Usage:
   This server is registered in the plugin's .mcp.json and started automatically
   by Claude Code when the plugin is loaded. It only needs the `mcp` package.
+  When the interpreter that starts it (python3 on PATH) lacks `mcp` -- the
+  normal case on a fresh machine -- it re-launches itself once through
+  `uv run --no-project --with "mcp>=1,<2"`; without uv it exits with a hint.
 
   Manual start for testing:
     python servers/rf-tools-server.py
@@ -742,13 +745,47 @@ def create_server() -> "Server":
 # Entry point
 # ---------------------------------------------------------------------------
 
+#: Set on the re-launched process so a missing `mcp` cannot loop.
+_BOOTSTRAP_ENV = "RF_TOOLS_MCP_BOOTSTRAPPED"
+_MCP_REQUIREMENT = "mcp>=1,<2"
+
+
+def _bootstrap_command() -> Optional[List[str]]:
+    """Command that re-runs this server in an interpreter with `mcp`, or None."""
+    if os.environ.get(_BOOTSTRAP_ENV):
+        return None
+    uv = shutil.which("uv")
+    if uv is None:
+        return None
+    # --no-project: never resolve (or modify) the user's project from its CWD.
+    return [uv, "run", "--quiet", "--no-project", "--with", _MCP_REQUIREMENT,
+            "python", os.path.abspath(__file__)]
+
+
+def _relaunch_with_mcp() -> Optional[int]:
+    """Re-run the server with `mcp` via uv; returns its exit code (None: not possible).
+
+    POSIX replaces this process so the client keeps one PID on its stdio;
+    Windows has no real exec, so the child inherits stdio and we wait for it.
+    """
+    cmd = _bootstrap_command()
+    if cmd is None:
+        return None
+    env = dict(os.environ, **{_BOOTSTRAP_ENV: "1"})
+    if os.name == "posix":
+        os.execvpe(cmd[0], cmd, env)
+    return subprocess.call(cmd, env=env)
+
+
 async def main():
     """Run the MCP server on stdio."""
     if not HAS_MCP:
         print(
-            "MCP SDK not installed. Install the `mcp` package into the interpreter "
-            "that runs this server (python3 on PATH).\n"
-            "The server requires the 'mcp' package to run.",
+            "rf-tools: the MCP SDK (`mcp` package) is not installed for "
+            f"{sys.executable}, and uv was not found to provide it.\n"
+            "Fix: install uv (https://docs.astral.sh/uv/) -- the server then fetches "
+            f"'{_MCP_REQUIREMENT}' itself -- or run `{sys.executable} -m pip install "
+            f"\"{_MCP_REQUIREMENT}\"`.",
             file=sys.stderr,
         )
         sys.exit(1)
@@ -760,4 +797,8 @@ async def main():
 
 if __name__ == "__main__":
     import asyncio
+    if not HAS_MCP:
+        code = _relaunch_with_mcp()
+        if code is not None:
+            sys.exit(code)
     asyncio.run(main())
