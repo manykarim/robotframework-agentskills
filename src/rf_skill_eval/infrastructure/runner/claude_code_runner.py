@@ -489,6 +489,10 @@ class ClaudeCodeRunner:
         self, config_dir: Path, *, listing_budget: int | None = None
     ) -> dict[str, str]:
         env = os.environ.copy()
+        # `uv run rf-skill-eval` exports the harness venv; an agent's
+        # `uv pip install ...` in its workspace would then install into it.
+        for var in _HARNESS_VENV_VARS:
+            env.pop(var, None)
         env["CLAUDE_CONFIG_DIR"] = str(config_dir)
         if listing_budget is not None:
             # Skill-listing budget (design D14); only set when requested.
@@ -747,6 +751,10 @@ def isolation_error(repo_root: Path, violations: list[Path]) -> str:
         f"isolation-violation: {len(violations)} file(s) created outside the workspace "
         f"during the run: {', '.join(names)}{tail}"
     )
+
+
+#: Variables that point an agent's Python tooling at the harness venv.
+_HARNESS_VENV_VARS = ("VIRTUAL_ENV", "VIRTUAL_ENV_PROMPT", "UV_PROJECT_ENVIRONMENT")
 
 
 def _snapshot_repo_root(repo_root: Path, workspace_dir: Path) -> set[Path]:

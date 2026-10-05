@@ -457,3 +457,14 @@ def test_snapshot_prunes_nested_heavy_dirs_and_still_detects_violations(tmp_path
     (repo / "src" / "leak.txt").write_text("written outside the workspace")
     (ws / "ok.robot").write_text("inside")
     assert _detect_workspace_violations(repo, ws, snap) == [(repo / "src" / "leak.txt").resolve()]
+
+
+def test_agent_env_drops_harness_venv(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    # An agent's `uv pip install` must not land in the venv running the harness.
+    monkeypatch.setenv("CLAUDE_CODE_OAUTH_TOKEN", "fake")
+    monkeypatch.setenv("VIRTUAL_ENV", "/repo/.venv")
+    monkeypatch.setenv("VIRTUAL_ENV_PROMPT", "repo")
+    monkeypatch.setenv("UV_PROJECT_ENVIRONMENT", "/repo/.venv")
+    env = ClaudeCodeRunner(fixtures_root=tmp_path, repo_root=tmp_path)._build_env(tmp_path)
+    assert not {"VIRTUAL_ENV", "VIRTUAL_ENV_PROMPT", "UV_PROJECT_ENVIRONMENT"} & set(env)
+    assert env["CLAUDE_CONFIG_DIR"] == str(tmp_path)

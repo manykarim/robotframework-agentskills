@@ -235,7 +235,7 @@ The `adversarial` tier SHALL contain tasks that tempt known failure modes. At le
 
 ### Requirement: Regression gate against a stored baseline
 
-The repository SHALL contain a baseline results file for each gated tier. For every task×arm it SHALL record pass rate, replicate count, mean tokens, turns, duration and cost, along with the model id, the harness version and a content hash of the task definition. A gate command SHALL compare a new treatment result with the stored baseline. It SHALL fail when a gating task's treatment pass rate is below the baseline: by default, when the baseline entry has at least 6 replicates, a one-sided Fisher exact test on pass/fail counts with p < 0.05; with fewer baseline replicates or an explicit tolerance, a drop of more than the tolerance (default: more than one replicate's worth, i.e. > 1/N). It SHALL also fail when mean input tokens rise by more than the configured budget (default 30%; the PR job MAY pass a wider budget calibrated from measured run-to-run variance). Tasks whose definition hash or model differs from the baseline entry SHALL be reported as `rebaseline-needed` and excluded from the comparison. They SHALL NOT be treated as passing. Updating the baseline file SHALL be an explicit command whose output is committed via a reviewed pull request.
+The repository SHALL contain a baseline results file for each gated tier. For every task×arm it SHALL record pass rate, replicate count, mean tokens, turns, duration and cost, along with the model id, the harness version and a content hash of the task definition. A gate command SHALL compare a new treatment result with the stored baseline. It SHALL fail when a gating task's treatment pass rate is below the baseline: by default, when the baseline entry has at least 6 replicates, a one-sided Fisher exact test on pass/fail counts with p < 0.05; with fewer baseline replicates or an explicit tolerance, a drop of more than the tolerance (default: more than one replicate's worth, i.e. > 1/N). It SHALL also fail when mean input tokens rise by more than the configured budget (default 30%; the PR job MAY pass a wider budget calibrated from measured run-to-run variance). For trigger results, the gate SHALL compare each skill's validation split with the stored trigger baseline: when the baseline records run-level counts, skill loads on should-trigger runs and non-loads on should-not-trigger runs SHALL each be compared with a one-sided Fisher exact test (p < 0.05); otherwise accuracy may not drop by more than one query. The gate SHALL also fail when any shipped skill's description was listed by name only in a recorded skill listing. Tasks whose definition hash or model differs from the baseline entry SHALL be reported as `rebaseline-needed` and excluded from the comparison. They SHALL NOT be treated as passing. Updating the baseline file SHALL be an explicit command whose output is committed via a reviewed pull request.
 
 #### Scenario: Pass-rate regression
 - **WHEN** a gating task had baseline treatment pass rate 1.00 (N=3) and the new run has 0.33
@@ -248,6 +248,14 @@ The repository SHALL contain a baseline results file for each gated tier. For ev
 #### Scenario: Token budget regression
 - **WHEN** a task's mean input tokens rise by 45% against the baseline with the default 30% budget
 - **THEN** the gate fails and names the task and the increase
+
+#### Scenario: Borderline trigger queries are not a regression
+- **WHEN** a skill's baseline has two should-trigger queries that each loaded the skill in 3 of 6 runs, and a PR sample of 3 runs loads them once each
+- **THEN** the trigger gate passes, because run-level loads are not significantly lower
+
+#### Scenario: Description listed by name only
+- **WHEN** a trigger session's skill listing shows `rf-setup` without its description
+- **THEN** the gate fails with a `listing` finding for rf-setup that points to the listing-room test
 
 #### Scenario: Changed task needs rebaseline
 - **WHEN** a task's definition changed since the baseline was recorded
@@ -271,7 +279,7 @@ CI SHALL run the harness in tiers. On pull requests that touch skills, the plugi
 
 ### Requirement: Run isolation never deletes unrelated files
 
-The harness SHALL detect files created outside a run's workspace during the run, and SHALL report them on the run as an isolation violation that marks the run untrustworthy. It MUST NOT delete files outside the run's own workspace and artifacts directory: other processes, such as a developer or another tool, may create files in the repository while runs are active. Trigger sessions have no write-capable tools, so they SHALL skip the integrity snapshot entirely.
+The harness SHALL detect files created outside a run's workspace during the run, and SHALL report them on the run as an isolation violation that marks the run untrustworthy. It MUST NOT delete files outside the run's own workspace and artifacts directory: other processes, such as a developer or another tool, may create files in the repository while runs are active. Trigger sessions have no write-capable tools, so they SHALL skip the integrity snapshot entirely. The agent's environment SHALL NOT point at the harness's own virtual environment (`VIRTUAL_ENV`, `VIRTUAL_ENV_PROMPT`, `UV_PROJECT_ENVIRONMENT` are removed), so package installs inside a workspace never land in it, and the runner SHALL warn when run artifacts are inside the repository.
 
 #### Scenario: Concurrent developer file survives
 - **WHEN** a developer creates `openspec/changes/x/notes.md` while a task run is active

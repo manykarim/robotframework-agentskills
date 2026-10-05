@@ -19,6 +19,9 @@ hand**, and promoted through a reviewed pull request.
 3. Review: pass-rate / token changes should be explained by skill or task
    changes in the same period.
 
+Record `triggers.json` from **6 runs per query** of the validation split; it
+keeps run-level load counts that the trigger gate tests (Fisher exact).
+
 Record `narrow.json` from **at least 9 treatment runs per task**
 (`run-batch --tier narrow --arms treatment --runs 9`). The PR gate applies a
 Fisher exact test only to baselines with ≥ 6 runs; a 3-run baseline falls back

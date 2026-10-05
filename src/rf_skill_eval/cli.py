@@ -56,7 +56,14 @@ from .application.catalog import (
     validate_tasks,
 )
 from .application.evaluation_service import EvaluationService
-from .application.gate import GateFinding, GateReport, gate_cost, gate_tasks, gate_triggers
+from .application.gate import (
+    GateFinding,
+    GateReport,
+    gate_cost,
+    gate_listing,
+    gate_tasks,
+    gate_triggers,
+)
 from .application.ports import SkillRunner
 from .application.preflight import frontmatter_description, map_changed_paths
 from .application.trigger_eval import (
@@ -1083,6 +1090,7 @@ def gate(
         current = TriggerEvalResult.from_json(json.loads(trigger_results.read_text("utf-8")))
         spent += current.spent_usd
         gate_triggers(current, load_json(trigger_baseline), report_obj)
+        gate_listing(current, shipped_skills(_repo_root()), report_obj)
     gate_cost(report_obj, spent, max_cost_usd)
     text = report_obj.render()
     console.print(text, markup=False, highlight=False)

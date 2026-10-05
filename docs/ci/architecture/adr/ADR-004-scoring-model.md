@@ -78,7 +78,16 @@ mean of input tokens varies by up to ±45 % per task. The gate now:
   reach p < 0.05);
 - runs the PR tier with `--token-budget 0.75`; the CLI default stays +30 %.
 
-Narrow baselines are recorded with 9 treatment runs. Estimated false-failure
+Narrow baselines are recorded with 9 treatment runs.
+
+The trigger gate applies the same idea: `triggers.json` stores run-level
+counts (`positive_loads/positive_runs`, `negative_loads/negative_runs`, from
+6 runs per query), and recall and precision are each tested with a one-sided
+Fisher exact test. Query-level majority votes flipped on borderline queries
+(load rate ≈ 0.5) in ~28 % of no-change PRs; run-level counts give ~0.1 %
+while still catching a skill that stops loading. A `listing` finding fails the
+gate when a shipped description is listed by name only (Claude Code's listing
+room shrank three times between 2.1.284 and 2.1.288). Estimated false-failure
 rate of a full 22-task PR eval: 0–15 %. A task dropping to ≤ 1/3 against a
 9/9 baseline, or a +75 % token rise, is still caught.
 

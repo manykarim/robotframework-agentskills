@@ -358,8 +358,10 @@ uv run rf-skill-eval gate --trigger-results eval/runs/triggers/trigger-results.j
 
 `gate` exits 0 (pass), 1 (fail: pass rate below the baseline — Fisher exact
 p < 0.05 when the baseline has ≥ 6 runs, otherwise a drop > 1/N — mean input
-tokens above `--token-budget` (default +30 %; the PR job uses +75 %), incomplete runs, trigger validation accuracy down by more than one
-query, cost over `--max-cost-usd`) or 3 (`rebaseline-needed` only: the task
+tokens above `--token-budget` (default +30 %; the PR job uses +75 %), incomplete runs, trigger validation recall or precision
+significantly below the baseline — Fisher exact p < 0.05 on run-level loads,
+or more than one query for baselines without run counts — a shipped skill
+listed by name only in a skill listing, cost over `--max-cost-usd`) or 3 (`rebaseline-needed` only: the task
 definition, fixture or model changed, or no baseline entry exists — never a
 pass). Baseline files are promoted through a reviewed PR
 ([`eval/baselines/README.md`](../../eval/baselines/README.md)).

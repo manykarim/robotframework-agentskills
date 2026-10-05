@@ -224,6 +224,25 @@ def description_visibility(outcomes: list[QueryOutcome]) -> list[DescriptionVisi
     return out
 
 
+def run_load_counts(outcomes: list[QueryOutcome]) -> dict[tuple[str, str], dict[str, int]]:
+    """Per skill × split: skill loads and completed runs of should- / should-not-trigger queries.
+
+    Run-level counts keep borderline queries (load rate near the threshold)
+    from flipping a whole query between samples, which query-level majority
+    votes do.
+    """
+    cells: dict[tuple[str, str], dict[str, int]] = {}
+    for o in outcomes:
+        c = cells.setdefault(
+            (o.skill, o.split),
+            {"positive_loads": 0, "positive_runs": 0, "negative_loads": 0, "negative_runs": 0},
+        )
+        side = "positive" if o.should_trigger else "negative"
+        c[f"{side}_loads"] += o.loads
+        c[f"{side}_runs"] += o.runs
+    return cells
+
+
 def trigger_metrics(outcomes: list[QueryOutcome]) -> list[TriggerMetrics]:
     """Per skill × split confusion counts (sorted by skill, then split)."""
     cells: dict[tuple[str, str], list[int]] = {}

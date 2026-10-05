@@ -27,6 +27,7 @@ from typing import Any
 import yaml
 
 from ..domain.results import ReplicateStats, Spread
+from ..domain.trigger import run_load_counts
 from .trigger_eval import TriggerEvalResult
 
 BASELINE_SCHEMA_VERSION = 1
@@ -110,8 +111,10 @@ def build_tier_baseline(
 
 def build_trigger_baseline(result: TriggerEvalResult, *, harness_version: str) -> dict[str, Any]:
     skills: dict[str, Any] = {}
+    runs = run_load_counts(result.outcomes)
     for m in result.metrics:
         skills.setdefault(m.skill, {})[m.split] = {
+            **runs.get((m.skill, m.split), {}),
             "tp": m.tp,
             "fp": m.fp,
             "tn": m.tn,

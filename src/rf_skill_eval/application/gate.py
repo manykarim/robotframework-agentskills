@@ -13,8 +13,13 @@ Per gating task (tier != adversarial) in the treatment arm:
   the tolerance (default one replicate's worth, i.e. > 1/N) fails;
 * mean input tokens up by more than the budget (default 30%) -> **fail**.
 
-Trigger check: validation-split accuracy may not drop by more than one
-query's worth against ``eval/baselines/triggers.json``.
+Trigger check against ``eval/baselines/triggers.json``: when the baseline has
+run-level counts, skill loads on should-trigger queries (recall) and non-loads
+on should-not-trigger queries (precision) are each compared with a one-sided
+Fisher exact test (p < ``FISHER_ALPHA``); older baselines fall back to
+"validation accuracy may not drop by more than one query's worth". Every shipped skill's
+description must be shown in every recorded skill listing (a name-only entry
+means Claude Code's listing room is too small for all descriptions).
 
 Exit codes: 0 pass, 1 fail, 3 only rebaseline-needed findings (not a pass).
 """
@@ -27,6 +32,7 @@ from math import comb
 from typing import Any, Literal
 
 from ..domain.results import ReplicateStats
+from ..domain.trigger import run_load_counts
 from .baseline import baseline_entry
 from .trigger_eval import TriggerEvalResult
 
@@ -37,6 +43,7 @@ FindingKind = Literal[
     "rebaseline-needed",
     "trigger-accuracy",
     "cost-cap",
+    "listing",
 ]
 _EPS = 1e-9
 #: Stored trigger rates are rounded to 4 decimals.
@@ -189,6 +196,7 @@ def gate_triggers(
 ) -> GateReport:
     report = report or GateReport()
     stored = (baseline or {}).get("skills", {})
+    counts = run_load_counts(current.outcomes)
     for m in current.metrics:
         if m.split != split:
             continue
@@ -201,6 +209,11 @@ def gate_triggers(
             )
             continue
         if m.accuracy is None:
+            continue
+        if "positive_runs" in base:
+            finding = _trigger_runs_finding(subject, split, base, counts.get((m.skill, m.split)))
+            if finding is not None:
+                report.findings.append(finding)
             continue
         one_query = 1.0 / max(m.total, 1)
         drop = float(base["accuracy"]) - m.accuracy
@@ -227,6 +240,55 @@ def gate_triggers(
                 f"{o.incomplete} run(s) did not complete",
             )
         )
+    return report
+
+
+def _trigger_runs_finding(
+    subject: str, split: str, base: Mapping[str, Any], cur: Mapping[str, int] | None
+) -> GateFinding | None:
+    """Run-level recall / precision regression (one-sided Fisher exact tests)."""
+    if not cur:
+        return None
+    problems = []
+    checks = (
+        ("recall", "skill loads on should-trigger runs",
+         cur["positive_loads"], cur["positive_runs"],
+         int(base["positive_loads"]), int(base["positive_runs"])),
+        ("precision", "no load on should-not-trigger runs",
+         cur["negative_runs"] - cur["negative_loads"], cur["negative_runs"],
+         int(base["negative_runs"]) - int(base["negative_loads"]), int(base["negative_runs"])),
+    )
+    for name, what, k, n, kb, nb in checks:
+        if n == 0 or nb == 0:
+            continue
+        p = fisher_lower_p(k, n, kb, nb)
+        if p < FISHER_ALPHA:
+            problems.append(f"{name}: {what} {k}/{n} vs baseline {kb}/{nb} (Fisher p={p:.3f})")
+    if not problems:
+        return None
+    return GateFinding("trigger-accuracy", subject, f"{split} " + "; ".join(problems))
+
+
+def gate_listing(
+    current: TriggerEvalResult, shipped: Iterable[str], report: GateReport | None = None
+) -> GateReport:
+    """Fail for each shipped skill listed name-only in any recorded skill listing."""
+    report = report or GateReport()
+    listings = [seen for o in current.outcomes for seen in o.visible_descriptions]
+    if not listings:
+        return report
+    for skill in sorted(shipped):
+        missing = sum(1 for seen in listings if skill not in seen)
+        if missing:
+            report.findings.append(
+                GateFinding(
+                    "listing",
+                    f"listing:{skill}",
+                    f"description not shown in {missing}/{len(listings)} skill listing(s): "
+                    "the listing room is too small for all descriptions "
+                    "(re-measure it, see tests/test_skill_descriptions.py)",
+                )
+            )
     return report
 
 
