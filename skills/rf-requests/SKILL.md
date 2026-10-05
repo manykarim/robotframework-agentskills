@@ -1,6 +1,6 @@
 ---
 name: rf-requests
-description: "Use first, before answering, for Robot Framework HTTP API tests with RequestsLibrary: sessions, auth."
+description: "Use first, before answering, for RF HTTP API tests with RequestsLibrary: sessions."
 license: Apache-2.0
 compatibility: Requires Python 3.8+, robotframework>=7 and robotframework-requests.
 metadata:

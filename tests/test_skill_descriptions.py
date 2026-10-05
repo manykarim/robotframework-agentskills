@@ -49,10 +49,13 @@ TRIGGERS = REPO / "eval" / "triggers"
 # they still fit and are listed by name only after that.
 #
 # LISTING_ROOM is the room left for the rf-* descriptions, measured on
-# 2026-10-02 with Claude Code 2.1.286 and claude-haiku-4-5 at the default
-# budget of 8000: 99 trigger sessions all gave 1423, with the bundled
-# ``plugin-authoring`` skill listed in every session (it was 1600 on 2026-10-01
-# before that skill appeared, and 1734 with 2.1.284 on 2026-09-29). Claude Code spends
+# 2026-10-03 with Claude Code 2.1.288 and claude-haiku-4-5 at the default
+# budget of 8000: 1274 in every trigger session, locally and in CI (it was
+# 1423 with 2.1.286 on 2026-10-02 after the bundled ``plugin-authoring`` skill
+# appeared, 1600 on 2026-10-01 and 1734 with 2.1.284 on 2026-09-29; each
+# release that lengthens the bundled skills shrinks it). The trigger gate
+# (``rf-skill-eval gate --trigger-results``) fails when a shipped skill is
+# listed name-only, so the next shrink shows up there. Claude Code spends
 # that room on ": <description>" per shown skill, so the test sums exactly that
 # and allows 95% of the room (MAX_DESCRIPTION_TEXT) as a margin for the next
 # Claude Code update.
@@ -64,9 +67,9 @@ TRIGGERS = REPO / "eval" / "triggers"
 #     budget - (len(content) - sum(len(": " + d) for each shown rf-* description d))
 # which is the room left for the rf-* descriptions. Update the three LISTING_*
 # constants below.
-LISTING_ROOM = 1423
-LISTING_ROOM_CLAUDE_CODE = "2.1.286"
-LISTING_ROOM_MEASURED = "2026-10-02"
+LISTING_ROOM = 1274
+LISTING_ROOM_CLAUDE_CODE = "2.1.288"
+LISTING_ROOM_MEASURED = "2026-10-03"
 MAX_DESCRIPTION_TEXT = int(LISTING_ROOM * 0.95)
 MAX_COMPACT = 160
 WHEN_TO_USE_WITHIN = 20  # the "## When to use" heading must be within this many body lines
@@ -375,6 +378,7 @@ def listing_problems(descriptions: dict[str, str]) -> list[str]:
 SIBLING_CUES: dict[str, str] = {
     "rf-appium": "rf-setup",
     "rf-selenium": "rf-setup",
+    "rf-restinstance": "rf-setup",
     "rf-libdoc": "rf-robotcode",
     "rf-results": "rf-robotcode",
 }
@@ -658,7 +662,7 @@ _GOOD = "Writes Robot Framework web tests with Browser Library. Use first when a
 
 def test_contract_constants() -> None:
     assert (MAX_COMPACT, WHEN_TO_USE_WITHIN, MAX_API_NAMES) == (160, 20, 2)
-    assert MAX_DESCRIPTION_TEXT == int(LISTING_ROOM * 0.95) == 1351
+    assert MAX_DESCRIPTION_TEXT == int(LISTING_ROOM * 0.95) == 1210
     assert MAX_DESCRIPTION == 1024
 
 
@@ -685,16 +689,16 @@ def test_portability_length_rejected_regardless() -> None:
 
 
 def test_combined_listing_budget() -> None:
-    # 10 x (": " + 120) = 1220 <= 1351
-    descs = {f"rf-s{i:02d}": "d" * 120 for i in range(10)}
-    assert description_text_total(descs) == 10 * 122 and listing_problems(descs) == []
-    descs["rf-zz"] = "e" * 160  # +162 -> 1382 > 1351
+    # 9 x (": " + 120) = 1098 <= 1210
+    descs = {f"rf-s{i:02d}": "d" * 120 for i in range(9)}
+    assert description_text_total(descs) == 9 * 122 and listing_problems(descs) == []
+    descs["rf-zz"] = "e" * 160  # +162 -> 1260 > 1210
     descs["rf-s03"] = "f" * 155
     probs = listing_problems(descs)
     assert len(probs) == 1
     total = description_text_total(descs)
-    assert f"is {total} characters (max 1351 = 95% of the 1423-character room" in probs[0]
-    assert "Claude Code 2.1.286" in probs[0]
+    assert f"is {total} characters (max 1210 = 95% of the 1274-character room" in probs[0]
+    assert "Claude Code 2.1.288" in probs[0]
     assert "rf-zz (160), rf-s03 (155), rf-s00 (120)" in probs[0]
 
 

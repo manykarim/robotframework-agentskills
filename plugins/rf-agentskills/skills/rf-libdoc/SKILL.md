@@ -1,6 +1,6 @@
 ---
 name: rf-libdoc
-description: "Use first, not memory, for exact Robot Framework keyword names, arguments, docs via libdoc. With robotcode: rf-robotcode."
+description: "Use first, not memory, for exact Robot Framework keyword names, arguments via libdoc. With robotcode: rf-robotcode."
 license: Apache-2.0
 compatibility: Requires Python 3.8+ with robotframework>=7 in the environment that runs the bundled script; the libraries to inspect must be importable there.
 metadata:

@@ -16,7 +16,9 @@ rf-agentskills install --agent copilot
 
 ## 2.0.0 (unreleased)
 
-- Skill descriptions trimmed to fit Claude Code's skill listing again (all 12 visible) and sibling cues added (rf-appium/rf-selenium → rf-setup for installs, rf-libdoc/rf-results → rf-robotcode when robotcode is installed).
+- Skill descriptions trimmed to fit Claude Code 2.1.288's smaller skill listing (all 12 visible, 1210 characters) and sibling cues added (rf-appium/rf-selenium/rf-restinstance → rf-setup for installs and drivers, rf-libdoc/rf-results → rf-robotcode when robotcode is installed).
+
+- **`rf-tools` MCP server:** starts on a fresh machine whose `python3` lacks the `mcp` package by re-launching itself through `uv run --with "mcp>=1,<2"` (without uv it exits with an install hint instead of crashing).
 
 - rf-language: concrete embedded-argument recipe (`${team:\S+}`, text between arguments is literal) and the "No keyword with name … for an `[Arguments]` keyword" gotcha.
 

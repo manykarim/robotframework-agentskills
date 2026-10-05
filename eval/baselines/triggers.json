@@ -1,12 +1,12 @@
 {
-  "acceptance_basis": "pooled two validation runs (6 runs/query); 'validation' metrics are from the first run and are the gate reference",
-  "claude_code_version": "2.1.286",
+  "acceptance_basis": "6 runs per query; gate compares run-level loads (positive_/negative_ counts) with a one-sided Fisher exact test",
+  "claude_code_version": "2.1.288",
   "harness_version": "0.1.0",
   "kind": "trigger-baseline",
   "listing_budget": null,
-  "listing_room": 1423,
+  "listing_room": 1274,
   "model": "claude-haiku-4-5-20251001",
-  "runs_per_query": 3,
+  "runs_per_query": 6,
   "schema_version": 1,
   "skills": {
     "rf-appium": {
@@ -15,12 +15,16 @@
         "pooled_runs_per_query": 6,
         "pooled_validation_recall": 1.0,
         "previous_pooled_recall": 1.0,
-        "rule": "not-below-stored-baseline (add-sibling-cues-to-descriptions D6)"
+        "rule": "not-below-stored-baseline, should-not-trigger accuracy not below stored, all 12 descriptions visible"
       },
       "validation": {
         "accuracy": 1.0,
         "fn": 0,
         "fp": 0,
+        "negative_loads": 0,
+        "negative_runs": 24,
+        "positive_loads": 24,
+        "positive_runs": 24,
         "precision": 1.0,
         "queries": 8,
         "recall": 1.0,
@@ -33,13 +37,17 @@
         "decision": "accepted",
         "pooled_runs_per_query": 6,
         "pooled_validation_recall": 1.0,
-        "previous_pooled_recall": 0.75,
-        "rule": "not-below-stored-baseline (add-sibling-cues-to-descriptions D6)"
+        "previous_pooled_recall": 1.0,
+        "rule": "not-below-stored-baseline, should-not-trigger accuracy not below stored, all 12 descriptions visible"
       },
       "validation": {
         "accuracy": 1.0,
         "fn": 0,
         "fp": 0,
+        "negative_loads": 0,
+        "negative_runs": 24,
+        "positive_loads": 21,
+        "positive_runs": 24,
         "precision": 1.0,
         "queries": 8,
         "recall": 1.0,
@@ -52,15 +60,17 @@
         "decision": "accepted",
         "pooled_runs_per_query": 6,
         "pooled_validation_recall": 0.67,
-        "previous_pooled_recall": 0.5,
-        "rule": "not-below-stored-baseline (add-sibling-cues-to-descriptions D6)",
-        "shortfall": 0.13,
-        "shortfall_note": "pooled validation recall 0.67 below the 0.80 target (not below the stored 0.5)"
+        "previous_pooled_recall": 0.67,
+        "rule": "not-below-stored-baseline, should-not-trigger accuracy not below stored, all 12 descriptions visible"
       },
       "validation": {
         "accuracy": 0.8182,
         "fn": 2,
         "fp": 0,
+        "negative_loads": 0,
+        "negative_runs": 30,
+        "positive_loads": 20,
+        "positive_runs": 36,
         "precision": 1.0,
         "queries": 11,
         "recall": 0.6667,
@@ -74,12 +84,16 @@
         "pooled_runs_per_query": 6,
         "pooled_validation_recall": 1.0,
         "previous_pooled_recall": 1.0,
-        "rule": "not-below-stored-baseline (add-sibling-cues-to-descriptions D6)"
+        "rule": "not-below-stored-baseline, should-not-trigger accuracy not below stored, all 12 descriptions visible"
       },
       "validation": {
         "accuracy": 1.0,
         "fn": 0,
         "fp": 0,
+        "negative_loads": 0,
+        "negative_runs": 24,
+        "positive_loads": 22,
+        "positive_runs": 24,
         "precision": 1.0,
         "queries": 8,
         "recall": 1.0,
@@ -93,12 +107,16 @@
         "pooled_runs_per_query": 6,
         "pooled_validation_recall": 1.0,
         "previous_pooled_recall": 1.0,
-        "rule": "not-below-stored-baseline (add-sibling-cues-to-descriptions D6)"
+        "rule": "not-below-stored-baseline, should-not-trigger accuracy not below stored, all 12 descriptions visible"
       },
       "validation": {
         "accuracy": 1.0,
         "fn": 0,
         "fp": 0,
+        "negative_loads": 0,
+        "negative_runs": 24,
+        "positive_loads": 23,
+        "positive_runs": 24,
         "precision": 1.0,
         "queries": 8,
         "recall": 1.0,
@@ -110,21 +128,23 @@
       "acceptance": {
         "decision": "accepted",
         "pooled_runs_per_query": 6,
-        "pooled_validation_recall": 0.75,
+        "pooled_validation_recall": 1.0,
         "previous_pooled_recall": 0.75,
-        "rule": "not-below-stored-baseline (add-sibling-cues-to-descriptions D6)",
-        "shortfall": 0.05,
-        "shortfall_note": "pooled validation recall 0.75 below the 0.80 target (not below the stored 0.75)"
+        "rule": "not-below-stored-baseline, should-not-trigger accuracy not below stored, all 12 descriptions visible"
       },
       "validation": {
-        "accuracy": 0.875,
-        "fn": 1,
+        "accuracy": 1.0,
+        "fn": 0,
         "fp": 0,
+        "negative_loads": 0,
+        "negative_runs": 24,
+        "positive_loads": 18,
+        "positive_runs": 24,
         "precision": 1.0,
         "queries": 8,
-        "recall": 0.75,
+        "recall": 1.0,
         "tn": 4,
-        "tp": 3
+        "tp": 4
       }
     },
     "rf-requests": {
@@ -133,12 +153,16 @@
         "pooled_runs_per_query": 6,
         "pooled_validation_recall": 1.0,
         "previous_pooled_recall": 1.0,
-        "rule": "not-below-stored-baseline (add-sibling-cues-to-descriptions D6)"
+        "rule": "not-below-stored-baseline, should-not-trigger accuracy not below stored, all 12 descriptions visible"
       },
       "validation": {
         "accuracy": 1.0,
         "fn": 0,
         "fp": 0,
+        "negative_loads": 0,
+        "negative_runs": 24,
+        "positive_loads": 24,
+        "positive_runs": 24,
         "precision": 1.0,
         "queries": 8,
         "recall": 1.0,
@@ -151,13 +175,17 @@
         "decision": "accepted",
         "pooled_runs_per_query": 6,
         "pooled_validation_recall": 1.0,
-        "previous_pooled_recall": 0.75,
-        "rule": "not-below-stored-baseline (add-sibling-cues-to-descriptions D6)"
+        "previous_pooled_recall": 1.0,
+        "rule": "not-below-stored-baseline, should-not-trigger accuracy not below stored, all 12 descriptions visible"
       },
       "validation": {
         "accuracy": 1.0,
         "fn": 0,
         "fp": 0,
+        "negative_loads": 0,
+        "negative_runs": 24,
+        "positive_loads": 24,
+        "positive_runs": 24,
         "precision": 1.0,
         "queries": 8,
         "recall": 1.0,
@@ -171,12 +199,16 @@
         "pooled_runs_per_query": 6,
         "pooled_validation_recall": 1.0,
         "previous_pooled_recall": 1.0,
-        "rule": "not-below-stored-baseline (add-sibling-cues-to-descriptions D6)"
+        "rule": "not-below-stored-baseline, should-not-trigger accuracy not below stored, all 12 descriptions visible"
       },
       "validation": {
         "accuracy": 1.0,
         "fn": 0,
         "fp": 0,
+        "negative_loads": 0,
+        "negative_runs": 24,
+        "positive_loads": 24,
+        "positive_runs": 24,
         "precision": 1.0,
         "queries": 8,
         "recall": 1.0,
@@ -188,21 +220,23 @@
       "acceptance": {
         "decision": "accepted",
         "pooled_runs_per_query": 6,
-        "pooled_validation_recall": 0.75,
+        "pooled_validation_recall": 1.0,
         "previous_pooled_recall": 0.75,
-        "rule": "not-below-stored-baseline (add-sibling-cues-to-descriptions D6)",
-        "shortfall": 0.05,
-        "shortfall_note": "pooled validation recall 0.75 below the 0.80 target (not below the stored 0.75)"
+        "rule": "not-below-stored-baseline, should-not-trigger accuracy not below stored, all 12 descriptions visible"
       },
       "validation": {
-        "accuracy": 0.875,
-        "fn": 1,
+        "accuracy": 1.0,
+        "fn": 0,
         "fp": 0,
+        "negative_loads": 0,
+        "negative_runs": 24,
+        "positive_loads": 22,
+        "positive_runs": 24,
         "precision": 1.0,
         "queries": 8,
-        "recall": 0.75,
+        "recall": 1.0,
         "tn": 4,
-        "tp": 3
+        "tp": 4
       }
     },
     "rf-selenium": {
@@ -211,12 +245,16 @@
         "pooled_runs_per_query": 6,
         "pooled_validation_recall": 1.0,
         "previous_pooled_recall": 1.0,
-        "rule": "not-below-stored-baseline (add-sibling-cues-to-descriptions D6)"
+        "rule": "not-below-stored-baseline, should-not-trigger accuracy not below stored, all 12 descriptions visible"
       },
       "validation": {
         "accuracy": 1.0,
         "fn": 0,
         "fp": 0,
+        "negative_loads": 0,
+        "negative_runs": 24,
+        "positive_loads": 24,
+        "positive_runs": 24,
         "precision": 1.0,
         "queries": 8,
         "recall": 1.0,
@@ -230,12 +268,16 @@
         "pooled_runs_per_query": 6,
         "pooled_validation_recall": 1.0,
         "previous_pooled_recall": 1.0,
-        "rule": "not-below-stored-baseline (add-sibling-cues-to-descriptions D6)"
+        "rule": "not-below-stored-baseline, should-not-trigger accuracy not below stored, all 12 descriptions visible"
       },
       "validation": {
         "accuracy": 1.0,
         "fn": 0,
         "fp": 0,
+        "negative_loads": 0,
+        "negative_runs": 24,
+        "positive_loads": 24,
+        "positive_runs": 24,
         "precision": 1.0,
         "queries": 8,
         "recall": 1.0,
@@ -244,7 +286,7 @@
       }
     }
   },
-  "source": "add-sibling-cues-to-descriptions 3.5 (s-val); decisions pool s-val + s-val-r2",
+  "source": "PR #14 re-fit for the 1274 room (variant B3): rf-appium, rf-selenium, rf-results, rf-setup from the B3 run, the other 8 (texts identical) from the B2 run; 6 runs per query each",
   "split": "validation",
-  "variant_id": "e8dcbb109c1b"
+  "variant_id": "e8a304633b26"
 }

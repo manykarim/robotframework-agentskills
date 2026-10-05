@@ -1,6 +1,6 @@
 ---
 name: rf-results
-description: "Use first, before reading output.xml, to summarise, merge Robot Framework results. With robotcode installed, use rf-robotcode."
+description: "Use first, before reading output.xml, to summarise, merge RF results. With robotcode: rf-robotcode."
 license: Apache-2.0
 compatibility: Requires Python 3.8+ with robotframework>=7 (rebot / ExecutionResult) in the environment that runs the bundled script.
 metadata:

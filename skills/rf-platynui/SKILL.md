@@ -1,6 +1,6 @@
 ---
 name: rf-platynui
-description: "Use first, before answering, for Robot Framework desktop app tests with PlatynUI: windows, dialogs."
+description: "Use first, before answering, for RF desktop app tests with PlatynUI: windows, dialogs."
 license: Apache-2.0
 compatibility: Requires Python 3.12+, robotframework>=7 and the PlatynUI new_core pre-release (robotframework-PlatynUI 0.12.0.dev); Windows (UIA) or a Linux desktop with AT-SPI2. macOS is not supported.
 metadata:

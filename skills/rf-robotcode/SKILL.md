@@ -1,6 +1,6 @@
 ---
 name: rf-robotcode
-description: "Use first for the robotcode CLI and robot.toml in Robot Framework: profiles, discover, debug, REPL. Not VS Code extension."
+description: "Use first for the robotcode CLI and robot.toml in RF: profiles, discover, debug. Not VS Code extension."
 license: Apache-2.0
 compatibility: Requires Python 3.10+ and robotcode[all] 2.x installed in the project environment next to robotframework>=7.
 metadata:
