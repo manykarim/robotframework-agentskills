@@ -1,0 +1,60 @@
+{
+    "RF7 FOR Loop with IN RANGE": {
+        "prefix": "rf-for",
+        "scope": "robotframework",
+        "body": [
+            "FOR    \\${${1:index}}    IN RANGE    ${2:10}",
+            "    ${3:Log    \\${$1\\}}",
+            "END$0"
+        ],
+        "description": "RF7+ FOR loop with IN RANGE. Also supports IN (list), IN ENUMERATE, IN ZIP."
+    },
+    "RF7 IF ELSE IF ELSE Block": {
+        "prefix": "rf-if",
+        "scope": "robotframework",
+        "body": [
+            "IF    ${1:\\${condition\\} == True}",
+            "    ${2:Log    Condition met}",
+            "ELSE IF    ${3:\\${other\\} == True}",
+            "    ${4:Log    Other condition}",
+            "ELSE",
+            "    ${5:Log    Default branch}",
+            "END$0"
+        ],
+        "description": "RF7+ IF/ELSE IF/ELSE/END block with conditions and branches"
+    },
+    "RF7 TRY EXCEPT FINALLY Block": {
+        "prefix": "rf-try",
+        "scope": "robotframework",
+        "body": [
+            "TRY",
+            "    ${1:Keyword That May Fail}",
+            "EXCEPT    ${2:*error message*}",
+            "    ${3:Log    Caught expected error}",
+            "EXCEPT    AS    \\${error}",
+            "    ${4:Log    Unexpected: \\${error\\}    level=ERROR}",
+            "FINALLY",
+            "    ${5:Log    Cleanup runs always}",
+            "END$0"
+        ],
+        "description": "RF7+ TRY/EXCEPT/FINALLY/END block with pattern matching and AS variable capture"
+    },
+    "RF7 VAR with Scope": {
+        "prefix": "rf-var",
+        "scope": "robotframework",
+        "body": [
+            "VAR    \\${${1:name}}    ${2:value}    scope=${3|LOCAL,TEST,SUITE,GLOBAL|}$0"
+        ],
+        "description": "RF7+ VAR statement to set variables with scope (LOCAL, TEST, SUITE, GLOBAL)"
+    },
+    "RF7 WHILE Loop with Limit": {
+        "prefix": "rf-while",
+        "scope": "robotframework",
+        "body": [
+            "WHILE    ${1:\\${condition\\} == True}    limit=${2:10}",
+            "    ${3:Log    Loop iteration}",
+            "END$0"
+        ],
+        "description": "RF7+ WHILE loop with limit to prevent infinite loops"
+    }
+}

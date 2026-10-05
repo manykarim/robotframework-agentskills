@@ -1,0 +1,6 @@
+node_modules/
+dist/
+.vscode-test/
+*.vsix
+__pycache__/
+.pytest_cache/

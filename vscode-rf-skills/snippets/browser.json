@@ -1,0 +1,106 @@
+{
+    "Browser Library Test Setup": {
+        "prefix": "rf-browser-setup",
+        "scope": "robotframework",
+        "body": [
+            "*** Settings ***",
+            "Library    Browser    auto_closing_level=${1|KEEP,TEST|}",
+            "Test Teardown    Run Keyword If Test Failed    Take Screenshot",
+            "",
+            "*** Variables ***",
+            "\\${URL}    ${2:https://example.com}",
+            "",
+            "*** Test Cases ***",
+            "${3:Test Name}",
+            "    New Browser    ${4|chromium,firefox,webkit|}    headless=${5|false,true|}",
+            "    New Context    viewport={'width': ${6:1920}, 'height': ${7:1080}}",
+            "    New Page    \\${URL}",
+            "    $0"
+        ],
+        "description": "Full Browser Library test setup with New Browser, New Context, New Page, and screenshot-on-failure teardown"
+    },
+    "Browser Click Element": {
+        "prefix": "rf-browser-click",
+        "scope": "robotframework",
+        "body": [
+            "Click    ${1:selector}$0"
+        ],
+        "description": "Click an element using Browser Library selector (CSS, text=, role=, xpath=)"
+    },
+    "Browser Fill Text": {
+        "prefix": "rf-browser-fill",
+        "scope": "robotframework",
+        "body": [
+            "Fill Text    ${1:selector}    ${2:value}$0"
+        ],
+        "description": "Fill Text sets input value directly (fast, fires change event). Use Fill Secret for passwords."
+    },
+    "Browser Assert Text": {
+        "prefix": "rf-browser-assert-text",
+        "scope": "robotframework",
+        "body": [
+            "Get Text    ${1:selector}    ${2|==,contains,*=,!=,should start with,should end with,matches|}    ${3:expected}$0"
+        ],
+        "description": "Get Text with built-in assertion operator (==, contains, *=, !=, matches, etc.)"
+    },
+    "Browser Wait For Elements State Visible": {
+        "prefix": "rf-browser-wait-visible",
+        "scope": "robotframework",
+        "body": [
+            "Wait For Elements State    ${1:selector}    ${2|visible,hidden,enabled,disabled,editable,stable,attached,detached|}    timeout=${3:10s}$0"
+        ],
+        "description": "Wait For Elements State with state and timeout (visible, hidden, enabled, etc.)"
+    },
+    "Browser Login Keyword": {
+        "prefix": "rf-browser-login",
+        "scope": "robotframework",
+        "body": [
+            "${1:Login As User}",
+            "    [Arguments]    \\${username}    \\${password}",
+            "    New Page    \\${${2:LOGIN_URL}}",
+            "    Fill Text    ${3:input[name=\"username\"]}    \\${username}",
+            "    Fill Secret    ${4:input[name=\"password\"]}    \\${password}",
+            "    Click    ${5:button[type=\"submit\"]}",
+            "    Get Url    contains    ${6:/dashboard}$0"
+        ],
+        "description": "Login keyword pattern using Fill Text, Fill Secret, Click, and URL assertion"
+    },
+    "Browser Screenshot on Failure Teardown": {
+        "prefix": "rf-browser-screenshot",
+        "scope": "robotframework",
+        "body": [
+            "*** Settings ***",
+            "Library    Browser    auto_closing_level=${1|TEST,KEEP|}",
+            "Test Teardown    Run Keyword If Test Failed    Take Screenshot    fullPage=${2|true,false|}$0"
+        ],
+        "description": "Settings block with Browser Library import and Take Screenshot on failure teardown"
+    },
+    "Browser File Upload with Promise": {
+        "prefix": "rf-browser-upload",
+        "scope": "robotframework",
+        "body": [
+            "\\${promise}=    Promise To Upload File    ${1:\\${CURDIR\\}/file.pdf}",
+            "Click    ${2:button#custom-upload}",
+            "\\${upload}=    Wait For    \\${promise}$0"
+        ],
+        "description": "Promise To Upload File for custom upload buttons that trigger file dialogs, then Wait For the result"
+    },
+    "Browser Select Options By": {
+        "prefix": "rf-browser-select",
+        "scope": "robotframework",
+        "body": [
+            "Select Options By    ${1:select#dropdown}    ${2|value,label,index,text|}    ${3:option}$0"
+        ],
+        "description": "Select Options By keyword to choose dropdown option by value, label, index, or text"
+    },
+    "Browser Wait For Response Network Interception": {
+        "prefix": "rf-browser-network",
+        "scope": "robotframework",
+        "body": [
+            "Click    ${1:button#load-data}",
+            "Wait For Response    ${2:**/api/data}    timeout=${3:10s}",
+            "Get Text    ${4:.data-container}    !=    \\${EMPTY}$0"
+        ],
+        "description": "Wait For Response to intercept network requests after a click, then verify content loaded"
+    }
+}

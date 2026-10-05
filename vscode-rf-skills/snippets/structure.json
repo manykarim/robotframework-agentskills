@@ -1,0 +1,114 @@
+{
+    "Robot File Skeleton": {
+        "prefix": "rf-test",
+        "scope": "robotframework",
+        "body": [
+            "*** Settings ***",
+            "Library           ${1:Browser}",
+            "Resource          ${2:resources/common.resource}",
+            "Suite Setup       ${3:Setup Suite}",
+            "Suite Teardown    ${4:Teardown Suite}",
+            "Test Setup        ${5:Setup Test}",
+            "Test Teardown     ${6:Teardown Test}",
+            "",
+            "*** Variables ***",
+            "\\${${7:URL}}    ${8:https://example.com}",
+            "",
+            "*** Test Cases ***",
+            "${9:First Test Case}",
+            "    [Documentation]    ${10:Test description}",
+            "    [Tags]    ${11:smoke}",
+            "    $0",
+            "",
+            "*** Keywords ***",
+            "$3",
+            "    Log    Suite setup",
+            "",
+            "$4",
+            "    Log    Suite teardown",
+            "",
+            "$5",
+            "    Log    Test setup",
+            "",
+            "$6",
+            "    Log    Test teardown"
+        ],
+        "description": "Full .robot file skeleton with Settings, Variables, Test Cases, and Keywords sections"
+    },
+    "User Keyword with Arguments and RETURN": {
+        "prefix": "rf-keyword",
+        "scope": "robotframework",
+        "body": [
+            "${1:Keyword Name}",
+            "    [Documentation]    ${2:Keyword description}",
+            "    [Arguments]    \\${${3:arg1}}    \\${${4:arg2}}",
+            "    ${5:Log    \\${$3\\} \\${$4\\}}",
+            "    RETURN    ${6:\\${result\\}}$0"
+        ],
+        "description": "User keyword with [Documentation], [Arguments], body, and RF7+ RETURN statement"
+    },
+    "Resource File Skeleton": {
+        "prefix": "rf-resource",
+        "scope": "robotframework",
+        "body": [
+            "*** Settings ***",
+            "Library    ${1:Browser}",
+            "Library    ${2:Collections}",
+            "",
+            "*** Variables ***",
+            "\\${${3:BASE_URL}}    ${4:https://example.com}",
+            "",
+            "*** Keywords ***",
+            "${5:Common Keyword}",
+            "    [Documentation]    ${6:Reusable keyword description}",
+            "    [Arguments]    \\${${7:arg}}",
+            "    $0"
+        ],
+        "description": "Resource file (.resource) skeleton with Settings, Variables, and Keywords sections"
+    },
+    "Template-Driven Test Case": {
+        "prefix": "rf-template",
+        "scope": "robotframework",
+        "body": [
+            "*** Test Cases ***",
+            "${1:Test With Multiple Data Rows}",
+            "    [Documentation]    ${2:Data-driven test using template}",
+            "    [Template]    ${3:Verify Result}",
+            "    # ${4:arg1}    ${5:arg2}    ${6:expected}",
+            "    ${7:value1}    ${8:value2}    ${9:result1}",
+            "    ${10:value3}    ${11:value4}    ${12:result2}",
+            "",
+            "*** Keywords ***",
+            "$3",
+            "    [Arguments]    \\${$4}    \\${$5}    \\${$6}",
+            "    $0"
+        ],
+        "description": "Template-driven test case with data rows and a keyword that receives the arguments"
+    },
+    "Suite Setup and Teardown Pattern": {
+        "prefix": "rf-suite-setup",
+        "scope": "robotframework",
+        "body": [
+            "*** Settings ***",
+            "Library           ${1:Browser}",
+            "Suite Setup       ${2:Initialize Suite}",
+            "Suite Teardown    ${3:Cleanup Suite}",
+            "Test Setup        ${4:Initialize Test}",
+            "Test Teardown     ${5:Run Keyword If Test Failed    Take Screenshot}",
+            "",
+            "*** Keywords ***",
+            "$2",
+            "    [Documentation]    Runs once before all tests in this suite",
+            "    ${6:Log    Suite starting}",
+            "",
+            "$3",
+            "    [Documentation]    Runs once after all tests in this suite",
+            "    ${7:Log    Suite ending}",
+            "",
+            "$4",
+            "    [Documentation]    Runs before each test case",
+            "    ${8:Log    Test starting}$0"
+        ],
+        "description": "Suite setup/teardown pattern with Suite Setup, Suite Teardown, Test Setup, and Test Teardown keywords"
+    }
+}
