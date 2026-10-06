@@ -22,19 +22,6 @@ The content bundle SHALL NOT contain the skills `rf-keyword-builder`, `rf-testca
 - **THEN** every skill path it lists exists on disk
 - **AND** no listed path refers to a retired generator skill
 
-### Requirement: MCP server exposes no generator tools
-
-The `rf-tools` MCP server SHALL NOT list or accept the tools `rf_keyword_builder`, `rf_testcase_builder` or `rf_resource_architect`. Calling a removed tool name SHALL return the server's normal unknown-tool error, not crash the server.
-
-#### Scenario: Tool listing excludes generator tools
-- **WHEN** a client lists the tools of the `rf-tools` server
-- **THEN** the list contains the libdoc and results tools and none of `rf_keyword_builder`, `rf_testcase_builder`, `rf_resource_architect`
-
-#### Scenario: Calling a removed tool fails cleanly
-- **WHEN** a client calls `rf_keyword_builder`
-- **THEN** the server returns an unknown-tool error result
-- **AND** the server keeps serving subsequent requests
-
 ### Requirement: No references to retired skills remain in shipped content
 
 Shipped content SHALL NOT name, link to or instruct the agent to use a retired skill, its script or its MCP tool. This covers every `SKILL.md` and reference file, the subagent prompts, the hook scripts and their injected text, plugin/marketplace/extension descriptions, the README, and current-behaviour docs and test fixtures. Historical records (archived OpenSpec changes, dated plans and reports, eval run outputs) are exempt.
@@ -89,3 +76,15 @@ Removing a skill or an MCP tool SHALL bump the content channel's major version (
 - **WHEN** the release containing this change is prepared
 - **THEN** `plugins/rf-agentskills/.claude-plugin/plugin.json`, `.claude-plugin/marketplace.json` and `vscode-extension/package.json` carry the same new major version
 - **AND** the CHANGELOG entry lists the three removed skills, the three removed MCP tools and the replacement guidance (write Robot Framework directly; verify with libdoc and `robot --dryrun`)
+
+### Requirement: The bundle ships no MCP server
+
+The content bundle SHALL NOT ship an MCP server or an MCP server configuration in any channel: the Claude Code plugin has no `.mcp.json` and no `servers/` directory, and the installer writes no MCP server entry for any agent. Skills SHALL run their helper scripts directly. Shipped content SHALL NOT instruct the agent to call `rf_libdoc_search`, `rf_libdoc_explain`, `rf_results_analyze` or `rf_check_library`.
+
+#### Scenario: Plugin has no MCP config
+- **WHEN** the plugin tree `plugins/rf-agentskills/` is listed
+- **THEN** it contains no `.mcp.json` and no `servers/` directory
+
+#### Scenario: Subagents name skills, not tools
+- **WHEN** the subagent files are searched for the retired tool names
+- **THEN** none is found, and keyword lookup and results reading point to the `rf-libdoc` and `rf-results` skills

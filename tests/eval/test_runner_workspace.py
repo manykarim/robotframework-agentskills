@@ -280,7 +280,7 @@ def _make_plugin(plugin_root: Path, skill_names: tuple[str, ...] = ("rf-libdoc",
         _json.dumps(
             {
                 "mcpServers": {
-                    "rf-tools": {
+                    "demo-server": {
                         "command": "python3",
                         "args": ["${CLAUDE_PLUGIN_ROOT}/servers/srv.py"],
                     }
@@ -366,8 +366,8 @@ def test_extra_mcp_servers_returns_substituted_servers(tmp_path: Path) -> None:
     servers = runner._extra_mcp_servers(plugin_dst)
 
     assert servers is not None
-    assert "rf-tools" in servers
-    args = servers["rf-tools"]["args"]
+    assert "demo-server" in servers
+    args = servers["demo-server"]["args"]
     assert any(str(plugin_dst.resolve()) in a for a in args)
     assert all("${CLAUDE_PLUGIN_ROOT}" not in a for a in args)
 

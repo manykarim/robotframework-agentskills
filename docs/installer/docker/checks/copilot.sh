@@ -8,6 +8,7 @@ set -euo pipefail
 . "$(dirname "$0")/_lib.sh"
 
 ROOT="$HOME/.claude"
+PLUGIN_FILES="$ROOT/rf-agentskills-files"
 
 case "${1:-}" in
 --post-install)
@@ -19,8 +20,15 @@ case "${1:-}" in
     need_file "$ROOT/agents/rf-test-architect.md"
     need_file "$ROOT/settings.json"
     need_json_key "$ROOT/settings.json" 'hooks.PostToolUse'
-    need_file "$HOME/.mcp.json"
-    need_json_key "$HOME/.mcp.json" 'mcpServers."rf-tools"'
+    # rf-tools MCP server was removed: no user-scope .mcp.json entry,
+    # and no server script staged alongside the plugin's other scripts.
+    if [ -f "$HOME/.mcp.json" ]; then
+        if jq -e '.mcpServers."rf-tools"' "$HOME/.mcp.json" >/dev/null 2>&1; then
+            printf '  [check] .mcp.json unexpectedly has an rf-tools entry\n' >&2
+            exit 1
+        fi
+    fi
+    need_no_file "$PLUGIN_FILES/servers/rf-tools-server.py"
     ;;
 
 --post-uninstall)

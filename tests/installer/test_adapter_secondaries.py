@@ -18,6 +18,7 @@ from pathlib import Path
 import pytest
 import yaml
 
+from rf_agentskills import _assets
 from rf_agentskills import transforms as _x
 from rf_agentskills.adapters import by_name
 from rf_agentskills.adapters._base import InstallOptions
@@ -113,13 +114,11 @@ def test_codex_subagents_become_toml(install_prefix: Path) -> None:
         assert t.transform_name == "subagent_md_to_codex_toml"
 
 
-def test_codex_mcp_uses_toml_table_kind(install_prefix: Path) -> None:
+def test_codex_plan_has_no_mcp_merge(install_prefix: Path) -> None:
     cls = by_name("codex")
     assert cls is not None
     plan = cls().plan(InstallOptions(prefix=install_prefix))
-    toml_merges = [m for m in plan.merges if m.kind == "toml_table"]
-    assert toml_merges, "expected a toml_table MCP merge"
-    assert any(m.key_path[0] == "mcp_servers" for m in toml_merges)
+    assert not [m for m in plan.merges if m.kind == "toml_table"]
 
 
 def test_codex_post_install_mentions_codex_hooks_flag() -> None:
@@ -143,12 +142,8 @@ def test_codex_e2e_writes_valid_toml_files(
     rc = main(["install", "--agent", "codex", "--prefix", str(install_prefix)])
     assert rc == 0
 
-    # config.toml should parse and contain a [mcp_servers.<name>] table
-    cfg = install_prefix / "config.toml"
-    assert cfg.is_file()
-    data = tomllib.loads(cfg.read_text(encoding="utf-8"))
-    assert "mcp_servers" in data
-    assert data["mcp_servers"]  # non-empty
+    # No MCP server any more, so config.toml is left alone
+    assert not (install_prefix / "config.toml").exists()
 
     # All written .toml subagents are valid TOML
     for toml_file in (install_prefix / "agents").glob("*.toml"):
@@ -222,13 +217,12 @@ def test_goose_writes_goosehints_persona(install_prefix: Path) -> None:
     assert "Skills:" in body or "skills:" in body.lower()
 
 
-def test_goose_mcp_yaml_merge_kind(install_prefix: Path) -> None:
+def test_goose_plan_has_no_mcp_merge(install_prefix: Path) -> None:
     cls = by_name("goose")
     assert cls is not None
     plan = cls().plan(InstallOptions(prefix=install_prefix))
-    yaml_merges = [m for m in plan.merges if m.kind == "yaml_block"]
-    assert yaml_merges, "expected a yaml_block MCP merge"
-    assert yaml_merges[0].key_path == ("extensions",)
+    assert plan.merges == ()
+    assert not any("rf-agentskills-files" in t.dst.as_posix() for t in plan.targets)
 
 
 def test_goose_skills_install_to_agents_dir(install_prefix: Path) -> None:
@@ -266,22 +260,17 @@ def test_goose_subagents_still_fold_into_goosehints(install_prefix: Path) -> Non
     assert any("subagent" in n.lower() for n in plan.notes)
 
 
-def test_goose_e2e_yaml_round_trip(
+def test_goose_e2e_round_trip(
     install_prefix: Path, fake_home: Path
 ) -> None:
     rc = main(["install", "--agent", "goose", "--prefix", str(install_prefix)])
     assert rc == 0
-    cfg = install_prefix / "config.yaml"
-    assert cfg.is_file()
-    data = yaml.safe_load(cfg.read_text(encoding="utf-8"))
-    assert "extensions" in data
-    assert data["extensions"]  # non-empty
+    assert not (install_prefix / "config.yaml").exists()  # no MCP extension
+    assert list(install_prefix.rglob("SKILL.md"))
 
     rc = main(["uninstall", "--agent", "goose"])
     assert rc == 0
-    # config.yaml should be gone (the only key we added was extensions
-    # and we cleaned it).
-    assert not cfg.exists() or yaml.safe_load(cfg.read_text()) == {}
+    assert [p for p in install_prefix.rglob("*") if p.is_file()] == []
 
 
 # ---- OpenCode-specific -------------------------------------------------
@@ -319,21 +308,13 @@ def test_opencode_skills_install_natively_to_skills_dir(
     assert cmd_targets == []
 
 
-def test_opencode_mcp_translation_to_command_array(
+def test_opencode_writes_no_mcp_config_or_support_files(
     install_prefix: Path, fake_home: Path
 ) -> None:
     rc = main(["install", "--agent", "opencode", "--prefix", str(install_prefix)])
     assert rc == 0
-    cfg = install_prefix / "opencode.json"
-    assert cfg.is_file()
-    data = json.loads(cfg.read_text())
-    assert "mcp" in data
-    for name, spec in data["mcp"].items():
-        # OpenCode shape: {type: "local", command: [<cmd>, *args]}
-        assert spec["type"] == "local"
-        assert isinstance(spec["command"], list), (
-            f"server {name!r} command should be a list, got {spec['command']!r}"
-        )
+    assert not (install_prefix / "opencode.json").exists()
+    assert not (install_prefix / "rf-agentskills-files").exists()
 
 
 def test_opencode_post_install_mentions_hooks_skipped() -> None:
@@ -346,26 +327,34 @@ def test_opencode_post_install_mentions_hooks_skipped() -> None:
 # ---- Claude Desktop-specific -------------------------------------------
 
 
-def test_claude_desktop_only_emits_mcp_and_scripts(install_prefix: Path) -> None:
+def test_claude_desktop_emits_one_upload_zip_per_skill(install_prefix: Path) -> None:
+    import io
+    import zipfile
+
     cls = by_name("claude-desktop")
     assert cls is not None
     plan = cls().plan(InstallOptions(prefix=install_prefix))
-    # No skills/agents/hooks files. The only skills/ paths are the per-skill
-    # scripts staged under rf-agentskills-files/ for the MCP server.
-    targets_paths = [t.dst.as_posix() for t in plan.targets]
-    skill_paths = [p for p in targets_paths if "/skills/" in p]
-    assert skill_paths
-    assert all("/rf-agentskills-files/skills/" in p and "/scripts/" in p for p in skill_paths)
-    assert not any(p.endswith("SKILL.md") for p in targets_paths)
-    assert not any("/agents/" in p and p.endswith(".md") for p in targets_paths)
-    # Has co-located scripts/servers (for MCP path resolution)
-    assert any("rf-agentskills-files" in p for p in targets_paths)
-    # Has the MCP merge
-    assert any("mcpServers" in str(m.key_path) or m.kind == "json_nested"
-               for m in plan.merges)
+    assert plan.merges == ()
+    zips = {t.dst.name: t for t in plan.targets}
+    assert all(t.dst.parent == install_prefix for t in plan.targets)
+    assert "rf-browser.zip" in zips and "rf-results.zip" in zips
+    with _assets.asset_root_path() as src_root:
+        shipped = sorted(p.name for p in (src_root / "skills").iterdir()
+                         if (p / "SKILL.md").is_file())
+    assert sorted(n.removesuffix(".zip") for n in zips) == shipped
+    names = zipfile.ZipFile(io.BytesIO(zips["rf-results.zip"].payload)).namelist()
+    # the skill folder is the archive root, as Claude's skill upload expects
+    assert "rf-results/SKILL.md" in names
+    assert "rf-results/scripts/rf_results.py" in names
+    assert all(n.startswith("rf-results/") and "__pycache__" not in n for n in names)
+    # deterministic: the same tree gives the same bytes (manifest hashes)
+    again = cls().plan(InstallOptions(prefix=install_prefix))
+    assert {t.dst.name: t.payload for t in again.targets} == {
+        n: t.payload for n, t in zips.items()
+    }
 
 
-@pytest.mark.parametrize("category", ["skills", "agents", "hooks"])
+@pytest.mark.parametrize("category", ["agents", "hooks"])
 def test_claude_desktop_skips_with_note_for_unsupported_categories(
     install_prefix: Path, category: str
 ) -> None:
@@ -412,16 +401,21 @@ def test_claude_desktop_e2e_round_trip(
 ) -> None:
     rc = main(["install", "--agent", "claude-desktop", "--prefix", str(install_prefix)])
     assert rc == 0
-    cfg = install_prefix / "claude_desktop_config.json"
-    assert cfg.is_file()
-    data = json.loads(cfg.read_text())
-    assert "mcpServers" in data
-    assert data["mcpServers"]
+    assert (install_prefix / "rf-libdoc.zip").is_file()
+    assert not (install_prefix / "claude_desktop_config.json").exists()
 
     rc = main(["uninstall", "--agent", "claude-desktop"])
     assert rc == 0
     files_left = [p for p in install_prefix.rglob("*") if p.is_file()]
     assert files_left == []
+
+
+def test_claude_desktop_post_install_explains_upload(install_prefix: Path) -> None:
+    cls = by_name("claude-desktop")
+    assert cls is not None
+    notes = " ".join(cls().post_install(InstallOptions(prefix=install_prefix)))
+    assert "Upload a skill" in notes and str(install_prefix) in notes
+    assert "code execution" in notes
 
 
 # ---- Windows-platform regression tests ------------------------------------
@@ -503,15 +497,17 @@ def test_skill_script_paths_rendered_absolute_for_non_expanding_agents(
 
 
 @pytest.mark.parametrize("agent", SECONDARY_AGENTS)
-def test_mcp_server_finds_per_skill_scripts(install_prefix: Path, fake_home: Path, agent: str) -> None:
-    """The staged rf-tools server resolves <plugin_root>/skills/<skill>/scripts/."""
+def test_no_agent_stages_the_retired_mcp_server(install_prefix: Path, fake_home: Path, agent: str) -> None:
+    """rf-tools is gone; hook agents still stage the script the Stop hook runs."""
     rc = main(["install", "--agent", agent, "--prefix", str(install_prefix)])
     assert rc == 0
-    servers = list(install_prefix.rglob("rf-agentskills-files/servers/rf-tools-server.py"))
-    assert servers, f"{agent}: rf-tools server not staged"
-    support = servers[0].parent.parent
-    assert (support / "skills" / "rf-libdoc" / "scripts" / "rf_libdoc.py").is_file()
-    assert (support / "skills" / "rf-results" / "scripts" / "rf_results.py").is_file()
-    assert (support / "skills" / "rf-language" / "scripts" / "rf_conventions.py").is_file()
-    assert (support / "skills" / "rf-python-library" / "scripts" / "check_library.py").is_file()
-    assert not list((support / "scripts").glob("*.py"))
+    assert not list(install_prefix.rglob("rf-tools-server.py"))
+    assert not list(install_prefix.rglob("servers"))
+    support = install_prefix / "rf-agentskills-files"
+    if agent in ("codex", "cursor"):
+        assert (support / "skills" / "rf-results" / "scripts" / "rf_results.py").is_file()
+        assert not list((support / "scripts").glob("*.py"))
+    else:
+        assert not support.exists()
+
+

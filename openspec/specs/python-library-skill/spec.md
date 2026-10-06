@@ -206,18 +206,6 @@ Because loading a library executes its code, the checker SHALL load each library
 - **WHEN** the checker step of the workflow is read
 - **THEN** it states that the checker executes the library's import and init code and is meant only for the user's project libraries
 
-### Requirement: Checker available as an MCP tool
-
-The `rf-tools` MCP server SHALL expose a `rf_check_library` tool that takes library paths or names and optional init arguments, python-path entries and limits, and returns the checker's JSON. The server SHALL always run the checker as a subprocess in the detected project environment (or, when none is found, with the server's own interpreter if it has Robot Framework ≥ 7) and SHALL NOT import user library code into the server process. Exit codes 3 and 4 SHALL become tool errors that carry the stderr hints.
-
-#### Scenario: Tool result matches the script
-- **WHEN** `rf_check_library` is called on a fixture library
-- **THEN** its result equals the JSON the script prints for the same arguments
-
-#### Scenario: No in-process import
-- **WHEN** `rf_check_library` has been called on a library
-- **THEN** that library's module is not present in the server process's `sys.modules`
-
 ### Requirement: Examples are runnable and checked in CI
 
 `assets/examples/` SHALL contain `ExampleLibrary.py` (the default template applied to a library whose state must be shared by the tests of a suite, so it uses `SUITE` scope with a cleanup keyword, as the scope table prescribes, and typed keywords), a custom converter example, a listener example (listener API v3), and `.robot` suites that exercise all three. CI SHALL run those suites with `robot` (not only dry-run) and SHALL run the checker on each example library, failing on any error or warning finding.

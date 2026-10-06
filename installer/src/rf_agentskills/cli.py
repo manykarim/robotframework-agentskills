@@ -83,8 +83,10 @@ def _build_parser() -> argparse.ArgumentParser:
     sp.add_argument("--prefix", type=Path, help="Override install root (used by tests).")
     sp.add_argument(
         "--what",
-        default="skills,agents,hooks,mcp",
-        help="Comma-separated subset of categories to install (default: all).",
+        default="skills,agents,hooks",
+        help="Comma-separated subset of skills,agents,hooks (default: all). "
+             "'mcp' is accepted for compatibility and ignored: the bundle no "
+             "longer ships an MCP server.",
     )
     sp.add_argument("--yes", "-y", action="store_true",
                     help="Accept the detected default without prompting.")
@@ -123,6 +125,12 @@ def _build_parser() -> argparse.ArgumentParser:
 
 def _opts_from_args(args: argparse.Namespace) -> InstallOptions:
     what = frozenset(s.strip() for s in str(args.what).split(",") if s.strip())
+    if "mcp" in what:
+        err_console.print(
+            "[yellow]note:[/yellow] --what mcp is ignored — the rf-tools MCP server "
+            "was removed; the skills run their scripts directly."
+        )
+        what = what - {"mcp"}
     project = args.project
     if args.scope == "project" and project is None:
         project = Path.cwd()
@@ -588,7 +596,7 @@ def cmd_version(_args: argparse.Namespace) -> int:
 
     The two are versioned independently on purpose (see RELEASING.md):
     the installer's ``__version__`` tracks adapter / CLI / manifest
-    changes; the bundled content (skills, agents, hooks, MCP server)
+    changes; the bundled content (skills, agents, hooks)
     has its own version from the upstream plugin manifest, surfaced
     here so support tickets and triage can be precise without
     requiring alignment.
@@ -633,6 +641,78 @@ def _bundled_content_version() -> str | None:
 # ---------------------------------------------------------------------------
 
 
+#: MCP server that installers before content 2.0.0 registered for every agent.
+#: The bundle no longer ships it; re-installing removes its config entries
+#: and files (see :func:`_retire_legacy_mcp` and :func:`_is_retired_file`).
+RETIRED_MCP_SERVER = "rf-tools"
+#: Agents whose only support files (``rf-agentskills-files/``) served that
+#: server; for the others the folder still holds hook scripts.
+_SUPPORT_FOR_MCP_ONLY = frozenset({"claude-desktop", "goose", "opencode"})
+
+
+def _is_retired_file(entry: _m.FileEntry, agent: str) -> bool:
+    """A file an older install wrote only for the retired MCP server."""
+    parts = Path(entry.path).parts
+    if _m.SUPPORT_DIR_NAME not in parts:
+        return False
+    rel = parts[parts.index(_m.SUPPORT_DIR_NAME) + 1:]
+    return agent in _SUPPORT_FOR_MCP_ONLY or (bool(rel) and rel[0] == "servers")
+
+
+def _is_retired_merge(merge: _m.ConfigMerge) -> bool:
+    return RETIRED_MCP_SERVER in merge.added_keys or RETIRED_MCP_SERVER in merge.key_path
+
+
+def _retire_legacy_mcp(merges: Sequence[_m.ConfigMerge], *, dry_run: bool = False) -> tuple[
+    list[_m.ConfigMerge], list[str]
+]:
+    """Remove the ``rf-tools`` entries older installs merged into agent configs.
+
+    Returns the merges still tracked (other keys of a partly retired merge
+    stay recorded) and the config files that were cleaned.
+    """
+    from . import transforms as _x
+
+    kept: list[_m.ConfigMerge] = []
+    cleaned: list[str] = []
+    for merge in merges:
+        if not _is_retired_merge(merge):
+            kept.append(merge)
+            continue
+        path = Path(merge.path)
+        if path.is_file() and not dry_run:
+            try:
+                if merge.kind == "toml_table":
+                    _x.remove_toml_table(path, list(merge.key_path))
+                elif merge.kind == "yaml_block":
+                    _x.remove_yaml_keys(
+                        path, [RETIRED_MCP_SERVER],
+                        parent_key=merge.key_path[0] if merge.key_path else None,
+                    )
+                elif path.name == "mcp.json" and path.parent.name == ".vscode":
+                    # Copilot wrote VS Code's {"servers": {...}} shape.
+                    _x.remove_json_keys_at_path(path, ["servers"], [RETIRED_MCP_SERVER])
+                elif merge.key_path:
+                    _x.remove_json_keys_at_path(
+                        path, list(merge.key_path), [RETIRED_MCP_SERVER]
+                    )
+                else:
+                    _x.remove_json_keys(path, [RETIRED_MCP_SERVER])
+            except Exception as exc:  # pragma: no cover - defensive
+                err_console.print(f"[yellow]warn:[/yellow] remove {RETIRED_MCP_SERVER} from {path}: {exc}")
+                kept.append(merge)
+                continue
+        if path.is_file():
+            cleaned.append(str(path))
+        rest = [k for k in merge.added_keys if k != RETIRED_MCP_SERVER]
+        if rest and merge.kind != "toml_table":
+            kept.append(_m.ConfigMerge(
+                path=merge.path, added_keys=rest, kind=merge.kind,
+                key_path=list(merge.key_path), marker=merge.marker,
+            ))
+    return kept, cleaned
+
+
 def _partition_previous(
     previous: _m.Installation | None,
     plan: InstallPlan,
@@ -657,7 +737,7 @@ def _partition_previous(
     for entry in previous.files:
         if entry.path in new_paths:
             continue
-        if _m.entry_category(entry) in in_scope:
+        if _m.entry_category(entry) in in_scope or _is_retired_file(entry, previous.agent):
             stale.append(entry)
         else:
             carried.append(entry)
@@ -740,6 +820,12 @@ def _render_plan_dry_run(
     if opts is not None and manifest_path is not None:
         previous = _m.Manifest.load(manifest_path).for_agent(adapter.name, opts.scope)
         stale, _carried = _partition_previous(previous, plan, opts)
+        for merge in (previous.config_merges if previous else []):
+            if _is_retired_merge(merge):
+                table.add_row(
+                    "unmerge", merge.path,
+                    f"remove the retired {RETIRED_MCP_SERVER} MCP server entry",
+                )
         for entry in stale:
             p = Path(entry.path)
             if not p.is_file():
@@ -828,6 +914,7 @@ def _execute_plan(
         m for m in (previous.config_merges if previous else [])
         if (m.path, m.kind, tuple(m.key_path)) not in redone
     ]
+    carried_merges, retired_configs = _retire_legacy_mcp(carried_merges)
 
     # 4. Manifest.
     manifest.upsert(_m.Installation(
@@ -848,6 +935,8 @@ def _execute_plan(
     table.add_row("files", f"{len(files_written)} written")
     table.add_row("merges", f"{len(config_merges)} performed")
     table.add_row("stale", f"{len(stale_removed)} removed (no longer shipped)")
+    for path in retired_configs:
+        table.add_row("retired", f"{RETIRED_MCP_SERVER} MCP server removed from {path}")
     console.print(table)
     for path in stale_kept:
         err_console.print(

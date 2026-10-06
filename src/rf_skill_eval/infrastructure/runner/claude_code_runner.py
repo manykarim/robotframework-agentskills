@@ -423,7 +423,7 @@ class ClaudeCodeRunner:
     def _extra_mcp_servers(plugin_dst: Path) -> dict[str, dict[str, Any]] | None:
         """Read the plugin's ``.mcp.json`` and return its ``mcpServers`` dict.
 
-        Used to merge plugin-defined MCP servers (e.g., rf-tools) into the
+        Used to merge plugin-defined MCP servers (if the plugin ships any) into the
         run's ``.mcp.json`` alongside the harness defaults (rf-mcp).
         """
         plugin_mcp = plugin_dst / ".mcp.json"

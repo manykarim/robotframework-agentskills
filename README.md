@@ -1,6 +1,6 @@
 # Robot Framework Agent Skills
 
-AI agent skills for Robot Framework test automation, distributed for **seven coding agents**: Claude Code, GitHub Copilot (VS Code), OpenAI Codex, Cursor, OpenCode, Project Goose, Claude Desktop. Includes skills for the Robot Framework language (tests, keywords, resources, variables), web testing (Browser/Selenium), API testing (Requests/RESTinstance), mobile testing (Appium), native desktop testing (PlatynUI, preview), environment setup, and RF analysis tools — plus 4 specialised subagents, 4 hooks, and an MCP server.
+AI agent skills for Robot Framework test automation, distributed for **seven coding agents**: Claude Code, GitHub Copilot (VS Code), OpenAI Codex, Cursor, OpenCode, Project Goose, Claude Desktop. Includes skills for the Robot Framework language (tests, keywords, resources, variables), web testing (Browser/Selenium), API testing (Requests/RESTinstance), mobile testing (Appium), native desktop testing (PlatynUI, preview), environment setup, and RF analysis tools — plus 4 specialised subagents, and 4 hooks.
 
 ## Install
 
@@ -26,19 +26,19 @@ rf-agentskills install --agents detected --yes      # only detected, headless
 rf-agentskills install --agent claude-code          # single (back-compat)
 ```
 
-Installs default to **project scope** (into the current directory, e.g. `./.claude/`); add `--scope user` for a global install under your home directory. Other commands: `uninstall`, `list`, `doctor`, `version`. Useful flags: `--scope project|user [--project DIR]`, `--prefix DIR`, `--dry-run`, `--what skills,agents,hooks,mcp`, `--force`, `--no-input`.
+Installs default to **project scope** (into the current directory, e.g. `./.claude/`); add `--scope user` for a global install under your home directory. Other commands: `uninstall`, `list`, `doctor`, `version`. Useful flags: `--scope project|user [--project DIR]`, `--prefix DIR`, `--dry-run`, `--what skills,agents,hooks`, `--force`, `--no-input`.
 
-A manifest (per-project under `<project>/.rf-agentskills/`, or global for user scope) tracks every file written (hash + transform); `uninstall` removes only files whose hash still matches and only the hook/MCP config entries it added — user edits and other tools' hooks are preserved. Re-running `install` after an upgrade removes files the previous install wrote that the new bundle no longer ships (same hash check; user-modified files are kept).
+A manifest (per-project under `<project>/.rf-agentskills/`, or global for user scope) tracks every file written (hash + transform); `uninstall` removes only files whose hash still matches and only the hook config entries it added — user edits and other tools' hooks are preserved. Re-running `install` after an upgrade removes files the previous install wrote that the new bundle no longer ships (same hash check; user-modified files are kept), including the `rf-tools` MCP server entry and files that installers before content 2.0.0 registered.
 
 | Agent | What lands where | Coverage |
 |---|---|---|
-| **Claude Code** ≥ 2.1 | `~/.claude/skills`, `~/.claude/agents`, `settings.json` hooks, `~/.mcp.json` | full native |
+| **Claude Code** ≥ 2.1 | `~/.claude/skills`, `~/.claude/agents`, `settings.json` hooks | full native |
 | **GitHub Copilot** (VS Code ≥ 1.108) | reuses Claude Code paths (Copilot reads them natively) | full native |
-| **OpenAI Codex** | `~/.agents/skills` per docs, `~/.codex/agents/*.toml`, MCP in `config.toml` | full (hooks experimental, opt-in via `[features] codex_hooks=true`) |
-| **Cursor** ≥ 2.4 | `~/.cursor/skills`, `~/.cursor/agents`, `mcp.json`, `hooks.json` (namespaced matchers) | full native |
-| **OpenCode** | `~/.config/opencode/skills`, `agents`, `opencode.json` MCP block | full native (hooks deferred — JS-only) |
-| **Project Goose** ≥ 1.25 | `~/.agents/skills` (Summon), MCP in `config.yaml`, `.goosehints` persona | skills + MCP; hooks N/A |
-| **Claude Desktop** | per-OS `claude_desktop_config.json` (MCP only) | MCP only — no skill/agent loader |
+| **OpenAI Codex** | `~/.agents/skills` per docs, `~/.codex/agents/*.toml`, `hooks.json` | full (hooks experimental, opt-in via `[features] codex_hooks=true`) |
+| **Cursor** ≥ 2.4 | `~/.cursor/skills`, `~/.cursor/agents`, `hooks.json` (namespaced matchers) | full native |
+| **OpenCode** | `~/.config/opencode/skills`, `agents` | full native (hooks deferred — JS-only) |
+| **Project Goose** ≥ 1.25 | `~/.agents/skills` (Summon), `.goosehints` persona | skills; subagents folded into hints; hooks N/A |
+| **Claude Desktop** | one upload-ready `rf-*.zip` per skill in `~/rf-agentskills-claude-desktop/` | skills via upload (Customize → Skills → Upload a skill; needs code execution); no subagents/hooks |
 
 Release notes, sha256 hashes, and the latest wheel + sdist are on the **[rf-agentskills releases](https://github.com/manykarim/robotframework-agentskills/releases)** page (tag prefix `rf-agentskills-v*`). PyPI publication pending.
 
@@ -59,7 +59,7 @@ claude --plugin-dir ./plugins/rf-agentskills
 
 ### Alternative: VS Code Marketplace extension (`.vsix`)
 
-A standalone VS Code extension ships **chat skills only** (no subagents, hooks, or MCP server — for those, use the `rf-agentskills` installer above with `--agent copilot`):
+A standalone VS Code extension ships **chat skills only** (no subagents or hooks — for those, use the `rf-agentskills` installer above with `--agent copilot`):
 
 ```bash
 # Latest .vsix is attached to the v* GitHub release
@@ -206,8 +206,7 @@ plugins/rf-agentskills/        # Claude Code Plugin distribution
 ├── skills/rf-*/               # Skill copies incl. their own scripts/ (synced from root)
 ├── scripts/                   # Hook scripts (.mjs) only
 ├── agents/                    # 4 agent definitions
-├── hooks/                     # Session/edit hooks
-└── servers/                   # MCP server
+└── hooks/                     # Session/edit hooks
 vscode-extension/              # VS Code Extension distribution
 ├── skills/rf-*/               # Skill copies for VS Code (synced from root)
 └── src/                       # Extension TypeScript source
@@ -261,26 +260,20 @@ python scripts/validate-marketplace.py
 python scripts/validate-skills.py --channel all   # root, plugin and VS Code copies
 ```
 
-### MCP Server
+### Bundled scripts
 
-The plugin includes an MCP server that exposes all script-based tools:
+Skills run their Python scripts directly (`uv run python scripts/<name>.py …`, or the project's interpreter); there is no MCP server. Each script prints JSON:
 
-| MCP Tool | Description |
-|----------|-------------|
-| `rf_libdoc_search` | Search keywords across RF libraries (rf-libdoc skill) |
-| `rf_libdoc_explain` | Explain keyword arguments in detail (rf-libdoc skill) |
-| `rf_results_analyze` | Parse output.xml into structured JSON |
-| `rf_conventions` | Report a project's Robot Framework conventions and version as JSON (rf-language skill) |
-| `rf_check_library` | Check the project's own Python keyword libraries: keywords, scope, API style and defect findings as JSON (rf-python-library skill; always a subprocess, never imports user code into the server) |
+| Script (skill) | Purpose |
+|----------------|---------|
+| `rf_libdoc.py` (rf-libdoc) | Search keywords across RF libraries and explain one keyword's arguments |
+| `rf_results.py` (rf-results) | Summarise, merge and time `output.xml` results |
+| `rf_conventions.py` (rf-language) | Report a project's Robot Framework conventions and version |
+| `check_library.py` (rf-python-library) | Check the project's own Python keyword libraries: keywords, scope, API style and defect findings (runs in a subprocess, never imports user code into the agent) |
 
-The server is started with `python3` from PATH and needs the `mcp` package. When that interpreter lacks it (a fresh machine), the server re-launches itself through `uv run --no-project --with "mcp>=1,<2"`, so [uv](https://docs.astral.sh/uv/) on PATH is enough; without uv, install it with `python3 -m pip install "mcp>=1,<2"`.
+### Claude Desktop and claude.ai
 
-The server runs a script in-process when its own interpreter can import Robot Framework 7+ and the requested libraries. Otherwise it runs the script with the project interpreter found in the working directory (`uv run --frozen python` for a uv project, then `.venv`, then `$VIRTUAL_ENV`).
-
-Test the MCP server:
-```bash
-python3 plugins/rf-agentskills/servers/rf-tools-server.py
-```
+Claude Desktop loads custom skills uploaded as ZIP files, not from disk. `rf-agentskills install --agent claude-desktop` writes one archive per skill to `~/rf-agentskills-claude-desktop/` (the CI and release artifacts contain the same archives). Upload each under **Customize → Skills → + → Create skill → Upload a skill** and start a new chat; code execution must be enabled. Build them from a checkout with `python scripts/build-skill-zips.py --out dist/skill-zips`.
 
 ### Test the Plugin Locally
 
@@ -292,7 +285,7 @@ claude --plugin-dir ./plugins/rf-agentskills
 
 - **Robot Framework** 7+ (uses modern syntax: RETURN, IF/ELSE, TRY/EXCEPT)
 - **Python** 3.10+ for the `rf-agentskills` installer; 3.8+ for running the skill scripts themselves
-- **Coding agents** (see install matrix above): Claude Code ≥ 2.1, GitHub Copilot in VS Code ≥ 1.108, OpenAI Codex, Cursor ≥ 2.4, OpenCode, Project Goose ≥ 1.25, Claude Desktop (MCP only)
+- **Coding agents** (see install matrix above): Claude Code ≥ 2.1, GitHub Copilot in VS Code ≥ 1.108, OpenAI Codex, Cursor ≥ 2.4, OpenCode, Project Goose ≥ 1.25, Claude Desktop (skills via ZIP upload)
 
 Anthropic's SKILL.md format is an open standard supported by all seven agents listed above (Claude Code, Copilot, Codex, Cursor, OpenCode, and Goose all read it natively as of their respective recent releases). The `rf-agentskills` installer handles the path-routing per agent so you don't have to memorise where each one wants its skills.
 

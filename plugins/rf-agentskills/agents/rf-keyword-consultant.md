@@ -15,15 +15,14 @@ library to the skill that owns it.
 ### Search before you write
 
 1. Find the libraries in use: the `Library` imports of the suites and resources.
-2. Search them with the `rf_libdoc_search` tool, e.g. `libraries=["Browser"]`,
-   `search="fill text"`; add `resources=["resources/common.resource"]` to include the
-   project's user keywords. The tool runs in the project environment, so project
-   libraries are visible too.
-3. Explain the best match with the `rf_libdoc_explain` tool, e.g.
-   `libraries=["SeleniumLibrary"]`, `keyword="Wait Until Element Is Visible"`; pass
-   `search_fallback` when the name is approximate.
-4. Without the MCP tools, load the `rf-libdoc` skill and run the command it documents,
-   or use `robotcode libdoc <Lib> show "<Keyword>"` when robotcode is installed.
+2. Search them with the `rf-libdoc` skill: load it and run its search command, e.g.
+   library `Browser` with the use case "fill text"; add the project's resource files
+   (`resources/common.resource`) to include its user keywords. It runs in the project
+   environment, so project libraries are visible too.
+3. Explain the best match with the skill's explain command, e.g. `SeleniumLibrary`
+   and `Wait Until Element Is Visible`; add the use case when the name is approximate,
+   so it falls back to suggestions.
+4. With robotcode installed, `robotcode libdoc <Lib> show "<Keyword>"` answers the same.
 5. Recommend one keyword with its arguments, defaults and one call example taken from
    the lookup, and name an alternative only if the lookup shows one.
 
@@ -36,7 +35,7 @@ call with the library prefix: `Browser.Click` vs `SeleniumLibrary.Click Element`
 ### Comparing libraries
 
 For "which keyword in Browser vs SeleniumLibrary" questions, look up both sides with
-`rf_libdoc_search` and compare the results. The library skills (`rf-browser`,
+the `rf-libdoc` search and compare the results. The library skills (`rf-browser`,
 `rf-selenium`, `rf-requests`, `rf-restinstance`, `rf-appium`, `rf-platynui`) hold the
 "which keyword for which situation" tables and the deprecated keywords of each library.
 
@@ -47,8 +46,8 @@ For "which keyword in Browser vs SeleniumLibrary" questions, look up both sides 
 | Keyword names, arguments, documentation | `rf-libdoc` (or `rf-robotcode`: `robotcode libdoc`) |
 | Which keyword of a library fits a situation, deprecated keywords | `rf-browser` / `rf-selenium` / `rf-requests` / `rf-restinstance` / `rf-appium` / `rf-platynui` |
 | No keyword fits: a user keyword in a `.resource` file (arguments, embedded arguments, `RETURN`) | `rf-language` |
-| No keyword fits and the logic needs Python: a keyword library, checked with the `rf_check_library` tool | `rf-python-library` |
-| Project conventions before writing a user keyword (`rf_conventions` tool) | `rf-language` |
+| No keyword fits and the logic needs Python: a keyword library, checked with its library checker | `rf-python-library` |
+| Project conventions before writing a user keyword (its conventions report) | `rf-language` |
 | Installing a missing library | `rf-setup` |
 
 ## Verification loop
@@ -56,11 +55,11 @@ For "which keyword in Browser vs SeleniumLibrary" questions, look up both sides 
 For every `.robot`, `.resource` or Python library file you write or change:
 
 1. Write the change.
-2. Confirm keyword names and arguments with the `rf_libdoc_search` / `rf_libdoc_explain` tools (or load the `rf-libdoc` skill), or with `robotcode libdoc` when robotcode is installed (`rf-robotcode`).
+2. Confirm keyword names and arguments with the `rf-libdoc` skill (its search and explain commands), or with `robotcode libdoc` when robotcode is installed (`rf-robotcode`).
 3. Run `robot --dryrun` on the affected suites. The dry run does not catch undefined variables, a space before `=` in named arguments, embedded-argument mismatches or union-with-`str` conversions; the real run in step 5 does.
 4. Run `robocop check --no-cache` on the changed files (select several rule groups by repeating `--select`, never with a comma list).
 5. Run the affected tests (`robot -t "<test name>"` or `--suite`).
-6. Read failures with the `rf_results_analyze` tool (or load the `rf-results` skill), or with `robotcode results`.
+6. Read failures with the `rf-results` skill (its summary of `output.xml`), or with `robotcode results`.
 
 ## Constraints
 

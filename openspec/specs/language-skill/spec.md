@@ -115,14 +115,14 @@ The skill SHALL tell the agent not to use a feature newer than the project's ver
 
 ### Requirement: Step 0 matches the project's conventions with the skill's own script
 
-`Step 0: Match the project` SHALL tell the agent to detect and follow the project's conventions before writing code, in this order of means: the `rf_conventions` MCP tool when available, otherwise the skill's own `scripts/rf_conventions.py`, otherwise three documented fallback searches (`grep -rE` over `*.robot` and `*.resource`) for library/resource/variable imports, BDD prefixes and template settings, and tag settings. The agent SHALL follow the result: separator width, assignment style, keyword-name casing, embedded style, the web or API library in use, the resource directory, BDD and template usage, tag vocabulary and tag settings, and typed arguments only when `rf.features.typed_arguments.available` is true. It SHALL tell the agent to search for existing keywords before creating new ones. The skill SHALL NOT reference a path into another skill's directory.
+`Step 0: Match the project` SHALL tell the agent to detect and follow the project's conventions before writing code, in this order of means: the skill's own `scripts/rf_conventions.py`, otherwise three documented fallback searches (`grep -rE` over `*.robot` and `*.resource`) for library/resource/variable imports, BDD prefixes and template settings, and tag settings. The agent SHALL follow the result: separator width, assignment style, keyword-name casing, embedded style, the web or API library in use, the resource directory, BDD and template usage, tag vocabulary and tag settings, and typed arguments only when `rf.features.typed_arguments.available` is true. It SHALL tell the agent to search for existing keywords before creating new ones. The skill SHALL NOT reference a path into another skill's directory.
 
 #### Scenario: Existing embedded style is followed
 - **WHEN** `rf_conventions` reports `keywords.embedded` > 0 and `advice` contains `follow-embedded-style`
 - **THEN** the skill instructs the agent to write new keywords of the same kind with embedded arguments
 
 #### Scenario: Fallback without the script
-- **WHEN** neither the MCP tool nor Robot Framework for the script is available
+- **WHEN** Robot Framework for the script is not available
 - **THEN** Step 0 gives three search commands that work with `grep -rE` over `*.robot` and `*.resource`, and says to follow what they show
 
 #### Scenario: No cross-skill path
@@ -431,18 +431,6 @@ By default the output SHALL stay under 8 KB for a project of up to 2,000 Robot F
 #### Scenario: Parser parity
 - **WHEN** the fixture set is scanned under RF 7.1.1 and the current RF
 - **THEN** every field except `rf.installed` and `rf.effective*` is equal
-
-### Requirement: Conventions are available as an MCP tool
-
-The plugin's `rf-tools` MCP server SHALL expose a tool `rf_conventions` with parameters `path` (default: the server's working directory), `max_examples` and `max_files`, returning exactly the JSON the script prints for the same arguments. A non-existent path SHALL return a tool error with the script's hint, and the server SHALL keep serving. The tool SHALL work when the server's interpreter has Robot Framework 7+, even if the project's libraries are not importable, and SHALL fall back to the project interpreter as defined by `skill-script-execution` otherwise.
-
-#### Scenario: Tool listed and equivalent
-- **WHEN** a client lists and calls `rf_conventions` with `path` set to a fixture
-- **THEN** the result equals the script's stdout for the same fixture and arguments
-
-#### Scenario: Bad path
-- **WHEN** the tool is called with a non-existent path
-- **THEN** it returns an error result and a following `rf_libdoc_search` call still succeeds
 
 ### Requirement: Companion Skills integration
 

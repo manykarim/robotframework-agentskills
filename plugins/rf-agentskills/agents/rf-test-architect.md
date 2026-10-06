@@ -57,7 +57,7 @@ python-path belong to `rf-setup`.
 | Work | Skill |
 |------|-------|
 | Suites, test cases, `__init__.robot`, tags, templates, user keywords, resource and variable files | `rf-language` |
-| Project keyword libraries and listeners in Python (`libraries/*.py`), checked with the `rf_check_library` tool | `rf-python-library` |
+| Project keyword libraries and listeners in Python (`libraries/*.py`), checked with its library checker | `rf-python-library` |
 | Installing RF and libraries, project layout mechanics, `robot.toml`, python-path | `rf-setup` |
 | Web tests with Browser / SeleniumLibrary | `rf-browser` / `rf-selenium` |
 | API tests with RequestsLibrary / RESTinstance | `rf-requests` / `rf-restinstance` |
@@ -79,11 +79,11 @@ python-path belong to `rf-setup`.
 For every `.robot`, `.resource` or Python library file you write or change:
 
 1. Write the change.
-2. Confirm keyword names and arguments with the `rf_libdoc_search` / `rf_libdoc_explain` tools (or load the `rf-libdoc` skill), or with `robotcode libdoc` when robotcode is installed (`rf-robotcode`).
+2. Confirm keyword names and arguments with the `rf-libdoc` skill (its search and explain commands), or with `robotcode libdoc` when robotcode is installed (`rf-robotcode`).
 3. Run `robot --dryrun` on the affected suites. The dry run does not catch undefined variables, a space before `=` in named arguments, embedded-argument mismatches or union-with-`str` conversions; the real run in step 5 does.
 4. Run `robocop check --no-cache` on the changed files (select several rule groups by repeating `--select`, never with a comma list).
 5. Run the affected tests (`robot -t "<test name>"` or `--suite`).
-6. Read failures with the `rf_results_analyze` tool (or load the `rf-results` skill), or with `robotcode results`.
+6. Read failures with the `rf-results` skill (its summary of `output.xml`), or with `robotcode results`.
 
 ## Constraints
 

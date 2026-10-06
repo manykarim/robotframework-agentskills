@@ -7,12 +7,11 @@ Claude Code reads:
 * agents      → ``~/.claude/agents/<name>.md`` (or project)
 * hooks       → ``hooks`` block of ``~/.claude/settings.json``
                 (or project ``.claude/settings.json``)
-* MCP servers → ``~/.mcp.json`` (or project ``<repo>/.mcp.json``)
 
-Plus a co-located copy of the plugin's ``scripts/`` and ``servers/``
-under ``~/.claude/rf-agentskills-files/`` so ``${CLAUDE_PLUGIN_ROOT}``
-references in skill bodies and hook commands resolve to a stable,
-post-substitution path.
+Plus a co-located copy of the plugin's ``scripts/`` (hook scripts) and
+the skills' scripts under ``~/.claude/rf-agentskills-files/`` so
+``${CLAUDE_PLUGIN_ROOT}`` references in hook commands resolve to a stable,
+post-substitution path (the Stop hook runs ``skills/rf-results/scripts``).
 
 Substitution happens *at install time*, per the proposal's
 decision-point #2: the ``${CLAUDE_PLUGIN_ROOT}`` token is rewritten to
@@ -64,7 +63,7 @@ class ClaudeCodeAdapter(AdapterBase):
 
     def plan(self, opts: InstallOptions) -> InstallPlan:
         root = self.install_root(opts)
-        plugin_dst = root / PLUGIN_FILES_SUBDIR  # holds scripts/, servers/, hooks/
+        plugin_dst = root / PLUGIN_FILES_SUBDIR  # holds scripts/, hooks/, skills/*/scripts
         plugin_root_abs = _x.to_native_path_string(plugin_dst.resolve())
 
         # Hooks invoke `node "<…>.mjs"` (cross-platform). If Node isn't
@@ -98,7 +97,7 @@ class ClaudeCodeAdapter(AdapterBase):
                 "`brew install node` on macOS, your distro's package manager on "
                 "Linux), then re-run `rf-agentskills install --agent claude-code` "
                 "to enable the SessionStart / UserPromptSubmit / PostToolUse / Stop "
-                "hooks. Skills, subagents, and MCP server are installed normally."
+                "hooks. Skills and subagents are installed normally."
             )
         return InstallPlan(targets=tuple(targets), merges=tuple(merges), notes=tuple(notes))
 
@@ -139,7 +138,7 @@ class ClaudeCodeAdapter(AdapterBase):
                         transform_name="plugin_root_substitution",
                     )
 
-        # 3. Plugin-co-located files: scripts/, servers/, hooks/, plus
+        # 3. Plugin-co-located files: scripts/, hooks/, plus
         #    the .claude-plugin/ manifest. These live under
         #    <root>/rf-agentskills-files/ so the substituted
         #    ${CLAUDE_PLUGIN_ROOT} paths in skills/agents/hooks resolve.
@@ -149,8 +148,8 @@ class ClaudeCodeAdapter(AdapterBase):
         #    validate <plugin_dst>` succeeds, and a sufficiently bold
         #    user could `claude plugin install <local-path>` against
         #    it as an alternative entry point.
-        if {"hooks", "skills", "mcp"} & what:
-            for category in ("scripts", "servers", "hooks", ".claude-plugin"):
+        if {"hooks", "skills"} & what:
+            for category in ("scripts", "hooks", ".claude-plugin"):
                 cat_src = src_root / category
                 if not cat_src.is_dir():
                     continue
@@ -164,13 +163,14 @@ class ClaudeCodeAdapter(AdapterBase):
                         transform_name="plugin_root_substitution",
                         executable=f.suffix in (".sh", ".ps1") or f.name.endswith(".bash"),
                     )
-            # Per-skill scripts for the MCP server (<plugin_dst>/skills/<skill>/scripts/).
+            # Per-skill scripts for the hooks (<plugin_dst>/skills/<skill>/scripts/;
+            # the Stop hook runs skills/rf-results/scripts/rf_results.py).
             for f in skill_script_files(src_root):
                 rel = f.relative_to(src_root)
                 yield InstallTarget(
                     dst=plugin_dst / rel,
                     payload=f.read_bytes(),
-                    transform_name="skill_script_for_mcp_server",
+                    transform_name="skill_script_for_hooks",
                 )
             # Pin the install-time Python interpreter so hook .mjs scripts
             # use the env that has robotframework, not whatever `python` is
@@ -202,32 +202,14 @@ class ClaudeCodeAdapter(AdapterBase):
                     plugin_root_abs=plugin_root_abs,
                 )
 
-        # 5. MCP server → user .mcp.json (or project .mcp.json)
-        if "mcp" in what:
-            plugin_mcp = src_root / ".mcp.json"
-            if plugin_mcp.is_file():
-                # User scope: ~/.mcp.json. Project scope: <project>/.mcp.json.
-                mcp_path = self._mcp_target(opts)
-                yield self._mcp_merge_op(
-                    plugin_mcp=plugin_mcp,
-                    target=mcp_path,
-                    plugin_root_abs=plugin_root_abs,
-                )
-
     # ------------------------------------------------------------------
     # post_install
     # ------------------------------------------------------------------
 
     def post_install(self, opts: InstallOptions) -> list[str]:
-        notes = [
+        return [
             "Claude Code will pick up skills, agents, and hooks on next session start.",
         ]
-        if "mcp" in opts.what:
-            notes.append(
-                "First time you run a tool from rf-mcp / rf-tools you may see a "
-                "trust prompt — accept it once."
-            )
-        return notes
 
     # ------------------------------------------------------------------
     # internals
@@ -243,16 +225,6 @@ class ClaudeCodeAdapter(AdapterBase):
         if _x.is_substitution_candidate(src):
             return _x.substitute_plugin_root_bytes(data, plugin_root_abs)
         return data
-
-    def _mcp_target(self, opts: InstallOptions) -> Path:
-        # Resolution order matches install_root: prefix > project > user.
-        if opts.prefix is not None:
-            return opts.prefix / ".mcp.json"
-        if opts.scope == "project":
-            project = opts.project_dir if opts.project_dir is not None else Path.cwd()
-            return project / ".mcp.json"
-        # User scope: claude code reads `~/.mcp.json` per docs.
-        return Path.home() / ".mcp.json"
 
     def _hooks_merge_op(
         self,
@@ -295,36 +267,4 @@ class ClaudeCodeAdapter(AdapterBase):
             kind="json_hooks",
             key_path=(HOOKS_KEY,),
             marker=marker,
-        )
-
-    def _mcp_merge_op(
-        self,
-        *,
-        plugin_mcp: Path,
-        target: Path,
-        plugin_root_abs: str,
-    ) -> ConfigMergeOp:
-        raw = _x.substitute_plugin_root(
-            plugin_mcp.read_text(encoding="utf-8"),
-            plugin_root_abs,
-        )
-        plugin_servers = (json.loads(raw) or {}).get("mcpServers", {})
-
-        def apply() -> list[str]:
-            return _x.merge_json_at_path(
-                target, key_path=["mcpServers"], values=plugin_servers
-            )
-
-        def revert() -> None:
-            _x.remove_json_keys_at_path(
-                target, key_path=["mcpServers"], keys=list(plugin_servers)
-            )
-
-        return ConfigMergeOp(
-            path=target,
-            description=f"merge MCP servers into {target}",
-            apply=apply,
-            revert=revert,
-            kind="json_nested",
-            key_path=("mcpServers",),
         )

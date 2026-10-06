@@ -3,8 +3,10 @@
 # Codex install paths (per developers.openai.com/codex/skills):
 #   $HOME/.agents/skills/<name>/   (cross-vendor universal)
 #   $HOME/.codex/agents/<name>.toml
-#   $HOME/.codex/config.toml       ([mcp_servers.<name>])
 #   $HOME/.codex/hooks.json        (gated by [features] codex_hooks=true)
+#
+# No MCP server config: the rf-tools MCP server was removed, and the
+# installer no longer writes config.toml at all.
 
 set -euo pipefail
 . "$(dirname "$0")/_lib.sh"
@@ -30,11 +32,6 @@ case "${1:-}" in
     need_toml_key "$CODEX/agents/rf-test-architect.toml" 'name'
     need_toml_key "$CODEX/agents/rf-test-architect.toml" 'description'
     need_toml_key "$CODEX/agents/rf-test-architect.toml" 'developer_instructions'
-    # MCP server registered in config.toml
-    need_file "$CODEX/config.toml"
-    # Key path uses dot-separator; quote semantics aren't needed since
-    # ``rf-tools`` has no literal dots.
-    need_toml_key "$CODEX/config.toml" 'mcp_servers.rf-tools'
     # Hooks file copied (the codex_hooks feature flag is the user's
     # responsibility — we don't toggle it)
     need_file "$CODEX/hooks.json"
@@ -42,6 +39,23 @@ case "${1:-}" in
     need_file "$PLUGIN_FILES/scripts/validate_robot.mjs"
     need_file "$PLUGIN_FILES/scripts/python_runtime.json"
     need_no_substitution "$PLUGIN_FILES/scripts/validate_robot.mjs"
+    # rf-tools MCP server was removed: config.toml isn't written by the
+    # installer at all, so no [mcp_servers.rf-tools] table should exist
+    # (only checked if a pre-existing config.toml happens to be there),
+    # and no server script was staged.
+    if [ -f "$CODEX/config.toml" ]; then
+        if python3 -c "
+import sys
+try: import tomllib
+except ImportError: import tomli as tomllib
+d = tomllib.loads(open('$CODEX/config.toml').read())
+sys.exit(0 if 'rf-tools' in d.get('mcp_servers', {}) else 1)
+"; then
+            printf '  [check] config.toml unexpectedly has an rf-tools mcp_servers entry\n' >&2
+            exit 1
+        fi
+    fi
+    need_no_file "$PLUGIN_FILES/servers/rf-tools-server.py"
 
     # API-free agent introspection: codex's bundled skill-installer
     # reads $CODEX_HOME/skills (and Codex itself reads .agents/skills).

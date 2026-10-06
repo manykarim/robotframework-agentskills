@@ -431,8 +431,9 @@ def test_version_command_exits_zero() -> None:
 
 def test_step0_means_in_order() -> None:
     step0 = _section(_text(SKILL_MD), "Step 0: Match the project")
-    mcp, script, grep = (step0.index(s) for s in ("`rf_conventions` MCP tool", "scripts/rf_conventions.py", "grep -r"))
-    assert mcp < script < grep
+    script, grep = (step0.index(s) for s in ("scripts/rf_conventions.py", "grep -r"))
+    assert script < grep
+    assert "MCP" not in step0
     greps = [ln for ln in step0.splitlines() if ln.startswith("grep -r")]
     assert len(greps) == 3
     assert all("--include='*.robot'" in g and "--include='*.resource'" in g and "grep -rh" in g for g in greps)

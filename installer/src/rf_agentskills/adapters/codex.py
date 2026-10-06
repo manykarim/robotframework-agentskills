@@ -13,18 +13,15 @@ its bundled `.system` skills live) but the public spec is ``.agents``:
                 modulo ``${CLAUDE_PLUGIN_ROOT}`` substitution.
 * subagents   → ``~/.codex/agents/<name>.toml``, transformed from the
                 Claude ``.md`` via :func:`transforms.subagent_md_to_codex_toml`.
-* MCP servers → ``[mcp_servers.<name>]`` blocks merged into
-                ``~/.codex/config.toml`` (TOML round-trip).
 * hooks       → ``~/.codex/hooks.json``. Codex hooks are **experimental**
                 and gated by ``[features] codex_hooks = true`` in
                 ``config.toml``. We do *not* flip that flag automatically;
                 ``post_install`` tells the user how.
 
-Plus a co-located copy of the plugin's ``scripts/`` and ``servers/``
-under ``<root>/rf-agentskills-files/`` — same staging strategy as the
-Claude Code adapter — so ``${CLAUDE_PLUGIN_ROOT}`` references in skill
-bodies, hook commands, and MCP server invocations resolve to a stable,
-post-substitution path.
+Plus a co-located copy of the plugin's ``scripts/`` (hook scripts) and
+the skills' scripts under ``<root>/rf-agentskills-files/`` — same staging
+strategy as the Claude Code adapter — so ``${CLAUDE_PLUGIN_ROOT}``
+references in hook commands resolve to a stable, post-substitution path.
 
 Substitution happens *at install time*, per the proposal's
 decision-point #2: the ``${CLAUDE_PLUGIN_ROOT}`` token is rewritten to
@@ -34,15 +31,14 @@ self-contained and don't require the env var to be set at runtime.
 
 from __future__ import annotations
 
-import json
 import shutil
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Iterable
+from typing import Iterable
 
 from .. import _assets
 from .. import transforms as _x
-from ._base import AdapterBase, ConfigMergeOp, InstallOptions, InstallPlan, InstallTarget, skill_script_files
+from ._base import AdapterBase, InstallOptions, InstallPlan, InstallTarget, skill_script_files
 
 
 PLUGIN_FILES_SUBDIR = "rf-agentskills-files"
@@ -103,12 +99,6 @@ class CodexAdapter(AdapterBase):
                 what=opts.what,
                 register_hooks=register_hooks,
             ))
-            merges = list(self._collect_merges(
-                src_root=src_root,
-                root=root,
-                plugin_root_abs=plugin_root_abs,
-                what=opts.what,
-            ))
 
         notes: list[str] = []
         if "hooks" in opts.what:
@@ -124,7 +114,7 @@ class CodexAdapter(AdapterBase):
                     "written. Install Node.js then re-run `rf-agentskills "
                     "install --agent codex` to enable hooks."
                 )
-        return InstallPlan(targets=tuple(targets), merges=tuple(merges), notes=tuple(notes))
+        return InstallPlan(targets=tuple(targets), notes=tuple(notes))
 
     def _collect_targets(
         self,
@@ -188,12 +178,11 @@ class CodexAdapter(AdapterBase):
                     transform_name="plugin_root_substitution",
                 )
 
-        # 4. Plugin-co-located files: scripts/, servers/, hooks/. These
-        #    live under <root>/rf-agentskills-files/ so the substituted
-        #    ${CLAUDE_PLUGIN_ROOT} paths in skills / agents / MCP /
-        #    hooks resolve.
-        if {"hooks", "skills", "mcp", "agents"} & what:
-            for category in ("scripts", "servers", "hooks"):
+        # 4. Plugin-co-located files: scripts/, hooks/. These live under
+        #    <root>/rf-agentskills-files/ so the substituted
+        #    ${CLAUDE_PLUGIN_ROOT} paths in skills / agents / hooks resolve.
+        if {"hooks", "skills", "agents"} & what:
+            for category in ("scripts", "hooks"):
                 cat_src = src_root / category
                 if not cat_src.is_dir():
                     continue
@@ -207,48 +196,21 @@ class CodexAdapter(AdapterBase):
                         transform_name="plugin_root_substitution",
                         executable=f.suffix in (".sh", ".ps1") or f.name.endswith(".bash"),
                     )
-            # Pin the install-time Python interpreter (see claude_code.py).
-            # Per-skill scripts for the MCP server (<plugin_dst>/skills/<skill>/scripts/).
+            # Per-skill scripts for the hooks (<plugin_dst>/skills/<skill>/scripts/;
+            # the Stop hook runs skills/rf-results/scripts/rf_results.py).
             for f in skill_script_files(src_root):
                 rel = f.relative_to(src_root)
                 yield InstallTarget(
                     dst=plugin_dst / rel,
                     payload=f.read_bytes(),
-                    transform_name="skill_script_for_mcp_server",
+                    transform_name="skill_script_for_hooks",
                 )
+            # Pin the install-time Python interpreter (see claude_code.py).
             yield InstallTarget(
                 dst=plugin_dst / "scripts" / "python_runtime.json",
                 payload=_x.python_runtime_config_bytes(),
                 transform_name="python_runtime_pin",
             )
-
-    def _collect_merges(
-        self,
-        *,
-        src_root: Path,
-        root: Path,
-        plugin_root_abs: str,
-        what: frozenset[str],
-    ) -> Iterable[ConfigMergeOp]:
-        # 5. MCP servers → [mcp_servers.<name>] blocks in config.toml.
-        #    The plugin ships .mcp.json with a JSON shape; we lift each
-        #    server entry into a TOML table merge so users can add their
-        #    own servers under [mcp_servers] without us trampling them.
-        if "mcp" in what:
-            plugin_mcp = src_root / ".mcp.json"
-            if plugin_mcp.is_file():
-                config_path = root / CONFIG_TOML_FILENAME
-                raw = _x.substitute_plugin_root(
-                    plugin_mcp.read_text(encoding="utf-8"), plugin_root_abs
-                )
-                plugin_servers = (json.loads(raw) or {}).get("mcpServers", {})
-                for server_name, server_def in plugin_servers.items():
-                    toml_value = _json_to_toml_value(server_def)
-                    yield self._mcp_server_merge_op(
-                        config_path=config_path,
-                        server_name=server_name,
-                        value=toml_value,
-                    )
 
     # ------------------------------------------------------------------
     # post_install
@@ -259,12 +221,6 @@ class CodexAdapter(AdapterBase):
             "Codex will pick up skills and agents on next session start "
             "(it walks ~/.codex/skills/ and ~/.codex/agents/ at launch).",
         ]
-        if "mcp" in opts.what:
-            notes.append(
-                "MCP servers were merged into ~/.codex/config.toml under "
-                "[mcp_servers.*]. First time you run a tool from rf-tools "
-                "you may see a trust prompt — accept it once."
-            )
         if "hooks" in opts.what:
             notes.append(
                 "Codex hooks are EXPERIMENTAL. To enable them, add this to "
@@ -287,64 +243,3 @@ class CodexAdapter(AdapterBase):
         if _x.is_substitution_candidate(src):
             return _x.substitute_plugin_root_bytes(data, plugin_root_abs)
         return data
-
-    def _mcp_server_merge_op(
-        self,
-        *,
-        config_path: Path,
-        server_name: str,
-        value: dict[str, Any],
-    ) -> ConfigMergeOp:
-        """Build a ConfigMergeOp that sets ``[mcp_servers.<name>]`` in config.toml.
-
-        Uninstall reconstructs the deletion from ``kind="toml_table"`` +
-        ``key_path=("mcp_servers", <name>)``: it drops just the
-        ``mcp_servers.<name>`` table, leaving any user-added entries
-        under ``mcp_servers`` untouched.
-        """
-        table_path = ["mcp_servers", server_name]
-
-        def apply() -> list[str]:
-            _x.merge_toml_table(config_path, table_path, value)
-            # The "added_keys" return value isn't used for toml_table
-            # merges (uninstall walks key_path directly) — return the
-            # leaf key for diagnostic purposes.
-            return [server_name]
-
-        def revert() -> None:
-            _x.remove_toml_table(config_path, table_path)
-
-        return ConfigMergeOp(
-            path=config_path,
-            description=f"merge MCP server [{'.'.join(table_path)}] into {config_path}",
-            apply=apply,
-            revert=revert,
-            kind="toml_table",
-            key_path=tuple(table_path),
-        )
-
-
-# ---------------------------------------------------------------------------
-# JSON → TOML value coercion
-# ---------------------------------------------------------------------------
-
-
-def _json_to_toml_value(value: Any) -> Any:
-    """Coerce a JSON-decoded MCP server definition into a TOML-safe value.
-
-    The MCP server shape we write today is a flat dict of:
-    ``command`` (str), ``args`` (list[str]), ``env`` (dict[str, str]).
-    All three are TOML-native, so this is mostly a pass-through; the
-    function exists as a defensive boundary so future additions to
-    .mcp.json that aren't TOML-representable surface here, not deep
-    inside ``tomli_w``.
-    """
-    if isinstance(value, dict):
-        return {k: _json_to_toml_value(v) for k, v in value.items()}
-    if isinstance(value, list):
-        return [_json_to_toml_value(v) for v in value]
-    # str / int / float / bool / None — TOML-native modulo None, which
-    # has no TOML representation. Drop None keys at the dict level above.
-    if value is None:
-        return ""
-    return value

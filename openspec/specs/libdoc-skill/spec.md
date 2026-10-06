@@ -56,14 +56,6 @@ Each channel SHALL contain exactly one `rf_libdoc.py` for the libdoc skill, as a
 - **WHEN** `scripts/check-drift.sh` runs
 - **THEN** it compares `skills/rf-libdoc/scripts/rf_libdoc.py` with the plugin and VS Code copies and reports no drift
 
-### Requirement: MCP tool names are unchanged
-
-The `rf-tools` MCP server SHALL keep exposing `rf_libdoc_search` and `rf_libdoc_explain` with their current input schemas and output contract. The merge SHALL NOT rename, remove or alias these tools.
-
-#### Scenario: Tools still listed
-- **WHEN** a client lists the `rf-tools` server's tools after the merge
-- **THEN** `rf_libdoc_search` and `rf_libdoc_explain` are present with the same required inputs as before
-
 ### Requirement: References use the merged skill
 
 Shipped content SHALL refer to keyword lookup only as `rf-libdoc` (or its plugin-channel name). Companion Skills tables SHALL have one row for `rf-libdoc` in place of the two former rows; subagent prompts, the context-injection hook text, README, marketplace/plugin/extension descriptions, installer checks, eval tasks and tests SHALL use the merged name. The context-injection trigger SHALL fire on the merged skill name and SHALL still fire on the generic term `libdoc`.

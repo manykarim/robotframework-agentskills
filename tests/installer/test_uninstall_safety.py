@@ -102,14 +102,52 @@ def test_uninstall_removes_only_our_hooks(fake_home: Path) -> None:
 # --- 2.4: MCP coexistence --------------------------------------------------
 
 
-def test_mcp_server_coexists_and_uninstalls_cleanly(fake_home: Path) -> None:
+def _fake_legacy_mcp_install(home: Path, mcp: Path) -> Path:
+    """Re-create what installers before content 2.0.0 left: rf-tools in .mcp.json,
+    the staged server file and their manifest records."""
+    from rf_agentskills import manifest as _m
+
+    servers = json.loads(mcp.read_text(encoding="utf-8"))
+    servers["mcpServers"]["rf-tools"] = {"command": "python3", "args": ["x/rf-tools-server.py"]}
+    mcp.write_text(json.dumps(servers, indent=2), encoding="utf-8")
+    server = home / ".claude" / "rf-agentskills-files" / "servers" / "rf-tools-server.py"
+    server.parent.mkdir(parents=True, exist_ok=True)
+    server.write_text("# old server\n", encoding="utf-8")
+    manifest_path = _m.default_manifest_path()
+    manifest = _m.Manifest.load(manifest_path)
+    manifest.upsert(_m.Installation(
+        agent="claude-code", scope="user", installed_at=_m.now_iso(), bundle_version="0.6.0",
+        files=[_m.file_entry_for(server)],
+        config_merges=[_m.ConfigMerge(path=str(mcp), added_keys=["rf-tools"],
+                                      kind="json_nested", key_path=["mcpServers"])],
+    ))
+    manifest.save(manifest_path)
+    return server
+
+
+def test_reinstall_retires_legacy_rf_tools_and_keeps_foreign_server(fake_home: Path) -> None:
     _, mcp = _seed(fake_home)
+    server = _fake_legacy_mcp_install(fake_home, mcp)
     _install(fake_home)
     servers = json.loads(mcp.read_text(encoding="utf-8"))["mcpServers"]
-    assert "some-other-server" in servers and "rf-tools" in servers
-    _uninstall(fake_home)
-    servers = json.loads(mcp.read_text(encoding="utf-8"))["mcpServers"]
     assert list(servers) == ["some-other-server"]
+    assert not server.exists()
+    _uninstall(fake_home)
+    assert list(json.loads(mcp.read_text(encoding="utf-8"))["mcpServers"]) == ["some-other-server"]
+
+
+def test_uninstall_of_legacy_record_removes_only_rf_tools(fake_home: Path) -> None:
+    _, mcp = _seed(fake_home)
+    server = _fake_legacy_mcp_install(fake_home, mcp)
+    _uninstall(fake_home)
+    assert list(json.loads(mcp.read_text(encoding="utf-8"))["mcpServers"]) == ["some-other-server"]
+    assert not server.exists()
+
+
+def test_install_never_writes_an_mcp_server(fake_home: Path) -> None:
+    _, mcp = _seed(fake_home)
+    _install(fake_home)
+    assert json.loads(mcp.read_text(encoding="utf-8")) == FOREIGN_MCP
 
 
 # --- 2.5: idempotent re-install -------------------------------------------
@@ -165,3 +203,39 @@ def test_user_modified_installed_file_is_skipped(fake_home: Path) -> None:
     _uninstall(fake_home)
     assert edited.is_file()  # user edit detected via hash → preserved
     assert "<!-- user edit -->" in edited.read_text(encoding="utf-8")
+
+
+def test_retire_legacy_mcp_cleans_every_config_shape(tmp_path: Path) -> None:
+    import yaml
+
+    from rf_agentskills import manifest as _m
+    from rf_agentskills.cli import _retire_legacy_mcp
+
+    toml = tmp_path / "config.toml"
+    _x.merge_toml_table(toml, ["mcp_servers", "rf-tools"], {"command": "python3"})
+    _x.merge_toml_table(toml, ["mcp_servers", "mine"], {"command": "node"})
+    goose = tmp_path / "config.yaml"
+    goose.write_text(yaml.safe_dump({"extensions": {"rf-tools": {"cmd": "python3"}, "mine": {}}}))
+    vscode = tmp_path / ".vscode" / "mcp.json"
+    vscode.parent.mkdir()
+    vscode.write_text(json.dumps({"servers": {"rf-tools": {}, "mine": {}}}))
+    desktop = tmp_path / "claude_desktop_config.json"
+    desktop.write_text(json.dumps({"mcpServers": {"rf-tools": {}, "mine": {}}, "theme": "dark"}))
+    hooks = _m.ConfigMerge(path=str(tmp_path / "settings.json"), added_keys=["Stop"],
+                           kind="json_hooks", key_path=["hooks"], marker="x")
+    merges = [
+        _m.ConfigMerge(path=str(toml), added_keys=["rf-tools"], kind="toml_table",
+                       key_path=["mcp_servers", "rf-tools"]),
+        _m.ConfigMerge(path=str(goose), added_keys=["rf-tools"], kind="yaml_block",
+                       key_path=["extensions"]),
+        _m.ConfigMerge(path=str(vscode), added_keys=["rf-tools"], kind="json_top"),
+        _m.ConfigMerge(path=str(desktop), added_keys=["rf-tools"], kind="json_nested",
+                       key_path=["mcpServers"]),
+        hooks,
+    ]
+    kept, cleaned = _retire_legacy_mcp(merges)
+    assert kept == [hooks] and len(cleaned) == 4
+    assert "rf-tools" not in toml.read_text() and "mine" in toml.read_text()
+    assert list(yaml.safe_load(goose.read_text())["extensions"]) == ["mine"]
+    assert json.loads(vscode.read_text()) == {"servers": {"mine": {}}}
+    assert json.loads(desktop.read_text()) == {"mcpServers": {"mine": {}}, "theme": "dark"}

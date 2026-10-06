@@ -218,8 +218,8 @@ uv run rf-skill-eval run \
   --output eval/runs/manual-$(date +%s)
 ```
 
-- `--arm` — `treatment` (the plugin as shipped: skills, hooks, subagents,
-  `rf-tools`) or `baseline` (no plugin parts; everything else identical).
+- `--arm` — `treatment` (the plugin as shipped: skills, hooks, subagents)
+  or `baseline` (no plugin parts; everything else identical).
   `--profile control` still works as a deprecated alias of `baseline`.
 - `--model` — override the task's model (see [Model Policy](#model-policy)).
 

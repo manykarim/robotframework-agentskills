@@ -27,9 +27,12 @@ def test_plan_writes_skills_agents_and_plugin_files(install_prefix: Path) -> Non
     # Skills tree
     assert any("/skills/rf-libdoc/SKILL.md" in p for p in dst_paths)
     assert any("/agents/rf-test-architect.md" in p for p in dst_paths)
-    # Co-located scripts/servers under rf-agentskills-files/
+    # Co-located hook scripts (and the skill scripts the Stop hook runs)
     assert any("/rf-agentskills-files/scripts/" in p for p in dst_paths)
-    assert any("/rf-agentskills-files/servers/" in p for p in dst_paths)
+    assert any("/rf-agentskills-files/skills/rf-results/scripts/rf_results.py" in p
+               for p in dst_paths)
+    # The rf-tools MCP server is gone
+    assert not any("/servers/" in p or p.endswith(".mcp.json") for p in dst_paths)
 
 
 def test_plan_substitutes_plugin_root_token(install_prefix: Path) -> None:
@@ -74,11 +77,11 @@ def test_plan_writes_python_runtime_config(install_prefix: Path) -> None:
     assert cfg["fallbacks"] == ["python3", "python"]
 
 
-def test_plan_includes_hooks_and_mcp_merges(install_prefix: Path) -> None:
+def test_plan_merges_hooks_only(install_prefix: Path) -> None:
     plan = ClaudeCodeAdapter().plan(InstallOptions(prefix=install_prefix))
     descriptions = [m.description for m in plan.merges]
     assert any("hooks" in d for d in descriptions)
-    assert any("MCP" in d.upper() for d in descriptions)
+    assert not any("MCP" in d.upper() for d in descriptions)
 
 
 def test_plan_merge_kinds(install_prefix: Path) -> None:
@@ -87,8 +90,7 @@ def test_plan_merge_kinds(install_prefix: Path) -> None:
     assert "json_hooks" in by_kind   # hooks block (granular, ownership-aware)
     assert by_kind["json_hooks"].key_path == ("hooks",)
     assert by_kind["json_hooks"].marker  # install-dir ownership marker recorded
-    assert "json_nested" in by_kind  # MCP servers under mcpServers
-    assert by_kind["json_nested"].key_path == ("mcpServers",)
+    assert set(by_kind) == {"json_hooks"}  # no MCP server merge any more
 
 
 # ---- detect() -------------------------------------------------------------
@@ -134,9 +136,7 @@ def test_end_to_end_install_and_uninstall(install_prefix: Path, fake_home: Path)
     assert (install_prefix / "settings.json").is_file()
     settings = json.loads((install_prefix / "settings.json").read_text())
     assert "hooks" in settings
-    assert (install_prefix / ".mcp.json").is_file()
-    mcp = json.loads((install_prefix / ".mcp.json").read_text())
-    assert "mcpServers" in mcp
+    assert not (install_prefix / ".mcp.json").exists()
 
     # Now uninstall — manifest is CWD/project-scoped (fake_home chdir), so
     # the absolute paths recorded at install are removed from the prefix.

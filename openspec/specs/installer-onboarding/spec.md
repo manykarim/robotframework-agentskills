@@ -57,7 +57,7 @@ per-agent config; `--scope user` SHALL be required to perform a global
 
 #### Scenario: User scope still available
 - **WHEN** `--scope user` is passed
-- **THEN** the install targets the home-directory layout (e.g. `~/.claude`, `~/.mcp.json`) as before
+- **THEN** the install targets the home-directory layout (e.g. `~/.claude`) as before
 
 ### Requirement: Zero-install entry point via PyPI
 

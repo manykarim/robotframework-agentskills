@@ -11,11 +11,11 @@
 #   need_no_substitution <path>
 #       file must not contain literal ${CLAUDE_PLUGIN_ROOT}
 #   need_yaml_key <path> <jq-style-keypath>
-#       e.g. need_yaml_key config.yaml extensions.rf-tools
+#       e.g. need_yaml_key config.yaml extensions.developer
 #   need_json_key <path> <jq-keypath>
-#       e.g. need_json_key mcp.json mcpServers.rf-tools
+#       e.g. need_json_key settings.json hooks.PostToolUse
 #   need_toml_key <path> <table-path>
-#       e.g. need_toml_key config.toml mcp_servers.rf-tools
+#       e.g. need_toml_key config.toml features.codex_hooks
 #   skip <reason>
 #       prints reason to stderr and exits 0 (used when an introspection
 #       command isn't available in this version of the agent)

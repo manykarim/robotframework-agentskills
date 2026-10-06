@@ -483,8 +483,8 @@ package = true
 - The evaluation subsystem **consumes** `skills/` (the canonical source) via the
   existing `scripts/sync-skills.sh` pipeline — `profiles/treatment/` is populated from
   `skills/` at harness-init time.
-- The MCP server (`plugins/rf-agentskills/servers/rf-tools-server.py`) is **not** a
-  dependency of the harness. The harness evaluates skills via session observation,
+- The plugin ships no MCP server (the former `rf-tools` server was removed); it was
+  never a dependency of the harness. The harness evaluates skills via session observation,
   not via tool invocation.
 - Drift detection (`scripts/check-drift.sh`) runs independently of the eval harness.
 - CI adds a new `eval` job (ADR-005) alongside the existing `validate-plugin` job.

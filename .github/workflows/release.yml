@@ -89,6 +89,10 @@ jobs:
           done
           tar -czf robotframework-skills-copilot-${{ steps.version.outputs.version }}.tar.gz .github/copilot-skills/
 
+      # ── Build Claude Desktop / claude.ai skill uploads (one .zip per skill) ──
+      - name: Package Claude Desktop skill zips
+        run: python scripts/build-skill-zips.py --out skill-zips
+
       # ── Generate changelog ──
       - name: Generate changelog
         run: |
@@ -116,15 +120,18 @@ jobs:
 
           **Any agent:** Extract `robotframework-skills-*.tar.gz` into `.claude/skills/`, `.codex/skills/`, or `.github/skills/`.
 
+          **Claude Desktop / claude.ai:** Download the `rf-*.zip` files and upload each under Customize → Skills → + → Create skill → Upload a skill (code execution must be enabled).
+
           ### Release Artifacts
 
           | Artifact | Agent | Contents |
           |----------|-------|----------|
           | `.vsix` | VS Code + Copilot Chat | Extension with @SKILL_COUNT@ chat skills |
-          | `claude-plugin-*.tar.gz` | Claude Code | Plugin with skills, agents, hooks, MCP server |
+          | `claude-plugin-*.tar.gz` | Claude Code | Plugin with skills, agents, hooks |
           | `skills-*.tar.gz` | Any agent | @SKILL_COUNT@ standalone skill folders (`rf-*`) |
           | `skills-codex-*.tar.gz` | OpenAI Codex | Skills in `.codex/skills/` layout |
           | `skills-copilot-*.tar.gz` | GitHub Copilot | Skills in `.github/skills/` layout |
+          | `rf-*.zip` | Claude Desktop, claude.ai | One upload-ready archive per skill |
 
           HEADER
           sed -i "s/@SKILL_COUNT@/${SKILL_COUNT}/g" CHANGELOG_BODY.md
@@ -171,6 +178,7 @@ jobs:
             robotframework-skills-${{ steps.version.outputs.version }}.tar.gz
             robotframework-skills-codex-${{ steps.version.outputs.version }}.tar.gz
             robotframework-skills-copilot-${{ steps.version.outputs.version }}.tar.gz
+            skill-zips/*.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
