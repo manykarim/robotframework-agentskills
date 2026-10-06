@@ -76,6 +76,30 @@ def test_provision_workspace_missing_fixture_raises(tmp_path: Path) -> None:
         runner._provision_workspace(task, artifacts)
 
 
+def test_warns_once_when_artifacts_are_inside_repo(
+    tmp_path: Path, caplog: pytest.LogCaptureFixture
+) -> None:
+    repo = tmp_path / "repo"
+    runner = ClaudeCodeRunner(fixtures_root=tmp_path / "fixtures", repo_root=repo)
+    for i in range(2):
+        (repo / "eval" / "runs" / f"r{i}").mkdir(parents=True)
+        runner._warn_if_inside_repo(repo / "eval" / "runs" / f"r{i}")
+    outside = tmp_path / "out"
+    outside.mkdir()
+    runner._warn_if_inside_repo(outside)
+    warnings = [r for r in caplog.records if "inside the repository" in r.getMessage()]
+    assert len(warnings) == 1
+
+
+def test_no_warning_when_artifacts_are_outside_repo(
+    tmp_path: Path, caplog: pytest.LogCaptureFixture
+) -> None:
+    runner = ClaudeCodeRunner(fixtures_root=tmp_path / "fixtures", repo_root=tmp_path / "repo")
+    (tmp_path / "out").mkdir()
+    runner._warn_if_inside_repo(tmp_path / "out")
+    assert not [r for r in caplog.records if "inside the repository" in r.getMessage()]
+
+
 def test_build_cmd_adds_preamble_when_fixture_present(tmp_path: Path) -> None:
     runner = ClaudeCodeRunner(fixtures_root=tmp_path)
     task = _make_task("sut-x", tmp_path)
@@ -433,3 +457,14 @@ def test_snapshot_prunes_nested_heavy_dirs_and_still_detects_violations(tmp_path
     (repo / "src" / "leak.txt").write_text("written outside the workspace")
     (ws / "ok.robot").write_text("inside")
     assert _detect_workspace_violations(repo, ws, snap) == [(repo / "src" / "leak.txt").resolve()]
+
+
+def test_agent_env_drops_harness_venv(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    # An agent's `uv pip install` must not land in the venv running the harness.
+    monkeypatch.setenv("CLAUDE_CODE_OAUTH_TOKEN", "fake")
+    monkeypatch.setenv("VIRTUAL_ENV", "/repo/.venv")
+    monkeypatch.setenv("VIRTUAL_ENV_PROMPT", "repo")
+    monkeypatch.setenv("UV_PROJECT_ENVIRONMENT", "/repo/.venv")
+    env = ClaudeCodeRunner(fixtures_root=tmp_path, repo_root=tmp_path)._build_env(tmp_path)
+    assert not {"VIRTUAL_ENV", "VIRTUAL_ENV_PROMPT", "UV_PROJECT_ENVIRONMENT"} & set(env)
+    assert env["CLAUDE_CONFIG_DIR"] == str(tmp_path)

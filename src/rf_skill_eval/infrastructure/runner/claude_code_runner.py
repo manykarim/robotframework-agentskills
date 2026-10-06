@@ -57,6 +57,7 @@ class ClaudeCodeRunner:
         self._grace_seconds = grace_seconds
         self._fixtures_root = fixtures_root
         self._repo_root = (repo_root or Path.cwd()).resolve()
+        self._warned_inside_repo = False
         self._plugin_root = (
             plugin_root.resolve()
             if plugin_root is not None
@@ -263,8 +264,21 @@ class ClaudeCodeRunner:
         known.update(skill_dir_map(self._repo_root / "skills"))
         return known
 
+    def _warn_if_inside_repo(self, artifacts_dir: Path) -> None:
+        """Runs under the repo checkout see it as "our project" (and may edit it)."""
+        if self._warned_inside_repo or not artifacts_dir.resolve().is_relative_to(self._repo_root):
+            return
+        self._warned_inside_repo = True
+        _log.warning(
+            "run artifacts %s are inside the repository %s: the agent sees the repo as its "
+            "project, which skews triggering and tokens; pass an --output outside the repo",
+            artifacts_dir,
+            self._repo_root,
+        )
+
     def _workspace_for(self, task: Task, profile: Profile, artifacts_dir: Path) -> Path:
         """Task fixture, else the profile's fixture, else an empty dir (if isolated)."""
+        self._warn_if_inside_repo(artifacts_dir)
         workspace_dir = self._provision_workspace(task, artifacts_dir)
         if workspace_dir != artifacts_dir:
             return workspace_dir
@@ -475,6 +489,10 @@ class ClaudeCodeRunner:
         self, config_dir: Path, *, listing_budget: int | None = None
     ) -> dict[str, str]:
         env = os.environ.copy()
+        # `uv run rf-skill-eval` exports the harness venv; an agent's
+        # `uv pip install ...` in its workspace would then install into it.
+        for var in _HARNESS_VENV_VARS:
+            env.pop(var, None)
         env["CLAUDE_CONFIG_DIR"] = str(config_dir)
         if listing_budget is not None:
             # Skill-listing budget (design D14); only set when requested.
@@ -733,6 +751,10 @@ def isolation_error(repo_root: Path, violations: list[Path]) -> str:
         f"isolation-violation: {len(violations)} file(s) created outside the workspace "
         f"during the run: {', '.join(names)}{tail}"
     )
+
+
+#: Variables that point an agent's Python tooling at the harness venv.
+_HARNESS_VENV_VARS = ("VIRTUAL_ENV", "VIRTUAL_ENV_PROMPT", "UV_PROJECT_ENVIRONMENT")
 
 
 def _snapshot_repo_root(repo_root: Path, workspace_dir: Path) -> set[Path]:

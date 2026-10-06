@@ -31,15 +31,27 @@ queries:
   - {id: se-n08, split: validation, should_trigger: false, note: "sibling rf-results", query: "Summarise which tests failed in results/output.xml from last night's UI run"}
   - {id: se-n09, split: validation, should_trigger: false, note: "non-RF look-alike", query: "Set up a Selenium Grid 4 hub with Docker compose for our Java team"}
   - {id: se-n10, split: validation, should_trigger: false, note: "non-RF look-alike", query: "Write a pytest fixture that yields a headless Firefox selenium driver"}
-  # holdout (tune-skill-descriptions task 7.1): written after the descriptions shipped;
+  # retired holdout (tune-skill-descriptions task 7.1): its results were inspected in the
+  # 2026-09-30 evidence, so it moved to train (add-sibling-cues-to-descriptions D3).
+  - {id: se-h01, split: train, should_trigger: true, note: "retired holdout (2026-09-30 evidence)", query: "SeleniumLibrary test: drag the 'Task 3' card into the 'Done' column of our kanban board"}
+  - {id: se-h02, split: train, should_trigger: true, note: "retired holdout (2026-09-30 evidence)", query: "Our robot web suite on Selenium: wait until the AJAX table has 20 rows before reading it"}
+  - {id: se-h03, split: train, should_trigger: true, note: "retired holdout (2026-09-30 evidence)", query: "Robot + SeleniumLibrary: read the value of the session_id cookie after login"}
+  - {id: se-h04, split: train, should_trigger: true, note: "retired holdout (2026-09-30 evidence)", query: "Upload a file through the hidden <input type=file> in our Selenium-based robot test"}
+  - {id: se-h05, split: train, should_trigger: true, note: "indirect: pasted error; retired holdout (2026-09-30 evidence)", query: "chromedriver-based robot tests randomly fail with 'element not interactable' on the Save button, which wait should I use?"}
+  - {id: se-h06, split: train, should_trigger: false, note: "sibling rf-browser; retired holdout (2026-09-30 evidence)", query: "Library    Browser: make every new page start with the German locale and a 1280x720 viewport"}
+  - {id: se-h07, split: train, should_trigger: false, note: "sibling rf-browser; retired holdout (2026-09-30 evidence)", query: "We're starting a brand-new Robot Framework web test project for our shop; write the first product search test"}
+  - {id: se-h08, split: train, should_trigger: false, note: "sibling rf-setup; retired holdout (2026-09-30 evidence)", query: "Selenium Manager can't download chromedriver in our offline CI; set up the drivers for the robot suite"}
+  - {id: se-h09, split: train, should_trigger: false, note: "non-RF look-alike; retired holdout (2026-09-30 evidence)", query: "Write a WebdriverIO test in TypeScript for the search box"}
+  - {id: se-h10, split: train, should_trigger: false, note: "non-RF look-alike; retired holdout (2026-09-30 evidence)", query: "Explain implicit vs explicit waits in Selenium WebDriver for C#"}
+  # holdout2 (add-sibling-cues-to-descriptions task 1.3): fresh queries written 2026-10-01,
   # never used to tune, select or accept a description. 5 should / 5 should-not trigger.
-  - {id: se-h01, split: holdout, should_trigger: true, query: "SeleniumLibrary test: drag the 'Task 3' card into the 'Done' column of our kanban board"}
-  - {id: se-h02, split: holdout, should_trigger: true, query: "Our robot web suite on Selenium: wait until the AJAX table has 20 rows before reading it"}
-  - {id: se-h03, split: holdout, should_trigger: true, query: "Robot + SeleniumLibrary: read the value of the session_id cookie after login"}
-  - {id: se-h04, split: holdout, should_trigger: true, query: "Upload a file through the hidden <input type=file> in our Selenium-based robot test"}
-  - {id: se-h05, split: holdout, should_trigger: true, note: "indirect: pasted error", query: "chromedriver-based robot tests randomly fail with 'element not interactable' on the Save button, which wait should I use?"}
-  - {id: se-h06, split: holdout, should_trigger: false, note: "sibling rf-browser", query: "Library    Browser: make every new page start with the German locale and a 1280x720 viewport"}
-  - {id: se-h07, split: holdout, should_trigger: false, note: "sibling rf-browser", query: "We're starting a brand-new Robot Framework web test project for our shop; write the first product search test"}
-  - {id: se-h08, split: holdout, should_trigger: false, note: "sibling rf-setup", query: "Selenium Manager can't download chromedriver in our offline CI; set up the drivers for the robot suite"}
-  - {id: se-h09, split: holdout, should_trigger: false, note: "non-RF look-alike", query: "Write a WebdriverIO test in TypeScript for the search box"}
-  - {id: se-h10, split: holdout, should_trigger: false, note: "non-RF look-alike", query: "Explain implicit vs explicit waits in Selenium WebDriver for C#"}
+  - {id: se-k01, split: holdout2, should_trigger: true, note: "direct", query: "SeleniumLibrary: open the 'Export' link in a new tab, switch to it and check the title of the download page"}
+  - {id: se-k02, split: holdout2, should_trigger: true, note: "edit existing file", query: "In tests/web/search.robot (SeleniumLibrary), replace the Sleep 3s calls with proper waits for the results list"}
+  - {id: se-k03, split: holdout2, should_trigger: true, note: "indirect: pasted error", query: "robot web test: 'StaleElementReferenceException: stale element reference: element is not attached to the page document' while looping over table rows"}
+  - {id: se-k04, split: holdout2, should_trigger: true, note: "direct", query: "Robot Framework with SeleniumLibrary: right-click a row in the grid and choose 'Archive' from the context menu"}
+  - {id: se-k05, split: holdout2, should_trigger: true, note: "indirect: no library named", query: "Our older robot suite drives Firefox through geckodriver; make the date field test type a date and press Enter to confirm it"}
+  - {id: se-k06, split: holdout2, should_trigger: false, note: "sibling rf-setup (driver near-miss)", query: "geckodriver is not on PATH when our robot suite starts Firefox on the Jenkins agent; how do I install it there?"}
+  - {id: se-k07, split: holdout2, should_trigger: false, note: "sibling rf-setup (install near-miss)", query: "Add robotframework-seleniumlibrary and a pinned Selenium 4 to our requirements, then create the venv for the web tests"}
+  - {id: se-k08, split: holdout2, should_trigger: false, note: "sibling rf-setup (driver near-miss)", query: "Our Docker image for the robot web tests has no browser; write the Dockerfile lines that install Chrome and a matching chromedriver"}
+  - {id: se-k09, split: holdout2, should_trigger: false, note: "sibling rf-robotcode (robotcode near-miss)", query: "Using robotcode, run only the web UI suites with the 'firefox' profile from robot.toml"}
+  - {id: se-k10, split: holdout2, should_trigger: false, note: "non-RF look-alike", query: "In Selenium IDE, export my recorded login flow as a Java JUnit test"}

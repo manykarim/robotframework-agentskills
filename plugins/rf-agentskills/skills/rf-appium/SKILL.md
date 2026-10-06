@@ -1,6 +1,6 @@
 ---
 name: rf-appium
-description: "Use first, before exploring or answering, for Robot Framework mobile tests with AppiumLibrary: Android/iOS, locators, gestures."
+description: "Use first, before answering, for RF mobile tests with AppiumLibrary. Not installs/drivers: rf-setup."
 license: Apache-2.0
 compatibility: Requires Python 3.8+, robotframework>=7 and robotframework-appiumlibrary 3.x, an Appium server 2+/3 (Node.js) with the UiAutomator2 or XCUITest driver, the Android SDK or Xcode, and a device or emulator.
 metadata:

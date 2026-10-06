@@ -65,6 +65,32 @@ below remains the target once N is large enough — with N=3 it is
 underpowered, so the regression gate uses a tolerance of one replicate
 (> 1/N) and a +30 % input-token budget against a stored baseline instead.
 
+### Amendment 2026-10-03 — calibrated PR gate
+
+A 9-run noise study of all 22 narrow tasks (Claude Code 2.1.288, Haiku)
+showed the rules above fail ~65–73 % of PR evals with no skill change: 3-run
+baselines misstate flaky tasks (stored 1.00 vs measured 5/9), and a 3-run
+mean of input tokens varies by up to ±45 % per task. The gate now:
+
+- tests pass rate with a one-sided **Fisher exact test** (p < 0.05) on
+  pass/fail counts when the baseline has **≥ 6 runs**; smaller baselines or an
+  explicit `--tolerance` keep the > 1/N rule (a 3-run baseline can never
+  reach p < 0.05);
+- runs the PR tier with `--token-budget 0.75`; the CLI default stays +30 %.
+
+Narrow baselines are recorded with 9 treatment runs.
+
+The trigger gate applies the same idea: `triggers.json` stores run-level
+counts (`positive_loads/positive_runs`, `negative_loads/negative_runs`, from
+6 runs per query), and recall and precision are each tested with a one-sided
+Fisher exact test. Query-level majority votes flipped on borderline queries
+(load rate ≈ 0.5) in ~28 % of no-change PRs; run-level counts give ~0.1 %
+while still catching a skill that stops loading. A `listing` finding fails the
+gate when a shipped description is listed by name only (Claude Code's listing
+room shrank three times between 2.1.284 and 2.1.288). Estimated false-failure
+rate of a full 22-task PR eval: 0–15 %. A task dropping to ≤ 1/3 against a
+9/9 baseline, or a +75 % token rise, is still caught.
+
 ---
 
 ## Context

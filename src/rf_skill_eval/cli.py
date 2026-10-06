@@ -56,7 +56,14 @@ from .application.catalog import (
     validate_tasks,
 )
 from .application.evaluation_service import EvaluationService
-from .application.gate import GateFinding, GateReport, gate_cost, gate_tasks, gate_triggers
+from .application.gate import (
+    GateFinding,
+    GateReport,
+    gate_cost,
+    gate_listing,
+    gate_tasks,
+    gate_triggers,
+)
 from .application.ports import SkillRunner
 from .application.preflight import frontmatter_description, map_changed_paths
 from .application.trigger_eval import (
@@ -76,7 +83,7 @@ from .domain.profile import Profile, parse_arms
 from .domain.results import RunResult, aggregate_replicates
 from .domain.scorecard import Scorecard
 from .domain.task import Task
-from .domain.trigger import SPLITS, TriggerQuery, TriggerSet
+from .domain.trigger import SPLIT_NAMES, TriggerQuery, TriggerSet, is_valid_split
 from .errors import ModelNotAllowedError, RfSkillEvalError
 from .infrastructure.persistence.sqlite_repo import SqliteRunRepository
 from .infrastructure.runner.claude_code_runner import ClaudeCodeRunner
@@ -868,7 +875,9 @@ def _variant(variant_root: Path | None, root: Path) -> tuple[Path, str]:
 def trigger(
     skills: str | None = typer.Option(None, "--skills", help="Comma list (default: all sets)"),
     split: str = typer.Option(
-        "train,validation", "--split", help="Comma list of train, validation, holdout"
+        "train,validation",
+        "--split",
+        help="Comma list of train, validation, holdout, holdout<N> (e.g. holdout2)",
     ),
     runs: int | None = typer.Option(None, "--runs", min=1, max=20, help="Default: set's runs (3)"),
     model: str | None = typer.Option(None, "--model"),
@@ -923,8 +932,8 @@ def trigger(
         raise typer.Exit(code=2)
     selected = [sets[s] for s in (wanted or sorted(sets))]
     splits = tuple(_split_csv(split))
-    if not splits or any(s not in SPLITS for s in splits):
-        raise typer.BadParameter(f"--split must be a comma list of {', '.join(SPLITS)}")
+    if not splits or not all(is_valid_split(s) for s in splits):
+        raise typer.BadParameter(f"--split must be a comma list of {SPLIT_NAMES}")
     for m in sorted({model or s.model for s in selected}):
         _check_model(m, allow_opus, max_cost_usd)
     _require_auth()
@@ -1032,7 +1041,7 @@ def gate(
     baseline: Path = typer.Option(Path("eval/baselines/narrow.json"), "--baseline"),
     tasks_dir: Path = typer.Option(Path("eval/tasks"), "--tasks-dir"),
     tolerance: float | None = typer.Option(
-        None, "--tolerance", help="Allowed pass-rate drop (default: > 1/N fails)"
+        None, "--tolerance", help="Allowed pass-rate drop; default: Fisher exact p < 0.05 vs a >=6-run baseline, else > 1/N fails"
     ),
     token_budget: float = typer.Option(0.30, "--token-budget", help="Allowed input-token rise"),
     trigger_results: Path | None = typer.Option(None, "--trigger-results"),
@@ -1081,6 +1090,7 @@ def gate(
         current = TriggerEvalResult.from_json(json.loads(trigger_results.read_text("utf-8")))
         spent += current.spent_usd
         gate_triggers(current, load_json(trigger_baseline), report_obj)
+        gate_listing(current, shipped_skills(_repo_root()), report_obj)
     gate_cost(report_obj, spent, max_cost_usd)
     text = report_obj.render()
     console.print(text, markup=False, highlight=False)

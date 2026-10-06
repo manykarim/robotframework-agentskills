@@ -17,7 +17,7 @@ from rf_skill_eval.application.baseline import (
     fixture_tree_hash,
     task_hash,
 )
-from rf_skill_eval.application.gate import gate_tasks, gate_triggers
+from rf_skill_eval.application.gate import gate_listing, gate_tasks, gate_triggers
 from rf_skill_eval.application.trigger_eval import TriggerEvalResult
 from rf_skill_eval.domain.results import aggregate_replicates
 from rf_skill_eval.domain.trigger import QueryOutcome
@@ -110,6 +110,36 @@ def test_gate_tolerates_one_replicate_worth() -> None:
     assert gate_tasks(_current(["passed", "passed", "failed"]), base, {"t": "h1"}).status == "pass"
 
 
+def test_fisher_lower_p_matches_hypergeometric_tail() -> None:
+    from rf_skill_eval.application.gate import fisher_lower_p
+
+    assert fisher_lower_p(1, 3, 9, 9) == pytest.approx(10 / 220)
+    assert fisher_lower_p(0, 3, 9, 9) == pytest.approx(1 / 220)
+    assert fisher_lower_p(3, 3, 0, 9) == pytest.approx(1.0)
+
+
+def test_gate_fisher_with_nine_run_baseline() -> None:
+    base = _baseline([make_result("t", "treatment", i) for i in range(9)])
+    # 2/3 vs 9/9: p = 0.25 -> noise; 1/3 vs 9/9: p = 0.045 -> regression
+    assert gate_tasks(_current(["passed", "passed", "failed"]), base, {"t": "h1"}).status == "pass"
+    report = gate_tasks(_current(["passed", "failed", "failed"]), base, {"t": "h1"})
+    [finding] = report.findings
+    assert finding.kind == "pass-rate" and "Fisher p=0.045" in finding.message
+
+
+def test_gate_fisher_tolerates_flaky_baseline_task() -> None:
+    # a task passing 5/9 in the baseline may pass 1/3 in a PR (p = 0.24)
+    rates = ["passed"] * 5 + ["failed"] * 4
+    base = _baseline([make_result("t", "treatment", i, gating=g) for i, g in enumerate(rates)])  # type: ignore[arg-type]
+    assert gate_tasks(_current(["passed", "failed", "failed"]), base, {"t": "h1"}).status == "pass"
+
+
+def test_gate_explicit_tolerance_overrides_fisher() -> None:
+    base = _baseline([make_result("t", "treatment", i) for i in range(9)])
+    report = gate_tasks(_current(["passed", "passed", "failed"]), base, {"t": "h1"}, tolerance=0.2)
+    assert [f.kind for f in report.findings] == ["pass-rate"]
+
+
 def test_gate_token_budget_regression() -> None:
     base = _baseline([make_result("t", "treatment", i) for i in range(3)])
     report = gate_tasks(_current(["passed"] * 3, input_tokens=1450), base, {"t": "h1"})
@@ -159,10 +189,63 @@ def _trigger_result(tp: int, fn: int, tn: int, fp: int) -> TriggerEvalResult:
 def test_trigger_gate_allows_one_query_drop_but_not_two() -> None:
     stored = build_trigger_baseline(_trigger_result(4, 0, 4, 0), harness_version="0.1.0")
     assert stored["skills"]["rf-browser"]["validation"]["accuracy"] == 1.0
+    assert stored["skills"]["rf-browser"]["validation"]["positive_loads"] == 12
+    # run level: 9/12 loads vs 12/12 -> Fisher p = 0.11 (noise); 6/12 -> p < 0.01
     assert gate_triggers(_trigger_result(3, 1, 4, 0), stored).status == "pass"
-    report = gate_triggers(_trigger_result(3, 1, 3, 1), stored)
+    assert gate_triggers(_trigger_result(3, 1, 3, 1), stored).status == "pass"
+    report = gate_triggers(_trigger_result(2, 2, 4, 0), stored)
     assert report.status == "fail"
-    assert report.findings[0].kind == "trigger-accuracy"
+    [finding] = report.findings
+    assert finding.kind == "trigger-accuracy" and "recall: skill loads" in finding.message
+    report = gate_triggers(_trigger_result(4, 0, 2, 2), stored)
+    assert "precision: no load on should-not-trigger runs 6/12" in report.findings[0].message
+
+
+def test_trigger_gate_tolerates_borderline_queries() -> None:
+    # two positives that load half the time: a 3-run sample missing both is noise
+    def result(loads: tuple[int, ...], runs: int) -> TriggerEvalResult:
+        outs = [QueryOutcome("rf-browser", f"p{i}", "validation", True, runs, k, 0.5)
+                for i, k in enumerate(loads)]
+        outs += [QueryOutcome("rf-browser", f"n{i}", "validation", False, runs, 0, 0.5)
+                 for i in range(4)]
+        return TriggerEvalResult(outcomes=outs, model=HAIKU)
+
+    stored = build_trigger_baseline(result((6, 6, 3, 3), 6), harness_version="0.1.0")
+    assert gate_triggers(result((3, 3, 1, 1), 3), stored).status == "pass"
+
+
+def _listed(*listings: tuple[str, ...]) -> TriggerEvalResult:
+    outcome = QueryOutcome("rf-browser", "q1", "validation", True, len(listings), 1, 0.5,
+                           visible_descriptions=listings)
+    return TriggerEvalResult(outcomes=[outcome], model=HAIKU)
+
+
+def test_listing_gate_fails_for_name_only_shipped_skill() -> None:
+    result = _listed(("rf-browser", "rf-setup"), ("rf-browser",))
+    report = gate_listing(result, ["rf-browser", "rf-setup"])
+    [finding] = report.findings
+    assert finding.kind == "listing" and finding.subject == "listing:rf-setup"
+    assert "1/2" in finding.message and report.status == "fail"
+
+
+def test_listing_gate_passes_when_all_shown_or_no_listing_recorded() -> None:
+    assert gate_listing(_listed(("rf-browser", "rf-setup")), ["rf-browser", "rf-setup"]).status == "pass"
+    assert gate_listing(_listed(), ["rf-browser", "rf-setup"]).status == "pass"
+
+
+def test_trigger_gate_one_query_drop_survives_rounded_stored_rate() -> None:
+    # Regression: 9/11 stored as 0.8182 and a current 8/11 (0.72727...) differ by
+    # 0.09093 > 1/11 = 0.09091 only because of the 4-decimal rounding.
+    stored = build_trigger_baseline(_trigger_result(4, 2, 5, 0), harness_version="0.1.0")
+    assert stored["skills"]["rf-browser"]["validation"]["accuracy"] == 0.8182
+    assert gate_triggers(_trigger_result(3, 3, 5, 0), stored).status == "pass"
+    assert gate_triggers(_trigger_result(2, 4, 5, 0), stored).status == "fail"
+
+
+def test_trigger_gate_rate_fallback_without_counts() -> None:
+    stored = {"skills": {"rf-browser": {"validation": {"accuracy": 0.8182}}}}
+    assert gate_triggers(_trigger_result(3, 3, 5, 0), stored).status == "pass"
+    assert gate_triggers(_trigger_result(2, 4, 5, 0), stored).status == "fail"
 
 
 def test_trigger_gate_without_baseline_is_rebaseline_needed() -> None:

@@ -2,20 +2,46 @@
 
 from __future__ import annotations
 
+import re
+from collections.abc import Iterable
 from dataclasses import dataclass, field
-from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from ..errors import ModelNotAllowedError
 from .task import DEFAULT_MODEL, model_policy_error
 
-Split = Literal["train", "validation", "holdout"]
-#: Every accepted split, in report order.
-SPLITS: tuple[Split, ...] = ("train", "validation", "holdout")
 #: Splits that count toward the ">= 8 per polarity" rule and must be present.
-#: ``holdout`` is optional: written after tuning, never used for selection.
-REQUIRED_SPLITS: tuple[Split, ...] = ("train", "validation")
+REQUIRED_SPLITS: tuple[str, ...] = ("train", "validation")
+#: Optional holdout splits: ``holdout`` or ``holdout<N>`` (``holdout2``, ...).
+#: Written after tuning, never used for selection; an inspected holdout is
+#: retired to ``train`` and a fresh numbered one added (add-sibling-cues).
+HOLDOUT_RE = re.compile(r"^holdout\d*$")
+#: Human-readable list of the accepted split names (error and help texts).
+SPLIT_NAMES = "train, validation, holdout, holdout<N>"
+
+
+def is_holdout_split(name: str) -> bool:
+    return bool(HOLDOUT_RE.fullmatch(name))
+
+
+def is_valid_split(name: str) -> bool:
+    return name in REQUIRED_SPLITS or is_holdout_split(name)
+
+
+def _split_key(name: str) -> tuple[int, int, str]:
+    if name in REQUIRED_SPLITS:
+        return (REQUIRED_SPLITS.index(name), 0, name)
+    if is_holdout_split(name):
+        digits = name[len("holdout") :]
+        return (len(REQUIRED_SPLITS), int(digits) if digits else 1, name)
+    return (99, 0, name)
+
+
+def ordered_splits(names: Iterable[str]) -> tuple[str, ...]:
+    """Distinct split names in report order: train, validation, holdout, holdout2, ..."""
+    return tuple(sorted(set(names), key=_split_key))
+
 
 #: Minimum queries per polarity in a set (spec: Trigger evaluation query sets).
 MIN_PER_POLARITY = 8
@@ -27,8 +53,15 @@ class TriggerQuery(BaseModel):
     id: str = Field(min_length=1, max_length=64)
     query: str = Field(min_length=1)
     should_trigger: bool
-    split: Split
+    split: str
     note: str = ""
+
+    @field_validator("split")
+    @classmethod
+    def _split_name(cls, value: str) -> str:
+        if not is_valid_split(value):
+            raise ValueError(f"unknown split {value!r} (expected {SPLIT_NAMES})")
+        return value
 
 
 class TriggerSet(BaseModel):
@@ -191,6 +224,25 @@ def description_visibility(outcomes: list[QueryOutcome]) -> list[DescriptionVisi
     return out
 
 
+def run_load_counts(outcomes: list[QueryOutcome]) -> dict[tuple[str, str], dict[str, int]]:
+    """Per skill × split: skill loads and completed runs of should- / should-not-trigger queries.
+
+    Run-level counts keep borderline queries (load rate near the threshold)
+    from flipping a whole query between samples, which query-level majority
+    votes do.
+    """
+    cells: dict[tuple[str, str], dict[str, int]] = {}
+    for o in outcomes:
+        c = cells.setdefault(
+            (o.skill, o.split),
+            {"positive_loads": 0, "positive_runs": 0, "negative_loads": 0, "negative_runs": 0},
+        )
+        side = "positive" if o.should_trigger else "negative"
+        c[f"{side}_loads"] += o.loads
+        c[f"{side}_runs"] += o.runs
+    return cells
+
+
 def trigger_metrics(outcomes: list[QueryOutcome]) -> list[TriggerMetrics]:
     """Per skill × split confusion counts (sorted by skill, then split)."""
     cells: dict[tuple[str, str], list[int]] = {}
@@ -204,10 +256,9 @@ def trigger_metrics(outcomes: list[QueryOutcome]) -> list[TriggerMetrics]:
             c[2] += 1
         else:
             c[3] += 1
-    order: dict[str, int] = {name: i for i, name in enumerate(SPLITS)}
     return [
         TriggerMetrics(skill, split, tp=c[0], fp=c[1], tn=c[2], fn=c[3])
         for (skill, split), c in sorted(
-            cells.items(), key=lambda kv: (kv[0][0], order.get(kv[0][1], 99))
+            cells.items(), key=lambda kv: (kv[0][0], _split_key(kv[0][1]))
         )
     ]

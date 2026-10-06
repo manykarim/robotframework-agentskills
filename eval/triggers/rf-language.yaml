@@ -40,15 +40,15 @@ queries:
   - {id: lang-n10, split: validation, should_trigger: false, note: "sibling rf-selenium", query: "My SeleniumLibrary locator isn't found after the page reloads"}
   - {id: lang-n11, split: validation, should_trigger: false, note: "non-RF look-alike", query: "Write Cucumber feature files with Given/When/Then for checkout in Java"}
   - {id: lang-n12, split: validation, should_trigger: false, note: "non-RF look-alike", query: "How does Ansible variable precedence work between group_vars and extra vars?"}
-  # holdout (tune-skill-descriptions task 7.1): written after the descriptions shipped;
-  # never used to tune, select or accept a description. 5 should / 5 should-not trigger.
-  - {id: lang-h01, split: holdout, should_trigger: true, query: "Split tests/checkout.robot into smaller suites and move the shared setup into a suite init file"}
-  - {id: lang-h02, split: holdout, should_trigger: true, query: "What's the difference between Suite Setup and Test Setup in robot, and where should our login go?"}
-  - {id: lang-h03, split: holdout, should_trigger: true, note: "edit existing file", query: "tests/legacy.robot still uses [Return] and the old FOR loop syntax, bring it up to RF 7"}
-  - {id: lang-h04, split: holdout, should_trigger: true, query: "Write a user keyword that takes any number of product names and adds each one to the cart"}
-  - {id: lang-h05, split: holdout, should_trigger: true, note: "intent only", query: "Our robot tests all need ${BASE_URL}; where should that variable live so every suite can use it?"}
-  - {id: lang-h06, split: holdout, should_trigger: false, note: "sibling rf-python-library", query: "Our robot keyword has to parse a PDF invoice; write it as a Python library function the tests can call"}
-  - {id: lang-h07, split: holdout, should_trigger: false, note: "sibling rf-libdoc", query: "What are the arguments of Should Be Equal As Numbers in BuiltIn?"}
-  - {id: lang-h08, split: holdout, should_trigger: false, note: "sibling rf-results", query: "Which suites were skipped in yesterday's output.xml?"}
-  - {id: lang-h09, split: holdout, should_trigger: false, note: "non-RF look-alike", query: "Write Behave step implementations in Python for this Gherkin feature"}
-  - {id: lang-h10, split: holdout, should_trigger: false, note: "non-RF look-alike", query: "Refactor this Jest test file to use describe.each for the table of inputs"}
+  # retired holdout (tune-skill-descriptions task 7.1): its results were inspected in the
+  # 2026-09-30 evidence, so it moved to train (add-sibling-cues-to-descriptions D3).
+  - {id: lang-h01, split: train, should_trigger: true, note: "retired holdout (2026-09-30 evidence)", query: "Split tests/checkout.robot into smaller suites and move the shared setup into a suite init file"}
+  - {id: lang-h02, split: train, should_trigger: true, note: "retired holdout (2026-09-30 evidence)", query: "What's the difference between Suite Setup and Test Setup in robot, and where should our login go?"}
+  - {id: lang-h03, split: train, should_trigger: true, note: "edit existing file; retired holdout (2026-09-30 evidence)", query: "tests/legacy.robot still uses [Return] and the old FOR loop syntax, bring it up to RF 7"}
+  - {id: lang-h04, split: train, should_trigger: true, note: "retired holdout (2026-09-30 evidence)", query: "Write a user keyword that takes any number of product names and adds each one to the cart"}
+  - {id: lang-h05, split: train, should_trigger: true, note: "intent only; retired holdout (2026-09-30 evidence)", query: "Our robot tests all need ${BASE_URL}; where should that variable live so every suite can use it?"}
+  - {id: lang-h06, split: train, should_trigger: false, note: "sibling rf-python-library; retired holdout (2026-09-30 evidence)", query: "Our robot keyword has to parse a PDF invoice; write it as a Python library function the tests can call"}
+  - {id: lang-h07, split: train, should_trigger: false, note: "sibling rf-libdoc; retired holdout (2026-09-30 evidence)", query: "What are the arguments of Should Be Equal As Numbers in BuiltIn?"}
+  - {id: lang-h08, split: train, should_trigger: false, note: "sibling rf-results; retired holdout (2026-09-30 evidence)", query: "Which suites were skipped in yesterday's output.xml?"}
+  - {id: lang-h09, split: train, should_trigger: false, note: "non-RF look-alike; retired holdout (2026-09-30 evidence)", query: "Write Behave step implementations in Python for this Gherkin feature"}
+  - {id: lang-h10, split: train, should_trigger: false, note: "non-RF look-alike; retired holdout (2026-09-30 evidence)", query: "Refactor this Jest test file to use describe.each for the table of inputs"}

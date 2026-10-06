@@ -90,12 +90,14 @@ Batch execution SHALL accept a replicate count `--runs N` (default 3, minimum 1)
 
 Each shipped skill SHALL have a trigger query set containing should-trigger queries and near-miss should-not-trigger queries. Near misses are queries that are plausibly related but belong to another skill or to no skill.
 
-A set SHALL have at least 8 should-trigger and 8 should-not-trigger queries across the `train` and `validation` splits, and each query SHALL be assigned to a `train`, `validation` or `holdout` split. The `holdout` split is optional. When present it SHALL hold queries written after description tuning, and it is never used to choose or accept a description.
+A set SHALL have at least 8 should-trigger and 8 should-not-trigger queries across the `train` and `validation` splits. Each query SHALL be assigned to `train`, `validation`, or a holdout split named `holdout` or `holdout<N>` (for example `holdout2`).
+
+Holdout splits are optional. They SHALL hold queries written after the last description change and are never used to choose or accept a description. A holdout split whose results have been inspected to diagnose failures SHALL be retired: its queries move to `train`, and a new holdout split with fresh queries is added.
 
 Near-miss queries for a skill SHALL include queries that belong to its closest sibling skills (for example Browser vs SeleniumLibrary, RequestsLibrary vs RESTinstance, results analysis vs robotcode).
 
 #### Scenario: Query set validity
-- **WHEN** the harness loads a trigger set with fewer than 8 queries of either polarity in train plus validation, a query without a split, a split other than `train`, `validation` or `holdout`, or a `skill` that names no shipped skill
+- **WHEN** the harness loads a trigger set with fewer than 8 queries of either polarity in train plus validation, a query without a split, a split that is not `train`, `validation`, `holdout` or `holdout<N>`, or a `skill` that names no shipped skill
 - **THEN** loading fails with an error naming the set and the problem
 
 #### Scenario: Sibling near misses present
@@ -105,6 +107,10 @@ Near-miss queries for a skill SHALL include queries that belong to its closest s
 #### Scenario: Holdout split selectable
 - **WHEN** `trigger --split holdout` runs on a set that has holdout queries
 - **THEN** only the holdout queries run and they are reported in their own column
+
+#### Scenario: Numbered holdout split selectable
+- **WHEN** `trigger --split holdout2` runs on a set that has `holdout2` queries
+- **THEN** only those queries run and they are reported in their own `holdout2` column
 
 ### Requirement: Trigger detection and scoring
 
@@ -229,15 +235,27 @@ The `adversarial` tier SHALL contain tasks that tempt known failure modes. At le
 
 ### Requirement: Regression gate against a stored baseline
 
-The repository SHALL contain a baseline results file for each gated tier. For every task×arm it SHALL record pass rate, replicate count, mean tokens, turns, duration and cost, along with the model id, the harness version and a content hash of the task definition. A gate command SHALL compare a new treatment result with the stored baseline. It SHALL fail when a gating task's treatment pass rate drops by more than the configured tolerance (default: more than one replicate's worth, i.e. > 1/N). It SHALL also fail when mean input tokens rise by more than the configured budget (default 30%). Tasks whose definition hash or model differs from the baseline entry SHALL be reported as `rebaseline-needed` and excluded from the comparison. They SHALL NOT be treated as passing. Updating the baseline file SHALL be an explicit command whose output is committed via a reviewed pull request.
+The repository SHALL contain a baseline results file for each gated tier. For every task×arm it SHALL record pass rate, replicate count, mean tokens, turns, duration and cost, along with the model id, the harness version and a content hash of the task definition. A gate command SHALL compare a new treatment result with the stored baseline. It SHALL fail when a gating task's treatment pass rate is below the baseline: by default, when the baseline entry has at least 6 replicates, a one-sided Fisher exact test on pass/fail counts with p < 0.05; with fewer baseline replicates or an explicit tolerance, a drop of more than the tolerance (default: more than one replicate's worth, i.e. > 1/N). It SHALL also fail when mean input tokens rise by more than the configured budget (default 30%; the PR job MAY pass a wider budget calibrated from measured run-to-run variance). For trigger results, the gate SHALL compare each skill's validation split with the stored trigger baseline: when the baseline records run-level counts, skill loads on should-trigger runs and non-loads on should-not-trigger runs SHALL each be compared with a one-sided Fisher exact test (p < 0.05); otherwise accuracy may not drop by more than one query. The gate SHALL also fail when any shipped skill's description was listed by name only in a recorded skill listing. Tasks whose definition hash or model differs from the baseline entry SHALL be reported as `rebaseline-needed` and excluded from the comparison. They SHALL NOT be treated as passing. Updating the baseline file SHALL be an explicit command whose output is committed via a reviewed pull request.
 
 #### Scenario: Pass-rate regression
 - **WHEN** a gating task had baseline treatment pass rate 1.00 (N=3) and the new run has 0.33
 - **THEN** the gate fails and names the task and both pass rates
 
+#### Scenario: Flaky task against a 9-run baseline
+- **WHEN** a gating task had baseline treatment pass rate 5/9 and the new run has 1/3
+- **THEN** the gate passes (Fisher p = 0.24); against a 9/9 baseline, 1/3 fails (p = 0.045)
+
 #### Scenario: Token budget regression
 - **WHEN** a task's mean input tokens rise by 45% against the baseline with the default 30% budget
 - **THEN** the gate fails and names the task and the increase
+
+#### Scenario: Borderline trigger queries are not a regression
+- **WHEN** a skill's baseline has two should-trigger queries that each loaded the skill in 3 of 6 runs, and a PR sample of 3 runs loads them once each
+- **THEN** the trigger gate passes, because run-level loads are not significantly lower
+
+#### Scenario: Description listed by name only
+- **WHEN** a trigger session's skill listing shows `rf-setup` without its description
+- **THEN** the gate fails with a `listing` finding for rf-setup that points to the listing-room test
 
 #### Scenario: Changed task needs rebaseline
 - **WHEN** a task's definition changed since the baseline was recorded
@@ -261,7 +279,7 @@ CI SHALL run the harness in tiers. On pull requests that touch skills, the plugi
 
 ### Requirement: Run isolation never deletes unrelated files
 
-The harness SHALL detect files created outside a run's workspace during the run, and SHALL report them on the run as an isolation violation that marks the run untrustworthy. It MUST NOT delete files outside the run's own workspace and artifacts directory: other processes, such as a developer or another tool, may create files in the repository while runs are active. Trigger sessions have no write-capable tools, so they SHALL skip the integrity snapshot entirely.
+The harness SHALL detect files created outside a run's workspace during the run, and SHALL report them on the run as an isolation violation that marks the run untrustworthy. It MUST NOT delete files outside the run's own workspace and artifacts directory: other processes, such as a developer or another tool, may create files in the repository while runs are active. Trigger sessions have no write-capable tools, so they SHALL skip the integrity snapshot entirely. The agent's environment SHALL NOT point at the harness's own virtual environment (`VIRTUAL_ENV`, `VIRTUAL_ENV_PROMPT`, `UV_PROJECT_ENVIRONMENT` are removed), so package installs inside a workspace never land in it, and the runner SHALL warn when run artifacts are inside the repository.
 
 #### Scenario: Concurrent developer file survives
 - **WHEN** a developer creates `openspec/changes/x/notes.md` while a task run is active

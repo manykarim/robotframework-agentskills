@@ -149,6 +149,7 @@ before release.
   (`rf_results_analyze`).
 
 ### Changed
+- **Skill descriptions re-fitted to the skill listing:** Claude Code 2.1.288 leaves 1274 characters for them (1423 with 2.1.286, 1734 with 2.1.284), so all 12 descriptions now total 1210 and every description stays visible (rf-setup was listed by name only). The library-named skills say "RF" instead of "Robot Framework"; rf-appium/rf-selenium say "Not installs/drivers: rf-setup.", rf-restinstance "Not installs: rf-setup.", and rf-libdoc/rf-results point to rf-robotcode, fixing recorded wrong-skill loads. Accepted on the validation split (6 runs per query) and checked on holdout2.
 - **Subagents rewritten as thin routers** (`rf-test-architect`,
   `rf-keyword-consultant`, `rf-migration-guide`, `rf-debug-expert`, ≤ 120
   lines each): they keep only agent-owned content (library selection, layout,
@@ -330,6 +331,11 @@ before release.
   `scripts/*.py`.
 
 ### Fixed
+- **`rf-tools` MCP server no longer crashes on a fresh machine.** It is
+  started with `python3` from PATH, which usually lacks the `mcp` package.
+  The server now re-launches itself once through
+  `uv run --no-project --with "mcp>=1,<2"`; without uv it exits with a hint
+  (install uv, or `pip install "mcp>=1,<2"` into that interpreter).
 - The PostToolUse hook (and the documented `robocop` commands in rf-language,
   rf-setup and the subagents) now pass `--no-cache`, so Robocop no longer
   leaves a `.robocop_cache/` directory in the user's project.

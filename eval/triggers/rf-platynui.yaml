@@ -31,15 +31,15 @@ queries:
   - {id: pu-n08, split: validation, should_trigger: false, note: "sibling rf-results", query: "Summarise which desktop tests failed in results/output.xml"}
   - {id: pu-n09, split: validation, should_trigger: false, note: "non-RF look-alike", query: "Write an AutoIt script that fills a Windows installer dialog"}
   - {id: pu-n10, split: validation, should_trigger: false, note: "non-RF look-alike", query: "Use xdotool in bash to click a window on Linux"}
-  # holdout (tune-skill-descriptions task 7.1): written after the descriptions shipped;
-  # never used to tune, select or accept a description. 5 should / 5 should-not trigger.
-  - {id: pu-h01, split: holdout, should_trigger: true, query: "Robot Framework test that opens the Windows 'Print' dialog in our accounting app and selects a printer"}
-  - {id: pu-h02, split: holdout, should_trigger: true, query: "PlatynUI: how do I wait for the splash screen of our desktop app to disappear before logging in?"}
-  - {id: pu-h03, split: holdout, should_trigger: true, query: "Our KDE app on Linux: write an RF test that toggles a checkbox in the Preferences window"}
-  - {id: pu-h04, split: holdout, should_trigger: true, note: "indirect: symptom only", query: "My desktop robot test clicks the wrong 'Cancel' because two dialogs have one; how do I scope the locator to the active window?"}
-  - {id: pu-h05, split: holdout, should_trigger: true, note: "intent only", query: "Drive Windows File Explorer from Robot Framework to rename a file via the context menu"}
-  - {id: pu-h06, split: holdout, should_trigger: false, note: "sibling rf-appium", query: "Write a Robot Framework test for the Android settings app that toggles airplane mode"}
-  - {id: pu-h07, split: holdout, should_trigger: false, note: "sibling rf-setup", query: "platynui won't install on Python 3.11 in our venv, which versions does it need?"}
-  - {id: pu-h08, split: holdout, should_trigger: false, note: "sibling rf-browser", query: "Test our web-based admin dashboard running in Chromium from Robot Framework"}
-  - {id: pu-h09, split: holdout, should_trigger: false, note: "non-RF look-alike", query: "Write a PowerShell script with UIAutomation that closes all Excel windows"}
-  - {id: pu-h10, split: holdout, should_trigger: false, note: "non-RF look-alike", query: "Use SikuliX image matching to click an icon on the desktop"}
+  # retired holdout (tune-skill-descriptions task 7.1): its results were inspected in the
+  # 2026-09-30 evidence, so it moved to train (add-sibling-cues-to-descriptions D3).
+  - {id: pu-h01, split: train, should_trigger: true, note: "retired holdout (2026-09-30 evidence)", query: "Robot Framework test that opens the Windows 'Print' dialog in our accounting app and selects a printer"}
+  - {id: pu-h02, split: train, should_trigger: true, note: "retired holdout (2026-09-30 evidence)", query: "PlatynUI: how do I wait for the splash screen of our desktop app to disappear before logging in?"}
+  - {id: pu-h03, split: train, should_trigger: true, note: "retired holdout (2026-09-30 evidence)", query: "Our KDE app on Linux: write an RF test that toggles a checkbox in the Preferences window"}
+  - {id: pu-h04, split: train, should_trigger: true, note: "indirect: symptom only; retired holdout (2026-09-30 evidence)", query: "My desktop robot test clicks the wrong 'Cancel' because two dialogs have one; how do I scope the locator to the active window?"}
+  - {id: pu-h05, split: train, should_trigger: true, note: "intent only; retired holdout (2026-09-30 evidence)", query: "Drive Windows File Explorer from Robot Framework to rename a file via the context menu"}
+  - {id: pu-h06, split: train, should_trigger: false, note: "sibling rf-appium; retired holdout (2026-09-30 evidence)", query: "Write a Robot Framework test for the Android settings app that toggles airplane mode"}
+  - {id: pu-h07, split: train, should_trigger: false, note: "sibling rf-setup; retired holdout (2026-09-30 evidence)", query: "platynui won't install on Python 3.11 in our venv, which versions does it need?"}
+  - {id: pu-h08, split: train, should_trigger: false, note: "sibling rf-browser; retired holdout (2026-09-30 evidence)", query: "Test our web-based admin dashboard running in Chromium from Robot Framework"}
+  - {id: pu-h09, split: train, should_trigger: false, note: "non-RF look-alike; retired holdout (2026-09-30 evidence)", query: "Write a PowerShell script with UIAutomation that closes all Excel windows"}
+  - {id: pu-h10, split: train, should_trigger: false, note: "non-RF look-alike; retired holdout (2026-09-30 evidence)", query: "Use SikuliX image matching to click an icon on the desktop"}

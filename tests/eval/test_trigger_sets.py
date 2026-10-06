@@ -79,12 +79,18 @@ def test_every_shipped_skill_has_exactly_one_valid_set() -> None:
 def test_committed_set_shape(skill: str) -> None:
     tset = load_trigger_set(_TRIGGERS / f"{skill}.yaml", skills=_SKILLS)
     for polarity in (True, False):
-        # holdout queries are optional and never counted (tune-skill-descriptions)
-        items = [q for q in tset.queries if q.should_trigger is polarity and q.split != "holdout"]
+        # holdout splits (holdout, holdout<N>) are optional and never counted
+        items = [
+            q
+            for q in tset.queries
+            if q.should_trigger is polarity and q.split in ("train", "validation")
+        ]
         assert len(items) >= 8
-        train = sum(1 for q in items if q.split == "train")
-        # roughly 60/40, stratified by polarity
-        assert 0.5 <= train / len(items) <= 0.7, (skill, polarity, train, len(items))
+        # roughly 60/40, stratified by polarity; retired holdout queries moved
+        # to train later (add-sibling-cues-to-descriptions D3) are outside the ratio
+        designed = [q for q in items if "retired holdout" not in q.note]
+        train = sum(1 for q in designed if q.split == "train")
+        assert 0.5 <= train / len(designed) <= 0.7, (skill, polarity, train, len(designed))
     negatives = [q for q in tset.queries if not q.should_trigger]
     siblings = [q for q in negatives if q.note.startswith("sibling")]
     non_rf = [q for q in negatives if q.note.startswith("non-RF")]
