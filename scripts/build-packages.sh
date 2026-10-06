@@ -63,13 +63,11 @@ echo "::: artifacts :::"
 ls -lh dist/
 
 if [ "$check" = "1" ]; then
-    if ! command -v twine >/dev/null 2>&1; then
-        echo "::: twine not on PATH — installing via uv tool :::"
-        uv tool install twine
-    fi
     echo ""
     echo "::: twine check :::"
-    twine check dist/*.whl dist/*.tar.gz
+    # Fresh twine with pkginfo >= 1.13: hatchling >= 1.32 writes Metadata 2.5,
+    # which older pkginfo (e.g. in a long-lived `uv tool install twine`) rejects.
+    uvx --from twine --with 'pkginfo>=1.13' twine check dist/*.whl dist/*.tar.gz
 fi
 
 echo ""

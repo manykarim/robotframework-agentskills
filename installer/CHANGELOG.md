@@ -4,12 +4,11 @@ The `rf-agentskills` package is versioned independently from the
 content bundle (Claude Code plugin, VS Code extension, skills
 tarballs). See `RELEASING.md` at the repo root for the policy.
 
-## 0.7.0 — Unreleased
+## 0.7.0 — 2026-10-06
 
 Installer minor release that bundles **content 2.0.0** (a breaking content
-release: three skills and three MCP tools removed, see below). Later changes
-in this release cycle add their entries here; there is no further version bump
-before release.
+release: three skills removed, the `rf-tools` MCP server and its tools
+removed, see below).
 
 ### Bundled content
 - **rf-agentskills plugin manifest: 2.0.0** (Claude Code plugin, marketplace
