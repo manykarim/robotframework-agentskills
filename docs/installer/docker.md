@@ -36,13 +36,18 @@ What's checked **without** any API call:
 
 | Agent | Filesystem placement | Config-merge shape | Agent-side validation |
 |---|---|---|---|
-| Claude Code | skills, agents, hooks block, MCP entry, plugin tree | `settings.json`/`mcp.json` JSON keys | `claude plugin validate` (parses manifest, no LLM call) |
-| Codex | skills at `.agents/skills/`, agents `.toml`, MCP `[mcp_servers.*]` | TOML round-trip + key checks | grep skill-installer source for `.agents/skills` discovery path |
-| Goose | skills at `.agents/skills/`, MCP extension YAML, `.goosehints` persona | YAML key paths | `goose info` (config readable) |
-| OpenCode | skills, agents, MCP `mcp.<name>` block | JSON nested keys | **`opencode debug skill`** (native introspection — proves OpenCode WILL find the skill) |
-| Cursor | native `~/.cursor/skills/` (post-2.4), `~/.cursor/agents/`, MCP, hooks with namespaced matchers | JSON + matcher rewrite | (none — Cursor is GUI; file checks only) |
-| Claude Desktop | `~/.config/Claude/claude_desktop_config.json` MCP entry only | JSON | (none — GUI) |
+| Claude Code | skills, agents, hooks block, plugin tree (scripts only — no MCP server) | `settings.json` hooks JSON keys | `claude plugin validate` (parses manifest, no LLM call) |
+| Codex | skills at `.agents/skills/`, agents `.toml`, `hooks.json` | TOML key checks on the agent `.toml` (no `config.toml` merge — not written) | grep skill-installer source for `.agents/skills` discovery path |
+| Goose | skills at `.agents/skills/`, `.goosehints` persona | none (no `config.yaml` merge — not written) | `goose info` (config readable, if present) |
+| OpenCode | skills, agents | none (no `opencode.json` merge — not written) | **`opencode debug skill`** (native introspection — proves OpenCode WILL find the skill) |
+| Cursor | native `~/.cursor/skills/` (post-2.4), `~/.cursor/agents/`, hooks with namespaced matchers | hooks.json matcher rewrite (no `mcp.json` — not written) | (none — Cursor is GUI; file checks only) |
+| Claude Desktop | one `<skill>.zip` per skill under `~/rf-agentskills-claude-desktop/` (skill folder at the archive root) | none (no config file written) | (none — GUI; archive contents checked via `zipfile`) |
 | Copilot (VS Code) | reuses Claude Code paths (Copilot reads them natively) | same as Claude Code | (none — extension only loads inside VS Code) |
+
+Every per-agent check script also asserts the retired `rf-tools` MCP
+server left no trace: no MCP config entry (checked only if that
+agent's config file happens to already exist), and no
+`rf-tools-server.py` staged anywhere.
 
 OpenCode's `opencode debug skill` is the strongest signal: it walks
 the agent's own skill discovery paths and emits JSON. If our install

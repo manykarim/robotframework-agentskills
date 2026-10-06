@@ -53,8 +53,7 @@ uv run python -c "import robot; print(robot.__version__)"
 
 Detect the project's conventions before writing code, and follow them. Use the first of these that works:
 
-1. The `rf_conventions` MCP tool (arguments `path`, `max_examples`, `max_files`) when it is available.
-2. The bundled script, run through the project environment. Script paths are relative to this skill's directory (the folder containing this SKILL.md), not to the project:
+1. The bundled script, run through the project environment. Script paths are relative to this skill's directory (the folder containing this SKILL.md), not to the project:
 
 ```bash
 uv run python scripts/rf_conventions.py .
@@ -64,7 +63,7 @@ uv run python scripts/rf_conventions.py . --json-out results/conventions.json
 
 Project not managed by uv (no `uv.lock`)? Run it with the project's interpreter: `.venv/bin/python scripts/rf_conventions.py .` or `poetry run python scripts/rf_conventions.py .` (see rf-setup).
 
-3. Without Robot Framework for the script, three searches, then read one existing file for the separator width:
+2. Without Robot Framework for the script, three searches, then read one existing file for the separator width:
 
 ```bash
 grep -rhoE '^(Library|Resource|Variables)\s+\S+' --include='*.robot' --include='*.resource' . | sort | uniq -c

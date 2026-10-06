@@ -1,28 +1,23 @@
 """Adapter for Project Goose.
 
-Goose has a very limited extension surface — only **MCP servers** and
-the ``~/.goosehints`` text file. We honestly translate what we can:
+Goose (v1.25+ Summon extension) loads Agent Skills from
+``~/.agents/skills/``; it has no subagents or hooks. We install:
 
-* MCP servers from the bundle's ``.mcp.json`` are translated into
-  Goose's YAML extension shape and merged under ``extensions.<name>``
-  in ``~/.config/goose/config.yaml`` (or the platform-specific path on
-  Windows).
-* A short persona-style hint file is composed from each subagent's
+* skills → ``~/.agents/skills/<name>/`` (verbatim SKILL.md trees);
+* a short persona-style hint file composed from each subagent's
   frontmatter ``description`` and a list of available skills, written
   to ``~/.goosehints`` (the file lives directly in ``$HOME``, not
   inside the Goose config dir).
-* **Skills, subagents, hooks** are *not* installable: Goose has no
-  native equivalents. The plan adds notes when the user asked for
-  those categories, and ``post_install`` prints a clear honest
-  reminder.
 
-If ``--prefix`` is provided, both ``config.yaml`` and ``.goosehints``
-land inside the prefix dir — that's the "sandbox" tests rely on.
+Subagents and hooks are *not* installable; the plan adds notes when the
+user asked for those categories.
+
+If ``--prefix`` is provided, ``.goosehints`` lands inside the prefix
+dir — that's the "sandbox" tests rely on.
 """
 
 from __future__ import annotations
 
-import json
 import shutil
 import sys
 from dataclasses import dataclass
@@ -30,7 +25,7 @@ from pathlib import Path
 
 from .. import _assets
 from .. import transforms as _x
-from ._base import AdapterBase, ConfigMergeOp, InstallOptions, InstallPlan, InstallTarget, skill_script_files
+from ._base import AdapterBase, ConfigMergeOp, InstallOptions, InstallPlan, InstallTarget
 
 
 EXTENSIONS_KEY = "extensions"
@@ -148,40 +143,6 @@ class GooseAdapter(AdapterBase):
                             ),
                             transform_name="plugin_root_substitution",
                         ))
-                    # Co-locate scripts/servers under <root>/rf-agentskills-files/
-                    # so substituted paths in skill bodies resolve.
-                    for category in ("scripts", "servers"):
-                        cat_src = src_root / category
-                        if not cat_src.is_dir():
-                            continue
-                        for f in sorted(cat_src.rglob("*")):
-                            if not f.is_file():
-                                continue
-                            rel = f.relative_to(src_root)
-                            targets.append(InstallTarget(
-                                dst=root / "rf-agentskills-files" / rel,
-                                payload=self._read_with_substitution(f, plugin_root_abs),
-                                transform_name="plugin_root_substitution",
-                                executable=f.suffix in (".sh", ".ps1"),
-                            ))
-                    # Per-skill scripts for the MCP server.
-                    for f in skill_script_files(src_root):
-                        rel = f.relative_to(src_root)
-                        targets.append(InstallTarget(
-                            dst=root / "rf-agentskills-files" / rel,
-                            payload=f.read_bytes(),
-                            transform_name="skill_script_for_mcp_server",
-                        ))
-                    # Pin the install-time Python interpreter so hook
-                    # .mjs scripts can find the env with robotframework
-                    # if a user manually wires them up. Goose itself
-                    # doesn't register hooks, but the script files are
-                    # still shipped — keep the runtime config uniform.
-                    targets.append(InstallTarget(
-                        dst=root / "rf-agentskills-files" / "scripts" / "python_runtime.json",
-                        payload=_x.python_runtime_config_bytes(),
-                        transform_name="python_runtime_pin",
-                    ))
 
             # 2. Goosehints — Goose has no subagent primitive, so we fold
             #    subagent descriptions plus a skill index into the hints
@@ -194,15 +155,6 @@ class GooseAdapter(AdapterBase):
                     payload=hints_text.encode("utf-8"),
                     transform_name="goosehints_persona",
                 ))
-
-            # 3. MCP → extensions block in config.yaml
-            if "mcp" in opts.what:
-                plugin_mcp = src_root / ".mcp.json"
-                if plugin_mcp.is_file():
-                    merges.append(self._mcp_merge_op(
-                        plugin_mcp=plugin_mcp,
-                        target=root / CONFIG_FILENAME,
-                    ))
 
         # 4. Honest skip-notes for the categories Goose still lacks.
         if "agents" in opts.what:
@@ -238,10 +190,10 @@ class GooseAdapter(AdapterBase):
 
     def post_install(self, opts: InstallOptions) -> list[str]:
         return [
-            "Goose only supports MCP servers and goosehints from this bundle. "
-            "Skills, subagents, and hooks are not installed (Goose has no "
-            "native equivalent).",
-            "Restart your Goose session for the new extension to be picked up.",
+            "Skills were installed to ~/.agents/skills (loaded by Goose's Summon "
+            "extension); subagents are summarised in .goosehints. Goose has no "
+            "hooks, so none were installed.",
+            "Restart your Goose session to pick up the skills.",
         ]
 
     # ------------------------------------------------------------------
@@ -283,73 +235,3 @@ class GooseAdapter(AdapterBase):
                 lines.append(f"- Skills: {', '.join(skill_names)}")
 
         return "\n".join(lines) + "\n"
-
-    def _mcp_merge_op(
-        self,
-        *,
-        plugin_mcp: Path,
-        target: Path,
-    ) -> ConfigMergeOp:
-        """Translate the bundle's ``.mcp.json`` into Goose's YAML extension shape.
-
-        Each ``mcpServers.<name>`` entry becomes::
-
-            extensions:
-              <name>:
-                type: stdio
-                cmd: <command>
-                args: [<args>]
-                enabled: true
-                timeout: 300
-        """
-        # Note: we do NOT substitute ${CLAUDE_PLUGIN_ROOT} here. Goose has
-        # no notion of plugin root, and we have no co-located scripts/
-        # tree under the install. The user is expected to point Goose at
-        # the same on-disk install of rf-tools that the Claude Code
-        # adapter would have created — or to install both adapters,
-        # which is the common case. Documenting this in post_install.
-        plugin_servers = json.loads(plugin_mcp.read_text(encoding="utf-8")).get(
-            "mcpServers", {}
-        )
-        extensions = {
-            name: _server_to_goose_extension(spec)
-            for name, spec in plugin_servers.items()
-        }
-
-        def apply() -> list[str]:
-            _x.merge_yaml_block(target, EXTENSIONS_KEY, extensions)
-            # Track the server names we added inside the `extensions:`
-            # block — *not* the top-level "extensions" key itself.
-            # Uninstall walks into key_path=("extensions",) and removes
-            # these entries, so the user's other extensions are kept.
-            return list(extensions)
-
-        def revert() -> None:
-            _x.remove_yaml_keys(
-                target, list(extensions), parent_key=EXTENSIONS_KEY,
-            )
-
-        return ConfigMergeOp(
-            path=target,
-            description=f"merge MCP extensions into {target}",
-            apply=apply,
-            revert=revert,
-            kind="yaml_block",
-            key_path=(EXTENSIONS_KEY,),
-        )
-
-
-# ---------------------------------------------------------------------------
-# helpers
-# ---------------------------------------------------------------------------
-
-
-def _server_to_goose_extension(spec: dict) -> dict:
-    """Translate one ``.mcp.json`` server entry to Goose's extension shape."""
-    return {
-        "type": "stdio",
-        "cmd": spec.get("command", ""),
-        "args": list(spec.get("args", [])),
-        "enabled": True,
-        "timeout": 300,
-    }

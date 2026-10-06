@@ -101,8 +101,8 @@ def test_subagents_do_not_run_script_paths() -> None:
         assert "${CLAUDE_PLUGIN_ROOT}/scripts" not in text, md.name
         assert not any(_is_bare(ln) for ln in text.splitlines()), md.name
     consultant = (PLUGIN / "agents" / "rf-keyword-consultant.md").read_text(encoding="utf-8")
-    assert "rf_libdoc_search" in consultant and "rf_libdoc_explain" in consultant
-    assert "rf_results_analyze" in (PLUGIN / "agents" / "rf-debug-expert.md").read_text(encoding="utf-8")
+    assert "`rf-libdoc` skill" in consultant
+    assert "`rf-results` skill" in (PLUGIN / "agents" / "rf-debug-expert.md").read_text(encoding="utf-8")
 
 
 def test_hook_reminder_uses_project_environment() -> None:

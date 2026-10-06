@@ -1,19 +1,19 @@
 # rf-agentskills
 
 Cross-agent installer for Robot Framework agent skills. Ships the
-`plugins/rf-agentskills/` bundle (11 skills, 4 subagents, hooks,
-helper scripts, MCP server) and writes it into the install paths of
+`plugins/rf-agentskills/` bundle (12 skills, 4 subagents, hooks,
+helper scripts) and writes it into the install paths of
 seven coding agents:
 
 | Agent | Status |
 |---|---|
-| Claude Code (CLI) | full native — skills, agents, hooks, MCP |
+| Claude Code (CLI) | full native — skills, agents, hooks |
 | GitHub Copilot (VS Code 1.108+) | full native (preview flags req'd) |
-| OpenAI Codex | skills + MCP native; subagents transformed; hooks experimental |
-| Cursor 1.7+ | skills→rules, hooks adapted, native MCP |
-| OpenCode | subagents + MCP native; skills→commands; hooks deferred |
-| Project Goose | MCP + persona text only |
-| Claude Desktop | MCP only |
+| OpenAI Codex | skills native; subagents transformed; hooks experimental |
+| Cursor 2.4+ | skills native, hooks adapted |
+| OpenCode | skills + subagents native; hooks deferred |
+| Project Goose | skills (`~/.agents/skills`) + persona text |
+| Claude Desktop | one upload ZIP per skill (Customize → Skills → Upload a skill) |
 
 ## Install
 
@@ -83,7 +83,7 @@ To make pre-release intent self-documenting in a project, add `[tool.uv]\nprerel
 ```
 rf-agentskills install   [--agents all|none|detected|<csv> | --agent <name> | --all]
                          [--scope project|user] [--project DIR] [--prefix DIR]
-                         [--what skills,agents,hooks,mcp] [--yes] [--no-input]
+                         [--what skills,agents,hooks] [--yes] [--no-input]
                          [--dry-run] [--force]
 rf-agentskills uninstall --agent <name> [--scope project|user] [--project DIR]
 rf-agentskills list                # what's installed where, per the manifest

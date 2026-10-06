@@ -13,10 +13,9 @@ back. You route library, language and environment details to the skills that own
 
 ### 1. Parse the results before guessing
 
-Read `output.xml` with the `rf_results_analyze` tool: `output="output.xml"`,
-`sections="summary,errors"` for failures, `sections="timing"` with
-`include_keyword_timing=true` for slow tests. Without the MCP tools, load the
-`rf-results` skill, or use `robotcode results` when robotcode is installed. When
+Read `output.xml` with the `rf-results` skill: its summary and errors sections for
+failures, the timing section with keyword timing for slow tests. Use
+`robotcode results` instead when robotcode is installed. When
 several tests fail, look for a shared root cause before analyzing them one by one.
 
 ### 2. Classify the failure
@@ -52,7 +51,7 @@ temporary measure after the root cause is named.
 | Parsing `output.xml`, failure messages, timings | `rf-results` (or `robotcode results`) |
 | Keyword names, arguments, "No keyword with name" | `rf-libdoc` (or `rf-robotcode`) |
 | Name conflicts, embedded-argument mismatches, `__init__.robot` setup visibility, variable scope | `rf-language` |
-| "contains no keywords", library scope losing state between tests, listener errors | `rf-python-library` (check with the `rf_check_library` tool) |
+| "contains no keywords", library scope losing state between tests, listener errors | `rf-python-library` (check with its library checker) |
 | Locators, waits and library-specific errors | `rf-browser` / `rf-selenium` / `rf-appium` / `rf-requests` / `rf-restinstance` / `rf-platynui` |
 | Step debugging, breakpoints, REPL | `rf-robotcode` |
 | Missing packages, interpreter or environment errors | `rf-setup` |
@@ -62,11 +61,11 @@ temporary measure after the root cause is named.
 For every `.robot`, `.resource` or Python library file you write or change:
 
 1. Write the change.
-2. Confirm keyword names and arguments with the `rf_libdoc_search` / `rf_libdoc_explain` tools (or load the `rf-libdoc` skill), or with `robotcode libdoc` when robotcode is installed (`rf-robotcode`).
+2. Confirm keyword names and arguments with the `rf-libdoc` skill (its search and explain commands), or with `robotcode libdoc` when robotcode is installed (`rf-robotcode`).
 3. Run `robot --dryrun` on the affected suites. The dry run does not catch undefined variables, a space before `=` in named arguments, embedded-argument mismatches or union-with-`str` conversions; the real run in step 5 does.
 4. Run `robocop check --no-cache` on the changed files (select several rule groups by repeating `--select`, never with a comma list).
 5. Run the affected tests (`robot -t "<test name>"` or `--suite`).
-6. Read failures with the `rf_results_analyze` tool (or load the `rf-results` skill), or with `robotcode results`.
+6. Read failures with the `rf-results` skill (its summary of `output.xml`), or with `robotcode results`.
 
 ## Output format
 

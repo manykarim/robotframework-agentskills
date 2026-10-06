@@ -105,7 +105,7 @@ def test_baseline_arm_provisions_no_plugin_parts(tmp_path: Path, fake_claude: Pa
     settings = json.loads((config / "settings.json").read_text())
     assert "hooks" not in settings
     assert not (workspace / ".claude" / "settings.json").exists()
-    assert set(_mcp(config)) == {"rf-mcp"}  # per-task server only, no rf-tools
+    assert set(_mcp(config)) == {"rf-mcp"}  # per-task server only
     assert baseline_isolation_problems(config, workspace, _PLUGIN) == []
     assert run.usage is not None and run.usage.total_cost_usd == pytest.approx(0.002)
 
@@ -121,7 +121,7 @@ def test_treatment_arm_provisions_plugin_as_shipped(tmp_path: Path, fake_claude:
     assert sorted(p.name for p in (config / "skills").iterdir()) == shipped
     assert (config / "agents").is_dir()
     assert json.loads((config / "settings.json").read_text()).get("hooks")
-    assert set(_mcp(config)) == {"rf-mcp", "rf-tools"}
+    assert set(_mcp(config)) == {"rf-mcp"}  # the plugin ships no MCP server
 
 
 def test_arms_differ_only_by_the_plugin(tmp_path: Path, fake_claude: Path) -> None:
@@ -202,4 +202,4 @@ def test_trigger_profile_disables_hooks_and_uses_empty_workspace(
     assert argv[argv.index("--allowedTools") + 1] == "Skill,Read,Glob,Grep"  # type: ignore[union-attr,index]
     assert call["cwd"] == str(run.workspace_dir.resolve())  # type: ignore[union-attr]
     assert os.path.basename(str(call["config_dir"])) == "claude_config"
-    assert set(_mcp(config)) == {"rf-tools"}
+    assert set(_mcp(config)) == set()  # the plugin ships no MCP server

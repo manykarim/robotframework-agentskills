@@ -39,9 +39,15 @@ case "${1:-}" in
     need_json_key "$ROOT/settings.json" 'hooks.UserPromptSubmit'
     need_json_key "$ROOT/settings.json" 'hooks.SessionStart'
     need_json_key "$ROOT/settings.json" 'hooks.Stop'
-    # MCP server registered in user-scope .mcp.json
-    need_file "$HOME/.mcp.json"
-    need_json_key "$HOME/.mcp.json" 'mcpServers."rf-tools"'
+    # rf-tools MCP server was removed: no user-scope .mcp.json entry,
+    # and no server script staged alongside the plugin's other scripts.
+    if [ -f "$HOME/.mcp.json" ]; then
+        if jq -e '.mcpServers."rf-tools"' "$HOME/.mcp.json" >/dev/null 2>&1; then
+            printf '  [check] .mcp.json unexpectedly has an rf-tools entry\n' >&2
+            exit 1
+        fi
+    fi
+    need_no_file "$PLUGIN_FILES/servers/rf-tools-server.py"
     # Plugin co-located scripts staged
     need_file "$PLUGIN_FILES/scripts/validate_robot.mjs"
     need_file "$PLUGIN_FILES/scripts/maybe_inject_rf_context.mjs"

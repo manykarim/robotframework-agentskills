@@ -51,9 +51,8 @@ before release.
   keyword visibility), dry-runnable examples labelled "RF 7.0+" and a
   validation loop (dry run, robocop, targeted real run, results). It
   replaces the retired resource architect as the home for resource layout.
-- **`rf_conventions` script and MCP tool** — `skills/rf-language/scripts/
-  rf_conventions.py` (and the `rf_conventions` tool of the `rf-tools` MCP
-  server) reports a project's Robot Framework version and feature
+- **`rf_conventions` script** — `skills/rf-language/scripts/
+  rf_conventions.py` reports a project's Robot Framework version and feature
   availability, separator/assignment/naming style, embedded and typed
   arguments, duplicate keyword names, BDD and template usage, tags, legacy
   constructs with Robocop rule IDs, resource/variable-file layout and the web
@@ -69,7 +68,7 @@ before release.
   converters), exceptions and logging, threads and timeouts, listener API v3,
   libdoc and packaging; a version gate (RF 6.1–7.5), thirteen verified
   gotchas and runnable examples labelled "RF 7.0+".
-- **`check_library` script and `rf_check_library` MCP tool** —
+- **`check_library` script** —
   `skills/rf-python-library/scripts/check_library.py` loads each project
   library like libdoc does, in a child process with a timeout and only inside
   the project root, and reports keywords, scope and API style plus findings
@@ -78,8 +77,7 @@ before release.
   `signature_lost`, `union_with_str`, `state_in_test_scope`,
   `output_during_import`, `broad_except`, `untyped_argument`,
   `positional_only_argument`, `missing_doc`, `library_doc_missing`) as bounded
-  JSON (`schema_version` 1). The `rf-tools` MCP server runs it as a subprocess
-  only (never in-process). Installed with the skill for every agent that ships
+  JSON (`schema_version` 1). Installed with the skill for every agent that ships
   skills.
 - **rf-setup `project-layout.md`** now points to `rf-python-library` for the
   contents of `libraries/`.
@@ -139,8 +137,9 @@ before release.
   substitutes it itself); Codex, Cursor, Copilot, Goose and OpenCode get the
   absolute installed skill path (`transforms.substitute_skill_dir`). The
   per-skill scripts are also staged under
-  `rf-agentskills-files/skills/<skill>/scripts/` for the rf-tools MCP server.
-- **rf-tools MCP server uses the project environment:** it runs a script
+  `rf-agentskills-files/skills/<skill>/scripts/` for the hooks (the Stop hook
+  runs `rf_results.py`).
+- **(Superseded below: the rf-tools MCP server was removed.) rf-tools MCP server uses the project environment:** it runs a script
   in-process when its own interpreter has Robot Framework 7+ and the requested
   libraries, else in a subprocess with the project interpreter (`uv run
   --frozen python` for a uv project, `.venv`, `$VIRTUAL_ENV`; 120 s timeout).
@@ -179,8 +178,8 @@ before release.
   `pip install` / `rfbrowser init` advice with `uv add` lines and a pointer
   to the rf-setup skill.
 - Subagents (`rf-keyword-consultant`, `rf-debug-expert`, `rf-migration-guide`)
-  no longer embed script paths; they use the rf-tools MCP tools or load the
-  `rf-libdoc` / `rf-results` skill. The Stop-hook reminder prints
+  no longer embed script paths; they load the `rf-libdoc` / `rf-results`
+  skill. The Stop-hook reminder prints
   `uv run python "<absolute path>/skills/rf-results/scripts/rf_results.py" …`
   computed from the hook's own location.
 - The eval harness rewrites `${CLAUDE_PLUGIN_ROOT}` only in staged JSON
@@ -228,6 +227,26 @@ before release.
   `holdout` queries.
 
 ### Changed (BREAKING)
+- **`rf-tools` MCP server removed** (openspec change
+  `drop-rf-tools-mcp-server`). It wrapped the skills' scripts as the tools
+  `rf_libdoc_search`, `rf_libdoc_explain`, `rf_results_analyze`,
+  `rf_conventions` and `rf_check_library`, but every skill runs its script
+  directly, evals never used the server, and it crashed at startup on machines
+  whose `python3` lacked the `mcp` package. No agent gets an MCP server entry
+  any more; `--what mcp` is accepted and ignored with a note. **Re-installing
+  removes the `rf-tools` entry** older installers merged into `.mcp.json`,
+  `.vscode/mcp.json`, Cursor `mcp.json`, Codex `config.toml`, OpenCode
+  `opencode.json`, Goose `config.yaml` and `claude_desktop_config.json`
+  (foreign entries are kept) and deletes the staged `servers/` files.
+  Subagents and rf-language name the skill and its command instead of the
+  tools. Goose and OpenCode no longer get the `rf-agentskills-files/` support
+  copy (it only served the server).
+- **Claude Desktop gets the skills:** `install --agent claude-desktop` now
+  writes one upload-ready `<skill>.zip` per skill (skill folder at the archive
+  root) to `~/rf-agentskills-claude-desktop/` and explains the upload
+  (Customize → Skills → Upload a skill; code execution enabled). It no longer
+  touches `claude_desktop_config.json`. CI artifacts and GitHub releases carry
+  the same archives (`scripts/build-skill-zips.py`).
 - **Library skills restructured; keyword catalogs removed.** rf-browser,
   rf-selenium, rf-appium, rf-requests and rf-restinstance now share one
   SKILL.md layout (Installation, Import and defaults, decision table, agent
@@ -331,11 +350,6 @@ before release.
   `scripts/*.py`.
 
 ### Fixed
-- **`rf-tools` MCP server no longer crashes on a fresh machine.** It is
-  started with `python3` from PATH, which usually lacks the `mcp` package.
-  The server now re-launches itself once through
-  `uv run --no-project --with "mcp>=1,<2"`; without uv it exits with a hint
-  (install uv, or `pip install "mcp>=1,<2"` into that interpreter).
 - The PostToolUse hook (and the documented `robocop` commands in rf-language,
   rf-setup and the subagents) now pass `--no-cache`, so Robocop no longer
   leaves a `.robocop_cache/` directory in the user's project.

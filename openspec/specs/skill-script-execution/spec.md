@@ -134,18 +134,6 @@ Each script SHALL accept `--json-out FILE`. When it is given, the script SHALL w
 - **WHEN** `rf_results.py --output output.xml --sections all --json-out results/summary.json` runs
 - **THEN** `results/summary.json` contains the full JSON result and stdout contains only a short JSON object naming that path and its size
 
-### Requirement: MCP tools use the project environment
-
-The rf-tools MCP server SHALL locate each script relative to its own file location, in the owning skill's `scripts/` directory. When the server's own interpreter can import Robot Framework 7+ and every library the request names, the server SHALL run the operation in-process. Otherwise it SHALL run the same script in a subprocess using the project interpreter, which it detects from the working directory in this order: a uv project, `.venv`, then `VIRTUAL_ENV`. It SHALL return that script's JSON unchanged. When no suitable interpreter is found, the tool SHALL return an error carrying the same actionable hint the script would print. The server process SHALL NOT exit because of a script error.
-
-#### Scenario: Library only in the project env
-- **WHEN** the MCP server runs under an interpreter without SeleniumLibrary and the project's `.venv` has it, and an `rf_libdoc_search` call asks for SeleniumLibrary
-- **THEN** the tool returns SeleniumLibrary search results produced by the project interpreter
-
-#### Scenario: No interpreter found
-- **WHEN** neither the server interpreter nor any detected project interpreter has Robot Framework
-- **THEN** the tool returns an error whose text includes the `uv add robotframework` hint, and the server keeps serving further calls
-
 ### Requirement: Script trees contain only regular files
 
 Skill `scripts/` directories SHALL contain regular files only, with no symlinks, in every channel. A skill script SHALL NOT import code from another skill's directory. The drift check SHALL fail when any shipped skill tree contains a symlink.

@@ -3,7 +3,10 @@
 # OpenCode install paths (per opencode.ai/docs/skills/, May 2026):
 #   $HOME/.config/opencode/skills/<name>/
 #   $HOME/.config/opencode/agents/<name>.md
-#   $HOME/.config/opencode/opencode.json   (mcp.<name> block)
+#
+# No MCP server config: the rf-tools MCP server was removed, and with
+# it opencode.json's `mcp` block and the rf-agentskills-files/ staging
+# that existed only to support the MCP server's command path.
 
 set -euo pipefail
 . "$(dirname "$0")/_lib.sh"
@@ -25,14 +28,16 @@ case "${1:-}" in
     need_no_file "$OPENCODE/skills/keyword-builder/SKILL.md"   # retired in content 2.0.0
     # Native subagent placement
     need_file "$OPENCODE/agents/rf-test-architect.md" "^name: rf-test-architect$"
-    # MCP server registered under "mcp" (not "mcpServers" — OpenCode shape)
-    need_file "$OPENCODE/opencode.json"
-    need_json_key "$OPENCODE/opencode.json" 'mcp."rf-tools"'
-    need_json_key "$OPENCODE/opencode.json" 'mcp."rf-tools".command'
-    # Plugin scripts staged
-    need_file "$PLUGIN_FILES/scripts/validate_robot.mjs"
-    need_file "$PLUGIN_FILES/scripts/python_runtime.json"
-    need_no_substitution "$PLUGIN_FILES/scripts/validate_robot.mjs"
+    # rf-tools MCP server was removed: no opencode.json "mcp" block, and
+    # no rf-agentskills-files/ at all (it existed only to support the
+    # MCP server's command path).
+    if [ -f "$OPENCODE/opencode.json" ]; then
+        if jq -e '.mcp."rf-tools"' "$OPENCODE/opencode.json" >/dev/null 2>&1; then
+            printf '  [check] opencode.json unexpectedly has an rf-tools mcp entry\n' >&2
+            exit 1
+        fi
+    fi
+    need_no_file "$PLUGIN_FILES/scripts/validate_robot.mjs"
 
     # API-FREE introspection: opencode ships `opencode debug skill`
     # which walks every skill discovery path and emits JSON. No LLM call.

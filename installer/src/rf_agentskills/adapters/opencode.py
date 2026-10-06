@@ -12,11 +12,6 @@ Layout produced:
 
 * ``<root>/skills/<name>/`` (+ subtree) — verbatim SKILL.md copy
 * ``<root>/agents/<name>.md``           — direct copy of subagent .md
-* ``<root>/opencode.json``              — MCP servers merged under
-                                          top-level ``"mcp"`` key
-* ``<root>/rf-agentskills-files/``      — co-located scripts/servers
-                                          so ``${CLAUDE_PLUGIN_ROOT}``
-                                          paths resolve
 
 User scope: ``~/.config/opencode/``. Project scope: ``<project>/.opencode/``.
 
@@ -26,7 +21,6 @@ out of scope for v1; ``post_install`` notes the gap.
 
 from __future__ import annotations
 
-import json
 import shutil
 from dataclasses import dataclass
 from pathlib import Path
@@ -34,7 +28,7 @@ from typing import Iterable
 
 from .. import _assets
 from .. import transforms as _x
-from ._base import AdapterBase, ConfigMergeOp, InstallOptions, InstallPlan, InstallTarget, skill_script_files
+from ._base import AdapterBase, InstallOptions, InstallPlan, InstallTarget
 
 
 PLUGIN_FILES_SUBDIR = "rf-agentskills-files"
@@ -74,12 +68,6 @@ class OpenCodeAdapter(AdapterBase):
                 plugin_root_abs=plugin_root_abs,
                 what=opts.what,
             ))
-            merges = list(self._collect_merges(
-                src_root=src_root,
-                root=root,
-                plugin_root_abs=plugin_root_abs,
-                what=opts.what,
-            ))
 
         notes: list[str] = []
         if "hooks" in opts.what:
@@ -87,7 +75,7 @@ class OpenCodeAdapter(AdapterBase):
                 "OpenCode hooks use JS plugin modules; not yet supported by "
                 "this installer. See docs/installer/proposal.md (Phase 3)."
             )
-        return InstallPlan(targets=tuple(targets), merges=tuple(merges), notes=tuple(notes))
+        return InstallPlan(targets=tuple(targets), notes=tuple(notes))
 
     def _collect_targets(
         self,
@@ -131,112 +119,16 @@ class OpenCodeAdapter(AdapterBase):
                         transform_name="plugin_root_substitution",
                     )
 
-        # 3. Plugin co-located scripts/servers/hooks under
-        #    <root>/rf-agentskills-files/ — referenced by the MCP server
-        #    command paths after substitution.
-        if {"skills", "agents", "mcp"} & what:
-            for category in ("scripts", "servers"):
-                cat_src = src_root / category
-                if not cat_src.is_dir():
-                    continue
-                for f in sorted(cat_src.rglob("*")):
-                    if not f.is_file():
-                        continue
-                    rel = f.relative_to(src_root)
-                    yield InstallTarget(
-                        dst=plugin_dst / rel,
-                        payload=self._read_with_substitution(f, plugin_root_abs),
-                        transform_name="plugin_root_substitution",
-                        executable=f.suffix in (".sh", ".ps1"),
-                    )
-            # Pin install-time Python interpreter alongside the scripts
-            # (see claude_code.py). OpenCode doesn't register hooks, but
-            # the runtime config is shipped uniformly with the scripts.
-            # Per-skill scripts for the MCP server (<plugin_dst>/skills/<skill>/scripts/).
-            for f in skill_script_files(src_root):
-                rel = f.relative_to(src_root)
-                yield InstallTarget(
-                    dst=plugin_dst / rel,
-                    payload=f.read_bytes(),
-                    transform_name="skill_script_for_mcp_server",
-                )
-            yield InstallTarget(
-                dst=plugin_dst / "scripts" / "python_runtime.json",
-                payload=_x.python_runtime_config_bytes(),
-                transform_name="python_runtime_pin",
-            )
-
-    def _collect_merges(
-        self,
-        *,
-        src_root: Path,
-        root: Path,
-        plugin_root_abs: str,
-        what: frozenset[str],
-    ) -> Iterable[ConfigMergeOp]:
-        # 4. MCP → opencode.json under top-level "mcp" key. Translate
-        #    each Claude-style entry (mcpServers.<n>: {command, args, env})
-        #    into OpenCode's shape (mcp.<n>: {type: "local", command:[...]}).
-        if "mcp" not in what:
-            return
-        plugin_mcp = src_root / ".mcp.json"
-        if not plugin_mcp.is_file():
-            return
-
-        raw = _x.substitute_plugin_root(
-            plugin_mcp.read_text(encoding="utf-8"), plugin_root_abs
-        )
-        plugin_servers = (json.loads(raw) or {}).get("mcpServers", {})
-        translated = {
-            name: self._to_opencode_mcp_shape(spec)
-            for name, spec in plugin_servers.items()
-        }
-
-        target = root / OPENCODE_JSON
-
-        def apply() -> list[str]:
-            return _x.merge_json_at_path(target, ["mcp"], translated)
-
-        def revert() -> None:
-            _x.remove_json_keys_at_path(target, ["mcp"], list(translated))
-
-        yield ConfigMergeOp(
-            path=target,
-            description=f"merge MCP servers (OpenCode shape) into {target}",
-            apply=apply,
-            revert=revert,
-            kind="json_nested",
-            key_path=("mcp",),
-        )
-
-    @staticmethod
-    def _to_opencode_mcp_shape(spec: dict) -> dict:
-        """Convert {"command": "x", "args": [...], "env": {...}} → OpenCode shape."""
-        cmd = spec.get("command", "")
-        args = list(spec.get("args", []))
-        out: dict = {
-            "type": "local",
-            "command": [cmd, *args] if cmd else args,
-        }
-        if spec.get("env"):
-            out["environment"] = dict(spec["env"])
-        return out
-
     # ------------------------------------------------------------------
     # post_install
     # ------------------------------------------------------------------
 
     def post_install(self, opts: InstallOptions) -> list[str]:
         notes = [
-            "OpenCode picks up subagents, slash commands, and MCP servers on next session.",
+            "OpenCode picks up skills and subagents on next session.",
             "Hooks were not installed — OpenCode uses JS plugin modules instead of bash, "
             "and that path is not yet supported by this installer.",
         ]
-        if "mcp" in opts.what:
-            notes.append(
-                "First MCP tool invocation in OpenCode may show an authorization prompt "
-                "— accept it once."
-            )
         return notes
 
     # ------------------------------------------------------------------

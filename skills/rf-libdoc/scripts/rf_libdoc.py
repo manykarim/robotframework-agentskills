@@ -509,7 +509,7 @@ def build_response(libs: List[Any], *, keyword: str | None = None, search: str |
                    max_doc_chars: int = DEFAULT_MAX_DOC_CHARS) -> Dict[str, Any]:
     """Build the unified response: ``{schema_version, mode, libraries, results, ...}``.
 
-    Shared by the CLI and the rf-tools MCP server so both emit one identical
+    Every CLI mode builds its output here, so all of them emit one identical
     shape. ``mode`` ∈ ``explain`` | ``fallback`` | ``search`` | ``list``;
     ``results`` is a single array of uniform items.
     """

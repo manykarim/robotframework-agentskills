@@ -122,8 +122,8 @@ jobs:
         run: ruff check skills/*/scripts/*.py --select E,F,W --ignore E501
       - name: Lint plugin skill scripts
         run: ruff check plugins/rf-agentskills/skills/*/scripts/*.py --select E,F,W --ignore E501
-      - name: Lint MCP server
-        run: ruff check plugins/rf-agentskills/servers/*.py --select E,F,W --ignore E501
+      - name: Lint skill zip builder
+        run: ruff check scripts/build-skill-zips.py --select E,F,W --ignore E501
       - name: Lint repo QA scripts
         run: ruff check scripts/check-skill-keywords.py scripts/validate-skills.py --select E,F,W --ignore E501
 
@@ -308,10 +308,10 @@ jobs:
           # Check agents
           agents = [f for f in os.listdir('plugins/rf-agentskills/agents') if f.endswith('.md')]
           print(f'Agents: {len(agents)} found')
-          # Check MCP server
-          import ast
-          ast.parse(open('plugins/rf-agentskills/servers/rf-tools-server.py').read())
-          print('MCP server: syntax valid')
+          # The rf-tools MCP server was retired (content 2.0.0)
+          assert not os.path.exists('plugins/rf-agentskills/.mcp.json'), 'plugin must not ship an MCP config'
+          assert not os.path.exists('plugins/rf-agentskills/servers'), 'plugin must not ship servers/'
+          print('MCP server: none (retired)')
           "
       - name: Package Claude plugin
         run: |
@@ -349,11 +349,18 @@ jobs:
             ln -sf "../../$d" ".github/skills/$name"
           done
           tar -chzf robotframework-skills-copilot.tar.gz .github/skills/
+      - name: Package Claude Desktop / claude.ai skill uploads
+        run: python scripts/build-skill-zips.py --out skill-zips
       - name: Upload standalone skills
         uses: actions/upload-artifact@v4
         with:
           name: standalone-skills
           path: robotframework-skills-standalone.tar.gz
+      - name: Upload Claude Desktop skill zips
+        uses: actions/upload-artifact@v4
+        with:
+          name: claude-desktop-skill-zips
+          path: skill-zips/*.zip
       - name: Upload Codex skills
         uses: actions/upload-artifact@v4
         with:

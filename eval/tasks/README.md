@@ -30,7 +30,7 @@ eval/tasks/
 | `max_turns` | yes | int | Upper bound on agent turns. |
 | `timeout_seconds` | yes | int | Wall-clock budget for the session. |
 | `allowed_tools` | yes | list[string] | Claude Code tool allowlist (passed via `--allowedTools`). |
-| `mcp_servers` | no | list[string] | Per-task MCP servers (`rf-mcp`), provisioned identically in **both** arms. Required when `allowed_tools` contains `mcp__rf-mcp__*`. Plugin MCP servers (`rf-tools`) come with the treatment arm only. |
+| `mcp_servers` | no | list[string] | Per-task MCP servers (`rf-mcp`), provisioned identically in **both** arms. Required when `allowed_tools` contains `mcp__rf-mcp__*`. Plugin MCP servers (the plugin currently ships none) would come with the treatment arm only. |
 | `expected_files` | no | list[object] | Files the agent is expected to produce (`path`, optional `must_contain`). Informational; does not gate. |
 | `grader_checks` | yes | list[object] | Applied to the workspace end-state / transcript. See below. |
 | `fixture` | yes | string | Fixture directory name under `eval/fixtures/`. |

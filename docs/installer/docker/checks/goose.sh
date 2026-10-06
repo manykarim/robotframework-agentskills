@@ -2,8 +2,13 @@
 # Validate `rf-agentskills install --agent goose`.
 # Goose install paths (per goose-docs.ai .../using-skills/, v1.25+):
 #   $HOME/.agents/skills/<name>/   (cross-vendor universal)
-#   $HOME/.config/goose/config.yaml  (extensions block)
 #   $HOME/.goosehints                 (persona text)
+#
+# No MCP server config: the rf-tools MCP server was removed, and with
+# it config.yaml's "extensions" merge and the rf-agentskills-files/
+# staging that existed only to support the MCP server's command path.
+# The installer no longer writes config.yaml at all (a pre-existing
+# one is only ever touched to retire a legacy rf-tools entry).
 
 set -euo pipefail
 . "$(dirname "$0")/_lib.sh"
@@ -24,15 +29,23 @@ case "${1:-}" in
     need_file "$AGENTS_SKILLS/rf-language/scripts/rf_conventions.py"
     need_file "$AGENTS_SKILLS/rf-python-library/scripts/check_library.py"
     need_no_file "$AGENTS_SKILLS/keyword-builder/SKILL.md"   # retired in content 2.0.0
-    # MCP extension in config.yaml
-    need_file "$GOOSE_CONFIG/config.yaml"
-    need_yaml_key "$GOOSE_CONFIG/config.yaml" 'extensions.rf-tools'
     # Persona text in goosehints
     need_file "$HOME/.goosehints" 'rf-test-architect' 'rf-agentskills'
-    # Plugin scripts staged
-    need_file "$PLUGIN_FILES/scripts/validate_robot.mjs"
-    need_file "$PLUGIN_FILES/scripts/python_runtime.json"
-    need_no_substitution "$PLUGIN_FILES/scripts/validate_robot.mjs"
+    # rf-tools MCP server was removed: config.yaml isn't written by the
+    # installer at all, so no "extensions.rf-tools" key should exist
+    # (only checked if a pre-existing config.yaml happens to be there),
+    # and no rf-agentskills-files/ staging landed on disk.
+    if [ -f "$GOOSE_CONFIG/config.yaml" ]; then
+        if python3 -c "
+import sys, yaml
+d = yaml.safe_load(open('$GOOSE_CONFIG/config.yaml')) or {}
+sys.exit(0 if 'rf-tools' in d.get('extensions', {}) else 1)
+"; then
+            printf '  [check] config.yaml unexpectedly has an rf-tools extension\n' >&2
+            exit 1
+        fi
+    fi
+    need_no_file "$PLUGIN_FILES/scripts/validate_robot.mjs"
 
     # API-free agent introspection: try `goose info` for any
     # filesystem reflection. `goose info` doesn't list skills directly

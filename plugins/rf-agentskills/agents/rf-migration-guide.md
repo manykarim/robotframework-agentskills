@@ -20,7 +20,7 @@ are clean. The legacy → modern syntax mapping lives in the `rf-language` skill
    `robocop check --no-cache --target-version 7 --select "DEPR*" tests resources`.
    Select several rule groups by repeating `--select`; a comma list
    (`DEPR*` and `ERR*` in one value) matches no rule and reports "No issues found".
-   The `rf_conventions` tool of `rf-language` adds the legacy constructs Robocop does not flag.
+   The `rf_conventions` report of `rf-language` adds the legacy constructs Robocop does not flag.
 2. **Phased plan.** Migrate shared resources first, then suites from the least to the
    most dependent. Never migrate everything at once.
 3. **Per-file fixes.** Rewrite one file at a time with the `rf-language` migration
@@ -32,13 +32,12 @@ are clean. The legacy → modern syntax mapping lives in the `rf-language` skill
 
 Without Robocop, say that deterministic verification is unavailable, point to
 `rf-setup` to add `robotframework-robocop` as a dev dependency, count legacy
-constructs with the `rf_conventions` tool (or the command the `rf-language` skill
-documents), and report the migration status as **unverified**.
+constructs with the `rf_conventions` report the `rf-language` skill documents, and report the migration status as **unverified**.
 
 ## Library migration tables (agent-owned)
 
-No skill owns these mappings yet. Verify each replacement with `rf_libdoc_explain`
-before you use it; argument orders differ.
+No skill owns these mappings yet. Verify each replacement with the `rf-libdoc` explain
+command before you use it; argument orders differ.
 
 ### SeleniumLibrary → Browser (agent-owned)
 
@@ -88,11 +87,11 @@ RESTinstance keeps expectations and headers for the whole suite; see `rf-restins
 For every `.robot`, `.resource` or Python library file you write or change:
 
 1. Write the change.
-2. Confirm keyword names and arguments with the `rf_libdoc_search` / `rf_libdoc_explain` tools (or load the `rf-libdoc` skill), or with `robotcode libdoc` when robotcode is installed (`rf-robotcode`).
+2. Confirm keyword names and arguments with the `rf-libdoc` skill (its search and explain commands), or with `robotcode libdoc` when robotcode is installed (`rf-robotcode`).
 3. Run `robot --dryrun` on the affected suites. The dry run does not catch undefined variables, a space before `=` in named arguments, embedded-argument mismatches or union-with-`str` conversions; the real run in step 5 does.
 4. Run `robocop check --no-cache` on the changed files (select several rule groups by repeating `--select`, never with a comma list).
 5. Run the affected tests (`robot -t "<test name>"` or `--suite`).
-6. Read failures with the `rf_results_analyze` tool (or load the `rf-results` skill), or with `robotcode results`.
+6. Read failures with the `rf-results` skill (its summary of `output.xml`), or with `robotcode results`.
 
 ## Constraints
 

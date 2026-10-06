@@ -31,11 +31,11 @@ VERIFICATION_LOOP = """\
 For every `.robot`, `.resource` or Python library file you write or change:
 
 1. Write the change.
-2. Confirm keyword names and arguments with the `rf_libdoc_search` / `rf_libdoc_explain` tools (or load the `rf-libdoc` skill), or with `robotcode libdoc` when robotcode is installed (`rf-robotcode`).
+2. Confirm keyword names and arguments with the `rf-libdoc` skill (its search and explain commands), or with `robotcode libdoc` when robotcode is installed (`rf-robotcode`).
 3. Run `robot --dryrun` on the affected suites. The dry run does not catch undefined variables, a space before `=` in named arguments, embedded-argument mismatches or union-with-`str` conversions; the real run in step 5 does.
 4. Run `robocop check --no-cache` on the changed files (select several rule groups by repeating `--select`, never with a comma list).
 5. Run the affected tests (`robot -t "<test name>"` or `--suite`).
-6. Read failures with the `rf_results_analyze` tool (or load the `rf-results` skill), or with `robotcode results`.
+6. Read failures with the `rf-results` skill (its summary of `output.xml`), or with `robotcode results`.
 """
 
 RETIRED = (
@@ -144,7 +144,7 @@ def test_verification_loop_is_canonical(name: str) -> None:
     body = _body(name)
     assert VERIFICATION_LOOP in body, f"{name}: verification loop differs from the canonical text"
     loop = _section(body, "Verification loop")
-    order = ["Write the change", "robotcode libdoc", "robot --dryrun", "robocop check", "robot -t", "rf_results_analyze"]
+    order = ["Write the change", "robotcode libdoc", "robot --dryrun", "robocop check", "robot -t", "`rf-results` skill"]
     positions = [loop.index(step) for step in order]
     assert positions == sorted(positions)
     for blind in ("undefined variables", "named arguments", "embedded-argument", "union-with-`str`"):
@@ -158,6 +158,9 @@ def test_no_plugin_paths_or_script_commands(name: str) -> None:
     assert "${CLAUDE_SKILL_DIR}" not in text
     assert "scripts/" not in text, f"{name}: script path"
     assert "mcp__" not in text, f"{name}: MCP tools are named without an agent-specific prefix"
+    # rf_conventions stays: it is also the rf-language script's report name.
+    for tool in ("rf_libdoc_search", "rf_libdoc_explain", "rf_results_analyze", "rf_check_library"):
+        assert tool not in text, f"{name}: names the retired rf-tools MCP tool {tool}"
 
 
 @pytest.mark.parametrize("name", AGENT_NAMES)
@@ -238,7 +241,7 @@ def test_keyword_consultant_has_no_catalog() -> None:
     routing = _section(body, "Routing")
     for skill in ("rf-libdoc", "rf-robotcode", "rf-language", "rf-python-library"):
         assert skill in routing, skill
-    assert "rf_libdoc_search" in body and "rf_libdoc_explain" in body
+    assert "search command" in body and "explain command" in body
     assert "Browser.Click" in body  # library-prefix disambiguation rule stays
 
 
@@ -293,5 +296,5 @@ def test_debug_expert_routes_failure_classes() -> None:
     assert re.search(r"(?i)__init__\.robot.*rf-language", joined)
     assert re.search(r"(?i)step.*rf-robotcode", joined)
     assert "rf-results" in joined
-    assert "rf_results_analyze" in body
+    assert "with the `rf-results` skill" in body
     assert "FAILURE:" in body and "CATEGORY:" in body

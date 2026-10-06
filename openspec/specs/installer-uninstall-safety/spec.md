@@ -16,8 +16,8 @@ Merging rf-agentskills config into a shared file SHALL add only rf-agentskills' 
 - **AND** the foreign `PostToolUse` group and the user's `Notification` hook are still present and unchanged
 
 #### Scenario: Installing alongside a foreign MCP server keeps it
-- **WHEN** `.mcp.json` already contains `mcpServers.some-other-server` and rf-agentskills installs its MCP server
-- **THEN** both `some-other-server` and `rf-tools` are present afterward
+- **WHEN** `.mcp.json` already contains `mcpServers.some-other-server` and rf-agentskills is installed
+- **THEN** `.mcp.json` is unchanged (rf-agentskills writes no MCP server) and `some-other-server` is still present
 
 #### Scenario: Re-install is idempotent
 - **WHEN** rf-agentskills is installed twice into the same target
@@ -37,7 +37,7 @@ commands behind.
 - **AND** no remaining hook command references the removed `rf-agentskills-files` install directory
 
 #### Scenario: Uninstall removes only our MCP server
-- **WHEN** rf-agentskills is uninstalled from a `.mcp.json` that also holds `some-other-server`
+- **WHEN** rf-agentskills is uninstalled from a `.mcp.json` that holds `some-other-server` and an `rf-tools` entry recorded by an older installer
 - **THEN** `rf-tools` is gone and `some-other-server` remains
 
 #### Scenario: Empty containers pruned, shared file kept
@@ -87,3 +87,20 @@ When `rf-agentskills install` runs for an (agent, scope) pair that already has a
 #### Scenario: Prune behaviour is covered by tests
 - **WHEN** the installer tests run
 - **THEN** they include sandboxed cases for stale-file removal, user-modified stale-file skip, partial-category re-install and dry run
+
+### Requirement: Re-install retires the rf-tools MCP server
+
+Installing over a record written by an installer that registered the `rf-tools` MCP server SHALL remove the `rf-tools` entry from every config it was merged into (Claude Code / Copilot `.mcp.json`, Copilot `.vscode/mcp.json`, Cursor `mcp.json`, Codex `config.toml` `[mcp_servers.rf-tools]`, OpenCode `opencode.json` `mcp`, Goose `config.yaml` `extensions`, Claude Desktop `claude_desktop_config.json`), keep every other entry, and delete the server files it staged (hash-checked, user-modified files kept). The install output SHALL name each cleaned config file, and `--dry-run` SHALL list the removals.
+
+#### Scenario: Upgrade cleans the old server and keeps a foreign one
+- **WHEN** the manifest records an `rf-tools` merge into `.mcp.json`, which also holds `some-other-server`, and a staged `servers/rf-tools-server.py`, and rf-agentskills is installed again
+- **THEN** `.mcp.json` holds only `some-other-server`
+- **AND** `rf-tools-server.py` is deleted and no longer tracked
+
+#### Scenario: Every config shape is cleaned
+- **WHEN** retired `rf-tools` entries exist in a Codex `config.toml`, a Goose `config.yaml`, a Copilot `.vscode/mcp.json` and a `claude_desktop_config.json`, next to user entries
+- **THEN** only the `rf-tools` entries are removed
+
+#### Scenario: Selecting mcp is ignored
+- **WHEN** `rf-agentskills install --what skills,mcp` runs
+- **THEN** it prints a note that `mcp` is ignored and installs the skills

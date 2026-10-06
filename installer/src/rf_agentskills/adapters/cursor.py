@@ -23,10 +23,8 @@ who installed Cursor without any other agent still get the bundle.
               event names and namespaces ``mcp__rf-mcp__*`` matchers
               to ``MCP:rf-mcp``). The result is wrapped under a
               top-level ``"hooks"`` key — Cursor's expected shape.
-* MCP       → merged into ``<root>/mcp.json`` under ``mcpServers``
-              (standard MCP JSON schema).
 
-Plugin-co-located scripts/servers are staged under
+Plugin-co-located hook scripts are staged under
 ``<root>/rf-agentskills-files/`` (same trick the Claude Code adapter
 uses) so the post-substitution ``${CLAUDE_PLUGIN_ROOT}`` references in
 SKILL bodies and hook commands resolve to absolute paths.
@@ -148,11 +146,11 @@ class CursorAdapter(AdapterBase):
                         transform_name="plugin_root_substitution",
                     )
 
-        # 3. Plugin-co-located files: scripts/, servers/, hooks/.
+        # 3. Plugin-co-located files: scripts/, hooks/.
         #    Same pattern as Claude Code — staged under
         #    <root>/rf-agentskills-files/ so substituted paths resolve.
-        if {"hooks", "skills", "mcp"} & what:
-            for category in ("scripts", "servers", "hooks"):
+        if {"hooks", "skills"} & what:
+            for category in ("scripts", "hooks"):
                 cat_src = src_root / category
                 if not cat_src.is_dir():
                     continue
@@ -166,17 +164,18 @@ class CursorAdapter(AdapterBase):
                         transform_name="plugin_root_substitution",
                         executable=f.suffix in (".sh", ".ps1") or f.name.endswith(".bash"),
                     )
-            # Pin the install-time Python interpreter so hook .mjs scripts
-            # target the env that has robotframework. See claude_code.py
-            # for the rationale.
-            # Per-skill scripts for the MCP server (<plugin_dst>/skills/<skill>/scripts/).
+            # Per-skill scripts for the hooks (<plugin_dst>/skills/<skill>/scripts/;
+            # the Stop hook runs skills/rf-results/scripts/rf_results.py).
             for f in skill_script_files(src_root):
                 rel = f.relative_to(src_root)
                 yield InstallTarget(
                     dst=plugin_dst / rel,
                     payload=f.read_bytes(),
-                    transform_name="skill_script_for_mcp_server",
+                    transform_name="skill_script_for_hooks",
                 )
+            # Pin the install-time Python interpreter so hook .mjs scripts
+            # target the env that has robotframework. See claude_code.py
+            # for the rationale.
             yield InstallTarget(
                 dst=plugin_dst / "scripts" / "python_runtime.json",
                 payload=_x.python_runtime_config_bytes(),
@@ -203,16 +202,6 @@ class CursorAdapter(AdapterBase):
                     plugin_root_abs=plugin_root_abs,
                 )
 
-        # 5. MCP servers → <root>/mcp.json under "mcpServers".
-        if "mcp" in what:
-            plugin_mcp = src_root / ".mcp.json"
-            if plugin_mcp.is_file():
-                yield self._mcp_merge_op(
-                    plugin_mcp=plugin_mcp,
-                    target=root / "mcp.json",
-                    plugin_root_abs=plugin_root_abs,
-                )
-
     # ------------------------------------------------------------------
     # post_install
     # ------------------------------------------------------------------
@@ -222,11 +211,6 @@ class CursorAdapter(AdapterBase):
             "Cursor will pick up rules in .cursor/rules/ on next session.",
             "Subagents are folded into rules as _subagent-<name>.mdc.",
         ]
-        if "mcp" in opts.what:
-            notes.append(
-                "MCP servers added to .cursor/mcp.json — first invocation "
-                "may prompt for trust; accept it once."
-            )
         if "hooks" in opts.what:
             notes.append(
                 "Hooks installed to .cursor/hooks.json with cursor-namespaced "
@@ -285,36 +269,4 @@ class CursorAdapter(AdapterBase):
             kind="json_hooks",
             key_path=("hooks",),
             marker=marker,
-        )
-
-    def _mcp_merge_op(
-        self,
-        *,
-        plugin_mcp: Path,
-        target: Path,
-        plugin_root_abs: str,
-    ) -> ConfigMergeOp:
-        raw = _x.substitute_plugin_root(
-            plugin_mcp.read_text(encoding="utf-8"),
-            plugin_root_abs,
-        )
-        plugin_servers = (json.loads(raw) or {}).get("mcpServers", {})
-
-        def apply() -> list[str]:
-            return _x.merge_json_at_path(
-                target, key_path=["mcpServers"], values=plugin_servers
-            )
-
-        def revert() -> None:
-            _x.remove_json_keys_at_path(
-                target, key_path=["mcpServers"], keys=list(plugin_servers)
-            )
-
-        return ConfigMergeOp(
-            path=target,
-            description=f"merge MCP servers into {target}",
-            apply=apply,
-            revert=revert,
-            kind="json_nested",
-            key_path=("mcpServers",),
         )

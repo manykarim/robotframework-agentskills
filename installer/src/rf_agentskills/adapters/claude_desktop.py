@@ -1,44 +1,36 @@
 """Adapter for Claude Desktop (macOS / Windows / unofficial Linux).
 
-Claude Desktop has no filesystem-based extension model for skills,
-subagents, or hooks. The only thing installable is **MCP servers**
-via per-OS ``claude_desktop_config.json``.
+Claude Desktop (like claude.ai) loads custom Agent Skills that the user
+uploads as one ZIP per skill under **Customize → Skills → + → Create skill
+→ Upload a skill** (code execution must be enabled). Skills are stored
+server-side with the account, so there is no folder to install into and no
+config to merge. This adapter therefore writes upload-ready archives:
 
-Layout produced under the install root (parent of the config file):
+* ``<root>/<skill>.zip`` — one per skill, the skill folder at the archive
+  root (``rf-browser/SKILL.md``, ``rf-browser/references/…``), built by
+  :func:`skillzip.skill_zip_bytes`.
 
-* ``claude_desktop_config.json``  — top-level ``mcpServers`` block
-  merged with our servers (preserves any user-existing entries).
-* ``rf-agentskills-files/scripts``, ``rf-agentskills-files/servers`` —
-  co-located so MCP server commands' substituted ``${CLAUDE_PLUGIN_ROOT}``
-  paths resolve.
-
-Per-OS config paths:
-
-* macOS:   ``~/Library/Application Support/Claude/claude_desktop_config.json``
-* Windows: ``%APPDATA%\\Claude\\claude_desktop_config.json``
-* Linux:   ``~/.config/Claude/claude_desktop_config.json``  (unofficial)
-
-Skills, subagents, hooks: skipped with notes — Claude Desktop has no
-native equivalents.
+``<root>`` is ``~/rf-agentskills-claude-desktop/`` (or ``--prefix``).
+Subagents and hooks have no Claude Desktop equivalent and are skipped with
+notes. Installs made before content 2.0.0 merged an ``rf-tools`` MCP server
+into ``claude_desktop_config.json``; re-installing removes it (see
+``cli._retire_legacy_mcp``).
 """
 
 from __future__ import annotations
 
-import json
 import os
-import shutil
 import sys
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Iterable
 
 from .. import _assets
-from .. import transforms as _x
-from ._base import AdapterBase, ConfigMergeOp, InstallOptions, InstallPlan, InstallTarget, skill_script_files
+from ..skillzip import skill_zip_bytes
+from ._base import AdapterBase, InstallOptions, InstallPlan, InstallTarget
 
-
-PLUGIN_FILES_SUBDIR = "rf-agentskills-files"
 CONFIG_FILENAME = "claude_desktop_config.json"
+ZIP_DIR_NAME = "rf-agentskills-claude-desktop"
+UPLOAD_PATH = "Customize → Skills → + → Create skill → Upload a skill"
 
 
 @dataclass
@@ -57,7 +49,7 @@ class ClaudeDesktopAdapter(AdapterBase):
 
     @staticmethod
     def _config_path() -> Path:
-        """Per-OS path to ``claude_desktop_config.json``."""
+        """Per-OS path to ``claude_desktop_config.json`` (used for detection)."""
         if sys.platform == "darwin":
             return (
                 Path.home()
@@ -75,10 +67,14 @@ class ClaudeDesktopAdapter(AdapterBase):
         return Path.home() / ".config" / "Claude" / CONFIG_FILENAME
 
     def install_root(self, opts: InstallOptions) -> Path:
-        """Parent dir of the per-OS config file (or --prefix override)."""
+        """Folder for the upload archives: ``--prefix`` or ``~/rf-agentskills-claude-desktop``.
+
+        Skills live with the Claude account, not in a project, so the
+        scope does not change the location.
+        """
         if opts.prefix is not None:
             return opts.prefix
-        return self._config_path().parent
+        return Path.home() / ZIP_DIR_NAME
 
     # ------------------------------------------------------------------
     # plan
@@ -86,60 +82,21 @@ class ClaudeDesktopAdapter(AdapterBase):
 
     def plan(self, opts: InstallOptions) -> InstallPlan:
         root = self.install_root(opts)
-        plugin_dst = root / PLUGIN_FILES_SUBDIR
-        plugin_root_abs = _x.to_native_path_string(plugin_dst.resolve())
-
         targets: list[InstallTarget] = []
-        merges: list[ConfigMergeOp] = []
         notes: list[str] = []
 
-        with _assets.asset_root_path() as src_root:
-            # 1. Plugin co-located scripts/servers — needed for MCP server
-            #    commands to resolve their paths after substitution.
-            if "mcp" in opts.what:
-                for category in ("scripts", "servers"):
-                    cat_src = src_root / category
-                    if not cat_src.is_dir():
-                        continue
-                    for f in sorted(cat_src.rglob("*")):
-                        if not f.is_file():
-                            continue
-                        rel = f.relative_to(src_root)
-                        targets.append(InstallTarget(
-                            dst=plugin_dst / rel,
-                            payload=self._read_with_substitution(f, plugin_root_abs),
-                            transform_name="plugin_root_substitution",
-                            executable=f.suffix in (".sh", ".ps1"),
-                        ))
-                # Per-skill scripts for the MCP server (<plugin_dst>/skills/<skill>/scripts/).
-                for f in skill_script_files(src_root):
-                    rel = f.relative_to(src_root)
-                    targets.append(InstallTarget(
-                        dst=plugin_dst / rel,
-                        payload=f.read_bytes(),
-                        transform_name="skill_script_for_mcp_server",
-                    ))
-                # Pin install-time Python interpreter (see claude_code.py).
-                targets.append(InstallTarget(
-                    dst=plugin_dst / "scripts" / "python_runtime.json",
-                    payload=_x.python_runtime_config_bytes(),
-                    transform_name="python_runtime_pin",
-                ))
-
-                # 2. MCP merge into claude_desktop_config.json.
-                plugin_mcp = src_root / ".mcp.json"
-                if plugin_mcp.is_file():
-                    merges.append(self._mcp_merge_op(
-                        plugin_mcp=plugin_mcp,
-                        target=root / CONFIG_FILENAME,
-                        plugin_root_abs=plugin_root_abs,
-                    ))
-
-        # 3. Honest skip-notes for everything Claude Desktop can't host.
         if "skills" in opts.what:
-            notes.append(
-                "Claude Desktop has no native skill loader — skills not installed."
-            )
+            with _assets.asset_root_path() as src_root:
+                skills_src = src_root / "skills"
+                for skill_dir in sorted(p for p in skills_src.iterdir() if p.is_dir()):
+                    if not (skill_dir / "SKILL.md").is_file():
+                        continue
+                    targets.append(InstallTarget(
+                        dst=root / f"{skill_dir.name}.zip",
+                        payload=skill_zip_bytes(skill_dir),
+                        transform_name="skill_upload_zip",
+                    ))
+
         if "agents" in opts.what:
             notes.append(
                 "Claude Desktop has no subagent system — subagents not installed."
@@ -148,66 +105,25 @@ class ClaudeDesktopAdapter(AdapterBase):
             notes.append(
                 "Claude Desktop has no hook system — hooks not installed."
             )
-
-        return InstallPlan(targets=tuple(targets), merges=tuple(merges), notes=tuple(notes))
+        return InstallPlan(targets=tuple(targets), notes=tuple(notes))
 
     # ------------------------------------------------------------------
     # post_install
     # ------------------------------------------------------------------
 
     def post_install(self, opts: InstallOptions) -> list[str]:
+        root = self.install_root(opts)
         notes = [
-            "Claude Desktop only supports MCP servers from this bundle. "
-            "Skills, subagents, and hooks aren't installable (per Anthropic's "
-            "docs — Desktop skills are server-side via Settings → Capabilities, "
-            "not filesystem-loaded).",
-            "Restart Claude Desktop to pick up the MCP server registration.",
-            "First MCP tool invocation will trigger a trust prompt — accept it once.",
+            f"Skill archives written to {root} (one .zip per skill). Claude Desktop "
+            "cannot load skills from disk: upload each archive in Claude Desktop "
+            f"(or claude.ai) under {UPLOAD_PATH}, then start a new chat.",
+            "Skills need code execution: enable it under Settings → Capabilities. "
+            "Bundled scripts install robotframework / libraries with pip when needed.",
+            "After an update, upload the changed archives again (replace the old skill).",
         ]
         if sys.platform.startswith("linux"):
             notes.append(
                 "Note: Claude Desktop is officially supported on macOS and "
-                "Windows only. Linux installs are community/unofficial — "
-                "the path used was ~/.config/Claude/claude_desktop_config.json."
+                "Windows only; on Linux use claude.ai with the same archives."
             )
         return notes
-
-    # ------------------------------------------------------------------
-    # internals
-    # ------------------------------------------------------------------
-
-    @staticmethod
-    def _read_with_substitution(src: Path, plugin_root_abs: str) -> bytes:
-        data = src.read_bytes()
-        if _x.is_substitution_candidate(src):
-            return _x.substitute_plugin_root_bytes(data, plugin_root_abs)
-        return data
-
-    def _mcp_merge_op(
-        self,
-        *,
-        plugin_mcp: Path,
-        target: Path,
-        plugin_root_abs: str,
-    ) -> ConfigMergeOp:
-        raw = _x.substitute_plugin_root(
-            plugin_mcp.read_text(encoding="utf-8"), plugin_root_abs
-        )
-        plugin_servers = (json.loads(raw) or {}).get("mcpServers", {})
-
-        def apply() -> list[str]:
-            return _x.merge_json_at_path(target, ["mcpServers"], plugin_servers)
-
-        def revert() -> None:
-            _x.remove_json_keys_at_path(
-                target, ["mcpServers"], list(plugin_servers)
-            )
-
-        return ConfigMergeOp(
-            path=target,
-            description=f"merge MCP servers into {target}",
-            apply=apply,
-            revert=revert,
-            kind="json_nested",
-            key_path=("mcpServers",),
-        )

@@ -11,7 +11,7 @@ An adapter is a small class with three responsibilities:
    tests can assert on the plan structure.
 3. ``post_install(opts)`` — return a list of human-readable warnings or
    next-step instructions printed after a successful install (e.g.
-   "first MCP run will prompt for trust", "enable preview flags X, Y").
+   "enable preview flags X, Y").
 
 The CLI's ``install`` flow is:
 
@@ -45,7 +45,7 @@ class InstallOptions:
     project_dir: Path | None = None     # project scope target; defaults to CWD
     prefix: Path | None = None          # override the install root (for tests / sandboxing)
     what: frozenset[str] = field(
-        default_factory=lambda: frozenset({"skills", "agents", "hooks", "mcp"})
+        default_factory=lambda: frozenset({"skills", "agents", "hooks"})
     )
     dry_run: bool = False
     force: bool = False                 # overwrite even when destination is user-modified
@@ -193,11 +193,10 @@ class AdapterBase:
 def skill_script_files(src_root: Path) -> list[Path]:
     """Every file under ``skills/<skill>/scripts/`` of the bundled plugin tree.
 
-    Adapters that ship the rf-tools MCP server stage these under
-    ``rf-agentskills-files/skills/<skill>/scripts/`` too: the server resolves
-    scripts relative to its own location
-    (``<plugin_root>/skills/<skill>/scripts/<name>.py``), independent of where
-    the agent's skills are installed.
+    Adapters that install hooks stage these under
+    ``rf-agentskills-files/skills/<skill>/scripts/`` too: the Stop hook runs
+    ``../skills/rf-results/scripts/rf_results.py`` relative to the hook
+    scripts, independent of where the agent's skills are installed.
     """
     return [
         f for f in sorted(src_root.glob("skills/*/scripts/**/*"))
