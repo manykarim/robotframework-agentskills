@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Check for drift between root skills/ and plugin/vscode distribution copies.
+# Check for drift between root skills/ and the plugin distribution copies.
 # Exit 1 if any drift or orphaned copy is found.
 #
 # REPO_ROOT can be overridden (used by tests to run against a scratch tree).
@@ -41,28 +41,11 @@ for root_path in $(printf '%s\n' "${!SCRIPT_MAP[@]}" | sort); do
     fi
 done
 
-# ── VS Code copies of scripts must be byte-identical to root ────────────────
-echo ""
-echo "=== Checking script drift: root skills/ vs vscode-extension/skills/ ==="
-for root_path in $(printf '%s\n' "${!SCRIPT_MAP[@]}" | sort); do
-    skill_dir="$REPO_ROOT/$(dirname "$(dirname "$root_path")")"
-    vscode_path="vscode-extension/skills/$(basename "$skill_dir")/scripts/$(basename "$root_path")"
-    if [ ! -f "$REPO_ROOT/$vscode_path" ]; then
-        echo "MISSING: $vscode_path"
-        DRIFT_FOUND=1
-    elif ! diff -q "$REPO_ROOT/$root_path" "$REPO_ROOT/$vscode_path" > /dev/null 2>&1; then
-        echo "DRIFT: $root_path != $vscode_path"
-        DRIFT_FOUND=1
-    else
-        echo "  OK: $vscode_path"
-    fi
-done
-
 # ── Symlinks: no symbolic link may exist in any skill tree ──────────────────
 echo ""
 echo "=== Checking for symlinks in skill trees ==="
 SYMLINKS=0
-for tree in skills plugins/rf-agentskills/skills plugins/rf-agentskills/scripts vscode-extension/skills; do
+for tree in skills plugins/rf-agentskills/skills plugins/rf-agentskills/scripts; do
     [ -d "$REPO_ROOT/$tree" ] || continue
     while IFS= read -r link; do
         echo "SYMLINK: ${link#"$REPO_ROOT"/}"
@@ -75,12 +58,12 @@ else
     echo "  OK: no symlinks"
 fi
 
-# ── Skill content: plugin + VS Code copies of every root skill ──────────────
+# ── Skill content: plugin copies of every root skill ──────────────
 # One identifier per skill: the channel dir name equals the root dir name.
 # Plugin SKILL.md = root SKILL.md with only the script-path rewrite applied;
-# VS Code SKILL.md is byte-identical; references/ and assets/ are identical.
+# scripts/, references/ and assets/ are identical.
 echo ""
-echo "=== Checking skill content: root skills/ vs plugin + vscode-extension ==="
+echo "=== Checking skill content: root skills/ vs plugin ==="
 plugin_transform() {
     sed -E 's#(python|--script) scripts/([a-z_]+\.py)#\1 "${CLAUDE_SKILL_DIR}/scripts/\2"#g' "$1"
 }
@@ -94,18 +77,14 @@ for skill_dir in "$REPO_ROOT"/skills/*/; do
         echo "NAME MISMATCH: skills/$name/SKILL.md has name: '$rf_name'"
         DRIFT_FOUND=1
     fi
-    for channel in plugins/rf-agentskills/skills vscode-extension/skills; do
+    for channel in plugins/rf-agentskills/skills; do
         copy="$REPO_ROOT/$channel/$name"
         if [ ! -d "$copy" ]; then
             echo "MISSING: $channel/$name/"
             DRIFT_FOUND=1
             continue
         fi
-        if [ "$channel" = "vscode-extension/skills" ]; then
-            skill_ok=0; cmp -s "$skill_dir/SKILL.md" "$copy/SKILL.md" && skill_ok=1
-        else
-            skill_ok=0; plugin_transform "$skill_dir/SKILL.md" | cmp -s - "$copy/SKILL.md" && skill_ok=1
-        fi
+        skill_ok=0; plugin_transform "$skill_dir/SKILL.md" | cmp -s - "$copy/SKILL.md" && skill_ok=1
         if [ $skill_ok -eq 0 ]; then
             echo "DRIFT: skills/$name/SKILL.md != $channel/$name/SKILL.md"
             DRIFT_FOUND=1
@@ -127,11 +106,10 @@ echo ""
 echo "=== Checking for orphaned distribution copies ==="
 
 ORPHANS=0
-for channel in plugins/rf-agentskills/skills vscode-extension/skills; do
+for channel in plugins/rf-agentskills/skills; do
     for copy in "$REPO_ROOT/$channel"/*/; do
         [ -d "$copy" ] || continue
         name=$(basename "$copy")
-        [ "$channel/$name" = "vscode-extension/skills/skills" ] && continue  # double-nesting check below
         if [ -z "${ROOT_SKILLS[$name]:-}" ]; then
             echo "ORPHAN: $channel/$name/ (no root skills/$name/)"
             ORPHANS=1
@@ -165,7 +143,7 @@ from pathlib import Path
 root = Path(os.environ["REPO_ROOT"])
 bare = re.compile(r"(?<![\w/.\\-])python3? +(?:\"?\$\{CLAUDE_SKILL_DIR\}/)?scripts/")
 bad = 0
-for tree in ("skills", "plugins/rf-agentskills/skills", "vscode-extension/skills"):
+for tree in ("skills", "plugins/rf-agentskills/skills"):
     for md in sorted((root / tree).glob("*/SKILL.md")):
         rel = md.relative_to(root)
         for no, line in enumerate(md.read_text(encoding="utf-8").splitlines(), 1):
@@ -189,12 +167,11 @@ else
 fi
 
 echo ""
-echo "=== Checking for double-nested vscode-extension/skills/skills/ ==="
-if [ -d "$REPO_ROOT/vscode-extension/skills/skills" ]; then
-    echo "ERROR: Double-nested vscode-extension/skills/skills/ directory exists!"
-    DRIFT_FOUND=1
+echo "=== Checking per-agent variants (plugins/rf-agentskills/variants/) ==="
+if "$PY" "$REPO_ROOT/scripts/build-agent-variants.py" --check; then
+    :
 else
-    echo "  OK: No double nesting"
+    DRIFT_FOUND=1
 fi
 
 echo ""

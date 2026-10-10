@@ -51,14 +51,11 @@ def test_no_flat_plugin_python_scripts():
 def scratch_repo(tmp_path: Path) -> Path:
     """A minimal copy of the repo tree the sync/drift scripts operate on."""
     dst = tmp_path / "repo"
-    (dst / "vscode-extension").mkdir(parents=True)
     shutil.copytree(ROOT / "skills", dst / "skills", symlinks=True)
     shutil.copytree(ROOT / "scripts", dst / "scripts")
     shutil.copytree(
         ROOT / "plugins", dst / "plugins", ignore=shutil.ignore_patterns("__pycache__")
     )
-    shutil.copytree(ROOT / "vscode-extension" / "skills", dst / "vscode-extension" / "skills")
-    shutil.copy2(ROOT / "vscode-extension" / "package.json", dst / "vscode-extension" / "package.json")
     return dst
 
 
@@ -81,7 +78,6 @@ def test_drift_check_clean_tree_passes(scratch_repo: Path):
     [
         "plugins/rf-agentskills/skills/rf-orphan/SKILL.md",
         "plugins/rf-agentskills/scripts/retired_helper.py",
-        "vscode-extension/skills/rf-orphan/SKILL.md",
     ],
 )
 def test_drift_check_names_orphan(scratch_repo: Path, orphan: str):
@@ -103,8 +99,6 @@ def test_sync_prunes_removed_root_skill(scratch_repo: Path):
     )
     assert not (scratch_repo / "plugins/rf-agentskills/skills/rf-results").exists()
     assert not (scratch_repo / "plugins/rf-agentskills/skills/rf-results/scripts/rf_results.py").exists()
-    assert not (scratch_repo / "vscode-extension/skills/rf-results").exists()
-    assert "rf-results" not in (scratch_repo / "vscode-extension/package.json").read_text()
     # Plugin-owned hook scripts are never pruned.
     assert (scratch_repo / "plugins/rf-agentskills/scripts/validate_robot.mjs").exists()
     assert _drift(scratch_repo).returncode == 0
@@ -118,7 +112,6 @@ def test_sync_prunes_removed_root_skill(scratch_repo: Path):
         "plugins/rf-agentskills/skills/rf-libdoc",
         "plugins/rf-agentskills/skills/rf-libdoc/scripts",
         "plugins/rf-agentskills/scripts",
-        "vscode-extension/skills/rf-libdoc/scripts",
     ],
 )
 def test_drift_check_rejects_symlinks(scratch_repo: Path, tree: str):
@@ -129,15 +122,6 @@ def test_drift_check_rejects_symlinks(scratch_repo: Path, tree: str):
     assert f"SYMLINK: {tree}/linked.md" in res.stdout
 
 
-@requires_posix_bash
-def test_drift_check_compares_vscode_script_copy(scratch_repo: Path):
-    copy = scratch_repo / "vscode-extension/skills/rf-libdoc/scripts/rf_libdoc.py"
-    copy.write_text(copy.read_text() + "# drift\n")
-    res = _drift(scratch_repo)
-    assert res.returncode == 1, res.stdout
-    assert "DRIFT: skills/rf-libdoc/scripts/rf_libdoc.py != vscode-extension/skills/rf-libdoc/scripts/rf_libdoc.py" in res.stdout
-
-
 def _sync(repo: Path) -> subprocess.CompletedProcess:
     return subprocess.run(
         [BASH, str(repo / "scripts" / "sync-skills.sh")], capture_output=True, text=True,
@@ -145,11 +129,10 @@ def _sync(repo: Path) -> subprocess.CompletedProcess:
 
 
 def test_channels_use_root_dir_names():
-    """One identifier per skill: all three channels hold the same rf-* dir names."""
+    """One identifier per skill: root and plugin hold the same rf-* dir names."""
     root = {p.name for p in (ROOT / "skills").iterdir() if p.is_dir()}
     plugin = {p.name for p in (ROOT / "plugins/rf-agentskills/skills").iterdir() if p.is_dir()}
-    vscode = {p.name for p in (ROOT / "vscode-extension/skills").iterdir() if p.is_dir()}
-    assert root == plugin == vscode
+    assert root == plugin
     assert all(name.startswith("rf-") for name in root), root
 
 
@@ -161,7 +144,7 @@ def test_sync_renamed_root_skill_leaves_no_stale_copy(scratch_repo: Path):
     md.write_text(md.read_text().replace("name: rf-results", "name: rf-run-results", 1))
     res = _sync(scratch_repo)
     assert res.returncode == 0, res.stdout + res.stderr
-    for channel in ("plugins/rf-agentskills/skills", "vscode-extension/skills"):
+    for channel in ("plugins/rf-agentskills/skills",):
         assert not (scratch_repo / channel / "rf-results").exists()
         assert "name: rf-run-results" in (scratch_repo / channel / "rf-run-results" / "SKILL.md").read_text()
     assert _drift(scratch_repo).returncode == 0
@@ -185,8 +168,6 @@ def test_sync_rejects_name_dir_mismatch(scratch_repo: Path):
     [
         ("plugins/rf-agentskills/skills/rf-results/SKILL.md",
          "DRIFT: skills/rf-results/SKILL.md != plugins/rf-agentskills/skills/rf-results/SKILL.md"),
-        ("vscode-extension/skills/rf-setup/SKILL.md",
-         "DRIFT: skills/rf-setup/SKILL.md != vscode-extension/skills/rf-setup/SKILL.md"),
         ("plugins/rf-agentskills/skills/rf-setup/references/new.md",
          "DRIFT: skills/rf-setup/references/ != plugins/rf-agentskills/skills/rf-setup/references/"),
     ],
@@ -229,7 +210,6 @@ def test_sync_copies_scripts_per_skill_and_rewrites_commands(scratch_repo: Path)
     text = (plugin_skill / "SKILL.md").read_text()
     assert 'uv run python "${CLAUDE_SKILL_DIR}/scripts/rf_libdoc.py"' in text
     assert "${CLAUDE_PLUGIN_ROOT}" not in text
-    assert (scratch_repo / "vscode-extension/skills/rf-libdoc/scripts/rf_libdoc.py").is_file()
     assert _drift(scratch_repo).returncode == 0
 
 
@@ -244,8 +224,8 @@ def _append_line(repo: Path, rel: str, line: str) -> None:
     [
         ("skills/rf-results/SKILL.md", "python scripts/rf_results.py --output output.xml",
          "BARE PYTHON: skills/rf-results/SKILL.md"),
-        ("vscode-extension/skills/rf-libdoc/SKILL.md", "`python3 scripts/rf_libdoc.py --library X`",
-         "BARE PYTHON: vscode-extension/skills/rf-libdoc/SKILL.md"),
+        ("skills/rf-libdoc/SKILL.md", "`python3 scripts/rf_libdoc.py --library X`",
+         "BARE PYTHON: skills/rf-libdoc/SKILL.md"),
         ("plugins/rf-agentskills/skills/rf-libdoc/SKILL.md",
          'python "${CLAUDE_SKILL_DIR}/scripts/rf_libdoc.py" --library X',
          "BARE PYTHON: plugins/rf-agentskills/skills/rf-libdoc/SKILL.md"),

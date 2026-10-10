@@ -10,13 +10,17 @@ are auto-discovered from any of:
 
 Layout produced:
 
-* ``<root>/skills/<name>/`` (+ subtree) — verbatim SKILL.md copy
-* ``<root>/agents/<name>.md``           — direct copy of subagent .md
+* ``<root>/skills/<name>/`` (+ subtree)   — verbatim SKILL.md copy
+* ``<root>/agents/<name>.md``             — the generated OpenCode subagent
+                                            variant (``mode: subagent``)
+* ``<root>/plugins/rf-agentskills.js``    — generated JS plugin that runs the
+                                            shared hook scripts on OpenCode events
+* ``<root>/rf-agentskills-files/scripts/`` — those hook scripts (the plugin
+                                            resolves them relative to itself)
 
 User scope: ``~/.config/opencode/``. Project scope: ``<project>/.opencode/``.
-
-Hooks: deferred. OpenCode hooks use JS plugin modules, not bash —
-out of scope for v1; ``post_install`` notes the gap.
+Variants come from ``plugins/rf-agentskills/variants/opencode/``
+(``scripts/build-agent-variants.py``).
 """
 
 from __future__ import annotations
@@ -69,13 +73,7 @@ class OpenCodeAdapter(AdapterBase):
                 what=opts.what,
             ))
 
-        notes: list[str] = []
-        if "hooks" in opts.what:
-            notes.append(
-                "OpenCode hooks use JS plugin modules; not yet supported by "
-                "this installer. See docs/installer/proposal.md (Phase 3)."
-            )
-        return InstallPlan(targets=tuple(targets), notes=tuple(notes))
+        return InstallPlan(targets=tuple(targets))
 
     def _collect_targets(
         self,
@@ -86,19 +84,15 @@ class OpenCodeAdapter(AdapterBase):
         plugin_root_abs: str,
         what: frozenset[str],
     ) -> Iterable[InstallTarget]:
-        # 1. Subagents → <root>/agents/<name>.md  (direct copy; native format).
+        variants = src_root / "variants" / "opencode"
+        # 1. Subagents → <root>/agents/<name>.md (generated OpenCode variants).
         if "agents" in what:
-            agents_src = src_root / "agents"
-            if agents_src.is_dir():
-                for f in sorted(agents_src.glob("*.md")):
-                    payload = _x.substitute_plugin_root_bytes(
-                        f.read_bytes(), plugin_root_abs
-                    )
-                    yield InstallTarget(
-                        dst=root / "agents" / f.name,
-                        payload=payload,
-                        transform_name="plugin_root_substitution",
-                    )
+            for f in sorted((variants / "agents").glob("*.md")):
+                yield InstallTarget(
+                    dst=root / "agents" / f.name,
+                    payload=f.read_bytes(),
+                    transform_name="opencode_agent_variant",
+                )
 
         # 2. Skills → <root>/skills/<name>/ (OpenCode reads SKILL.md
         #    natively per opencode.ai/docs/skills/). Verbatim copy of
@@ -119,16 +113,50 @@ class OpenCodeAdapter(AdapterBase):
                         transform_name="plugin_root_substitution",
                     )
 
+        # 3. Hooks → the generated JS plugin plus the hook scripts it runs.
+        if "hooks" in what:
+            yield from self._hook_targets(variants, src_root, root, plugin_dst)
+
+    @staticmethod
+    def _hook_targets(
+        variants: Path, src_root: Path, root: Path, plugin_dst: Path
+    ) -> Iterable[InstallTarget]:
+        plugin_js = variants / "plugins" / "rf-agentskills.js"
+        if not plugin_js.is_file():
+            return
+        yield InstallTarget(
+            dst=root / "plugins" / plugin_js.name,
+            payload=plugin_js.read_bytes(),
+            transform_name="opencode_plugin_variant",
+        )
+        for f in sorted((src_root / "scripts").glob("*")):
+            if f.is_file():
+                yield InstallTarget(
+                    dst=plugin_dst / "scripts" / f.name,
+                    payload=f.read_bytes(),
+                    transform_name="opencode_hook_script",
+                )
+        # validate_robot and check_rf_environment read the pinned interpreter.
+        yield InstallTarget(
+            dst=plugin_dst / "scripts" / "python_runtime.json",
+            payload=_x.python_runtime_config_bytes(),
+            transform_name="python_runtime_pin",
+        )
+
     # ------------------------------------------------------------------
     # post_install
     # ------------------------------------------------------------------
 
     def post_install(self, opts: InstallOptions) -> list[str]:
-        notes = [
-            "OpenCode picks up skills and subagents on next session.",
-            "Hooks were not installed — OpenCode uses JS plugin modules instead of bash, "
-            "and that path is not yet supported by this installer.",
-        ]
+        notes = ["OpenCode picks up skills and subagents on next session."]
+        if "hooks" in opts.what:
+            notes.append(
+                "Hooks run through plugins/rf-agentskills.js (needs `node` on PATH): "
+                ".robot/.resource validation after edits, Robot Framework error hints "
+                "after shell commands, and an environment report in the first tool "
+                "output. The prompt-context and end-of-task reminder hooks have no "
+                "OpenCode equivalent."
+            )
         return notes
 
     # ------------------------------------------------------------------

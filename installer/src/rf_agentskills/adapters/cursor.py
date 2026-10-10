@@ -43,7 +43,16 @@ from typing import Iterable
 
 from .. import _assets
 from .. import transforms as _x
-from ._base import AdapterBase, ConfigMergeOp, InstallOptions, InstallPlan, InstallTarget, skill_script_files
+from ._base import (
+    MARKETPLACE_REPO,
+    PLUGIN_ID,
+    AdapterBase,
+    ConfigMergeOp,
+    InstallOptions,
+    InstallPlan,
+    InstallTarget,
+    skill_script_files,
+)
 
 
 PLUGIN_FILES_SUBDIR = "rf-agentskills-files"
@@ -104,6 +113,17 @@ class CursorAdapter(AdapterBase):
                 "Install Node.js then re-run with `--agent cursor` to enable them."
             )
         return InstallPlan(targets=tuple(targets), merges=tuple(merges), notes=tuple(notes))
+
+    def plugin_plan(self, opts: InstallOptions) -> InstallPlan | None:
+        """Cursor keeps marketplaces on the Cursor account: print the steps."""
+        return InstallPlan(notes=(
+            f"Cursor: add the marketplace https://github.com/{MARKETPLACE_REPO} "
+            "(Customize -> Plugins, or `cursor-agent plugin marketplace add "
+            f"https://github.com/{MARKETPLACE_REPO}`), then install {PLUGIN_ID} and "
+            "choose project or user scope.",
+            "Cursor also imports the plugin when it is installed in Claude Code and "
+            "enabled in .claude/settings.json (Settings -> Third-Party Imports).",
+        ))
 
     def _collect_targets(
         self,

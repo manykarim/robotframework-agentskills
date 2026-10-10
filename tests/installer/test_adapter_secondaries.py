@@ -111,7 +111,28 @@ def test_codex_subagents_become_toml(install_prefix: Path) -> None:
         body = t.payload.decode("utf-8")
         assert "name =" in body
         assert "developer_instructions =" in body
-        assert t.transform_name == "subagent_md_to_codex_toml"
+        assert t.transform_name == "codex_agent_variant"
+
+
+@pytest.mark.parametrize("scope", ["project", "user"])
+def test_codex_installs_the_committed_toml_variants(
+    tmp_path: Path, fake_home: Path, scope: str
+) -> None:
+    """Project scope -> <project>/.codex/agents/, user scope -> ~/.codex/agents/;
+    the payload is the committed variant byte for byte."""
+    cls = by_name("codex")
+    assert cls is not None
+    project = tmp_path / "proj"
+    project.mkdir()
+    plan = cls().plan(InstallOptions(scope=scope, project_dir=project, what=frozenset({"agents"})))
+    agents = {t.dst.name: t for t in plan.targets if t.dst.parent.name == "agents" and t.dst.suffix == ".toml"}
+    base = (project if scope == "project" else fake_home) / ".codex" / "agents"
+    with _assets.asset_root_path() as src_root:
+        variants = sorted((src_root / "variants" / "codex" / "agents").glob("*.toml"))
+        assert sorted(agents) == [v.name for v in variants] and len(variants) == 4
+        for v in variants:
+            assert agents[v.name].dst == base / v.name
+            assert agents[v.name].payload == v.read_bytes()
 
 
 def test_codex_plan_has_no_mcp_merge(install_prefix: Path) -> None:
@@ -276,15 +297,15 @@ def test_goose_e2e_round_trip(
 # ---- OpenCode-specific -------------------------------------------------
 
 
-def test_opencode_subagents_copied_directly(install_prefix: Path) -> None:
+def test_opencode_installs_generated_subagents(install_prefix: Path) -> None:
     cls = by_name("opencode")
     assert cls is not None
     plan = cls().plan(InstallOptions(prefix=install_prefix))
-    agent_targets = [t for t in plan.targets if "/agents/" in t.dst.as_posix()]
-    assert agent_targets, "expected agents/<name>.md targets"
-    # Direct copy: transform name reflects only substitution, not a reformat
+    agent_targets = [t for t in plan.targets if t.dst.parent == install_prefix / "agents"]
+    assert len(agent_targets) == 4
     for t in agent_targets:
-        assert t.transform_name == "plugin_root_substitution"
+        assert t.transform_name == "opencode_agent_variant"
+        assert "\nmode: subagent\n" in t.payload.decode("utf-8")
 
 
 def test_opencode_skills_install_natively_to_skills_dir(
@@ -308,13 +329,22 @@ def test_opencode_skills_install_natively_to_skills_dir(
     assert cmd_targets == []
 
 
-def test_opencode_writes_no_mcp_config_or_support_files(
+def test_opencode_e2e_hook_plugin_round_trip(
     install_prefix: Path, fake_home: Path
 ) -> None:
+    """The hook plugin and the scripts it resolves (../rf-agentskills-files/scripts/)
+    are installed together, and uninstall removes everything."""
     rc = main(["install", "--agent", "opencode", "--prefix", str(install_prefix)])
     assert rc == 0
-    assert not (install_prefix / "opencode.json").exists()
-    assert not (install_prefix / "rf-agentskills-files").exists()
+    assert not (install_prefix / "opencode.json").exists()  # no MCP config
+    assert (install_prefix / "plugins" / "rf-agentskills.js").is_file()
+    scripts = install_prefix / "rf-agentskills-files" / "scripts"
+    for name in ("validate_robot.mjs", "_hook_input.mjs", "_python_env.mjs", "rf_error_hints.mjs",
+                 "check_rf_environment.mjs", "python_runtime.json"):
+        assert (scripts / name).is_file(), name
+    rc = main(["uninstall", "--agent", "opencode"])
+    assert rc == 0
+    assert [p for p in install_prefix.rglob("*") if p.is_file()] == []
 
 
 def test_opencode_post_install_mentions_hooks_skipped() -> None:
@@ -507,6 +537,8 @@ def test_no_agent_stages_the_retired_mcp_server(install_prefix: Path, fake_home:
     if agent in ("codex", "cursor"):
         assert (support / "skills" / "rf-results" / "scripts" / "rf_results.py").is_file()
         assert not list((support / "scripts").glob("*.py"))
+    elif agent == "opencode":  # hook scripts for the OpenCode plugin
+        assert (support / "scripts" / "validate_robot.mjs").is_file()
     else:
         assert not support.exists()
 

@@ -30,7 +30,16 @@ from typing import Iterable
 
 from .. import _assets
 from .. import transforms as _x
-from ._base import AdapterBase, ConfigMergeOp, InstallOptions, InstallPlan, InstallTarget, skill_script_files
+from ._base import (
+    PLUGIN_ID,
+    AdapterBase,
+    ConfigMergeOp,
+    InstallOptions,
+    InstallPlan,
+    InstallTarget,
+    marketplace_settings_merges,
+    skill_script_files,
+)
 
 
 HOOKS_KEY = "hooks"
@@ -100,6 +109,29 @@ class ClaudeCodeAdapter(AdapterBase):
                 "hooks. Skills and subagents are installed normally."
             )
         return InstallPlan(targets=tuple(targets), merges=tuple(merges), notes=tuple(notes))
+
+    def plugin_plan(self, opts: InstallOptions) -> InstallPlan | None:
+        """Point Claude Code at the marketplace via ``settings.json``.
+
+        Project scope writes the committed ``.claude/settings.json``: Claude Code
+        enables the plugin, Copilot CLI loads it and VS Code recommends it;
+        Cursor imports it once the plugin is installed in Claude Code.
+        """
+        settings = self.install_root(opts) / "settings.json"
+        scope = "project" if opts.scope == "project" and opts.prefix is None else "user"
+        notes = [
+            f"{settings} now registers the robotframework-agentskills marketplace and "
+            f"enables {PLUGIN_ID}.",
+            "Claude Code: each collaborator installs it once with "
+            f"`claude plugin install {PLUGIN_ID} --scope {scope}` (Claude Code also "
+            "offers it when the marketplace is first trusted).",
+        ]
+        if scope == "project":
+            notes.append(
+                "Commit .claude/settings.json. Copilot CLI loads the plugin from it in a "
+                "trusted folder; VS Code shows it as a workspace recommendation."
+            )
+        return InstallPlan(merges=tuple(marketplace_settings_merges(settings, opts.ref)), notes=tuple(notes))
 
     def _collect_targets(
         self,

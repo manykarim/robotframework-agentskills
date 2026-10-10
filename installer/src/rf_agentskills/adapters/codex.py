@@ -11,8 +11,8 @@ its bundled `.system` skills live) but the public spec is ``.agents``:
                 ``<project>/.agents/skills/<name>/`` (PROJECT).
                 SKILL.md format identical to Claude Code; verbatim copy
                 modulo ``${CLAUDE_PLUGIN_ROOT}`` substitution.
-* subagents   → ``~/.codex/agents/<name>.toml``, transformed from the
-                Claude ``.md`` via :func:`transforms.subagent_md_to_codex_toml`.
+* subagents   → ``~/.codex/agents/<name>.toml``, the generated
+                ``variants/codex/agents/`` files (scripts/build-agent-variants.py).
 * hooks       → ``~/.codex/hooks.json``. Codex hooks are **experimental**
                 and gated by ``[features] codex_hooks = true`` in
                 ``config.toml``. We do *not* flip that flag automatically;
@@ -38,7 +38,7 @@ from typing import Iterable
 
 from .. import _assets
 from .. import transforms as _x
-from ._base import AdapterBase, InstallOptions, InstallPlan, InstallTarget, skill_script_files
+from ._base import MARKETPLACE_REPO, PLUGIN_ID, AdapterBase, InstallOptions, InstallPlan, InstallTarget, skill_script_files
 
 
 PLUGIN_FILES_SUBDIR = "rf-agentskills-files"
@@ -116,6 +116,28 @@ class CodexAdapter(AdapterBase):
                 )
         return InstallPlan(targets=tuple(targets), notes=tuple(notes))
 
+    def plugin_plan(self, opts: InstallOptions) -> InstallPlan | None:
+        """Codex reads no committed marketplace: install the subagents (plugins
+        cannot ship them) and hand over the per-user plugin commands."""
+        root = self.install_root(opts)
+        with _assets.asset_root_path() as src_root:
+            targets = [
+                InstallTarget(dst=root / "agents" / f.name, payload=f.read_bytes(),
+                              transform_name="codex_agent_variant")
+                for f in sorted((src_root / "variants" / "codex" / "agents").glob("*.toml"))
+            ]
+        commands = "\n".join("    " + " ".join(c) for c in self.plugin_commands(opts))
+        return InstallPlan(targets=tuple(targets), notes=(
+            "Codex: every user runs once (or pass --yes to run them now):\n" + commands,
+            "Then trust the plugin's hooks once with /hooks in Codex.",
+        ))
+
+    def plugin_commands(self, opts: InstallOptions) -> list[list[str]]:
+        add = ["codex", "plugin", "marketplace", "add", MARKETPLACE_REPO]
+        if opts.ref:
+            add += ["--ref", opts.ref]
+        return [add, ["codex", "plugin", "add", PLUGIN_ID]]
+
     def _collect_targets(
         self,
         *,
@@ -149,19 +171,17 @@ class CodexAdapter(AdapterBase):
                         transform_name="plugin_root_substitution",
                     )
 
-        # 2. Subagents — <root>/agents/<name>.toml, transformed.
+        # 2. Subagents — <root>/agents/<name>.toml: the committed Codex variants
+        #    (scripts/build-agent-variants.py), so marketplace and installer
+        #    users get byte-identical files.
         if "agents" in what:
-            agents_src = src_root / "agents"
-            if agents_src.is_dir():
-                for f in sorted(agents_src.glob("*.md")):
-                    md_text = _x.substitute_plugin_root(
-                        f.read_text(encoding="utf-8"), plugin_root_abs
-                    )
-                    toml_text = _x.subagent_md_to_codex_toml(md_text)
+            variants_src = src_root / "variants" / "codex" / "agents"
+            if variants_src.is_dir():
+                for f in sorted(variants_src.glob("*.toml")):
                     yield InstallTarget(
-                        dst=root / "agents" / f"{f.stem}.toml",
-                        payload=toml_text.encode("utf-8"),
-                        transform_name="subagent_md_to_codex_toml",
+                        dst=root / "agents" / f.name,
+                        payload=f.read_bytes(),
+                        transform_name="codex_agent_variant",
                     )
 
         # 3. Hooks — <root>/hooks.json. Verbatim copy of the plugin's

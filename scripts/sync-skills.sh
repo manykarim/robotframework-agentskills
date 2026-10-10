@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
-# Sync canonical skills/ to plugin and vscode-extension distribution channels.
+# Sync canonical skills/ to the plugin distribution channel.
 #
 # RULE: All edits happen in root skills/ only. This script propagates to:
 #   - plugins/rf-agentskills/skills/   (SKILL.md transformed + scripts/references/assets copied)
-#   - vscode-extension/skills/         (identical copies of everything)
+#   - plugins/rf-agentskills/variants/ (Codex/OpenCode subagents and hooks, generated)
 #
 # Every skill ships its own scripts/ in every channel (regular files, no
 # symlinks). The plugin keeps NO flat scripts/*.py copies; its scripts/ dir
@@ -15,7 +15,6 @@ set -euo pipefail
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 SKILLS_DIR="$REPO_ROOT/skills"
 PLUGIN_DIR="$REPO_ROOT/plugins/rf-agentskills"
-VSCODE_DIR="$REPO_ROOT/vscode-extension/skills"
 
 # ── Identity: every skill has ONE identifier, rf-<topic> ────────────────────
 # The root directory name, the SKILL.md `name:` field and the directory name in
@@ -101,60 +100,12 @@ for skill_dir in "$SKILLS_DIR"/*/; do
     done
 done
 
-# ── 3. VS Code extension: full dereferenced copies under the same name ──────
 echo ""
-echo "=== Generating vscode-extension/skills/ ==="
-rm -rf "$VSCODE_DIR"
-mkdir -p "$VSCODE_DIR"
-
-for skill_dir in "$SKILLS_DIR"/*/; do
-    rf_name=$(basename "$skill_dir")
-    vscode_skill="$VSCODE_DIR/$rf_name"
-    mkdir -p "$vscode_skill"
-
-    # Copy SKILL.md
-    cp "$skill_dir/SKILL.md" "$vscode_skill/SKILL.md"
-
-    # Copy scripts/, references/, assets/ as regular files
-    for sub in scripts references assets; do
-        copy_tree "$skill_dir/$sub" "$vscode_skill/$sub"
-    done
-
-    echo "  $rf_name/"
-done
-
-# ── 4. Update VS Code package.json chatSkills paths ─────────────────────────
-PACKAGE_JSON="$REPO_ROOT/vscode-extension/package.json"
-if [ -f "$PACKAGE_JSON" ]; then
-    echo ""
-    echo "=== Updating vscode-extension/package.json chatSkills paths ==="
-    PY="$(command -v python3 || command -v python)"
-    # Run from the repo root with relative paths: on Windows, Git Bash paths
-    # (/d/a/...) cannot be opened by a native Windows Python.
-    (cd "$REPO_ROOT" && "$PY" -c "
-import json, os
-
-package_json = os.path.join('vscode-extension', 'package.json')
-skills_dir = os.path.join('vscode-extension', 'skills')
-pkg = json.load(open(package_json, encoding='utf-8'))
-skill_dirs = sorted(d for d in os.listdir(skills_dir) if os.path.isdir(os.path.join(skills_dir, d)))
-
-pkg['contributes'] = pkg.get('contributes', {})
-pkg['contributes']['chatSkills'] = [
-    {'path': f'./skills/{d}/SKILL.md'}
-    for d in skill_dirs
-]
-
-with open(package_json, 'w', encoding='utf-8', newline='\\n') as f:
-    json.dump(pkg, f, indent=2)
-    f.write('\\n')
-
-print(f'  Updated {len(skill_dirs)} chatSkills paths')
-")
-fi
+echo "=== Generating per-agent variants (Codex, OpenCode) ==="
+"$(command -v python3 || command -v python)" "$REPO_ROOT/scripts/build-agent-variants.py"
 
 echo ""
 echo "Sync complete."
 echo "  Root skills/             <- EDIT HERE (single source of truth)"
 echo "  Plugin skills/           <- auto-generated (script commands -> \${CLAUDE_SKILL_DIR})"
-echo "  VS Code skills/          <- auto-generated (identical copies)"
+echo "  Plugin variants/         <- auto-generated (Codex, OpenCode)"

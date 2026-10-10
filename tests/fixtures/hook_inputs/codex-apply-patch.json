@@ -1,0 +1,11 @@
+{
+  "hook_event_name": "PostToolUse",
+  "session_id": "s4",
+  "turn_id": "t",
+  "cwd": "/work/proj",
+  "permission_mode": "bypassPermissions",
+  "tool_name": "apply_patch",
+  "tool_input": {
+    "command": "*** Begin Patch\n*** Add File: tests/new.robot\n+*** Test Cases ***\n+Probe\n+    Log    Hello\n*** Update File: resources/b.resource\n@@\n+x\n*** End Patch\n"
+  }
+}
