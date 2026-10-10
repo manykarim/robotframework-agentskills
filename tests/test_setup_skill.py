@@ -231,10 +231,8 @@ def test_github_actions_example_is_valid_yaml() -> None:
 
 
 def test_distributed_under_same_identifier() -> None:
-    """Plugin and VS Code copies use the same rf-setup dir and name (skill-metadata-conformance)."""
-    for channel in ("plugins/rf-agentskills/skills", "vscode-extension/skills"):
+    """The plugin copy uses the same rf-setup dir and name (skill-metadata-conformance)."""
+    for channel in ("plugins/rf-agentskills/skills",):
         md = ROOT / channel / "rf-setup" / "SKILL.md"
         assert md.is_file(), md
         assert "\nname: rf-setup\n" in md.read_text(encoding="utf-8"), md
-    pkg = (ROOT / "vscode-extension" / "package.json").read_text(encoding="utf-8")
-    assert "./skills/rf-setup/SKILL.md" in pkg

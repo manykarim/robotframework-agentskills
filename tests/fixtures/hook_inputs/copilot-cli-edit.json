@@ -1,0 +1,12 @@
+{
+  "hook_event_name": "PostToolUse",
+  "session_id": "s2",
+  "cwd": "/work/proj",
+  "tool_name": "Edit",
+  "tool_input": {
+    "file_path": "/work/proj/tests/a.robot",
+    "old_string": "x",
+    "new_string": "y"
+  },
+  "tool_result": {}
+}

@@ -1,0 +1,10 @@
+{
+  "hook_event_name": "PostToolUse",
+  "session_id": "s4",
+  "cwd": "/work/proj",
+  "tool_name": "Bash",
+  "tool_input": {
+    "command": "robot tests"
+  },
+  "tool_response": "No keyword with name 'Foo' found."
+}

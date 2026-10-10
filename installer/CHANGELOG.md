@@ -1,8 +1,20 @@
 # Changelog — rf-agentskills installer
 
 The `rf-agentskills` package is versioned independently from the
-content bundle (Claude Code plugin, VS Code extension, skills
-tarballs). See `RELEASING.md` at the repo root for the policy.
+content bundle (the marketplace plugin and skills tarballs). See `RELEASING.md` at the repo root for the policy.
+
+## Unreleased (0.8.0)
+
+### Added
+- **`--mode plugin`** (`install`): instead of copying files, point the agent at the `robotframework-agentskills` plugin marketplace. Claude Code, Copilot and VS Code get `extraKnownMarketplaces` + `enabledPlugins` merged into `.claude/settings.json` (Copilot also into `.github/copilot/settings.json`, or `~/.copilot/settings.json` for user scope); the merge is recorded in the manifest and reverted by `uninstall`. Codex gets its TOML subagents installed and the `codex plugin marketplace add` / `codex plugin add` commands printed (run with `--yes`), plus the `/hooks` trust note. Cursor gets the marketplace steps printed. OpenCode, Goose and Claude Desktop fall back to files with a note. The default stays `--mode files`.
+- **`--ref TAG`** with `--mode plugin`: pin the marketplace to a content release tag (`v<version>`). `--ref` without `--mode plugin` is an error.
+- **OpenCode: subagents and hooks.** Installs the generated `mode: subagent` agents, the `rf-agentskills.js` plugin and the hook scripts it runs (`rf-agentskills-files/scripts/`), so edits of `.robot`/`.resource` files are validated and `robot` errors get hints in OpenCode too.
+
+### Changed
+- **Codex subagents** come from the generated `variants/codex/agents/*.toml` in the bundle rather than a conversion at install time (same content).
+
+### Bundled content
+- Content 2.1.0 (unreleased): VS Code extension retired, default main agent removed, hook input for all agents. See `plugins/rf-agentskills/CHANGELOG.md`.
 
 ## 0.7.0 — 2026-10-06
 

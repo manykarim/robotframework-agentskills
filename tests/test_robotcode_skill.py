@@ -277,10 +277,8 @@ def test_documented_aliases_exist() -> None:
 
 
 def test_distributed_under_same_identifier() -> None:
-    """Plugin and VS Code copies use the same rf-robotcode dir and name (skill-metadata-conformance)."""
-    for channel in ("plugins/rf-agentskills/skills", "vscode-extension/skills"):
+    """The plugin copy uses the same rf-robotcode dir and name (skill-metadata-conformance)."""
+    for channel in ("plugins/rf-agentskills/skills",):
         md = ROOT / channel / "rf-robotcode" / "SKILL.md"
         assert md.is_file(), md
         assert "\nname: rf-robotcode\n" in md.read_text(encoding="utf-8"), md
-    pkg = (ROOT / "vscode-extension" / "package.json").read_text(encoding="utf-8")
-    assert "./skills/rf-robotcode/SKILL.md" in pkg

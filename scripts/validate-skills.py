@@ -6,7 +6,6 @@ skill directory of the selected distribution channel(s):
 
   root    skills/
   plugin  plugins/rf-agentskills/skills/
-  vscode  vscode-extension/skills/
 
 Rules (spec capability ``skill-metadata-conformance``):
 
@@ -23,7 +22,7 @@ Rules (spec capability ``skill-metadata-conformance``):
   license            ``license: Apache-2.0``
   metadata-*         ``metadata`` is a string->string map with ``author`` and ``version``
   version-mismatch   ``metadata.version`` equals the repository ``VERSION``
-  channel-mismatch   (--channel all) the three channels hold the same skill names
+  channel-mismatch   (--channel all) both channels hold the same skill names
 
 Output: one ``path: rule: detail`` line per violation; exit 1 if any.
 """
@@ -38,7 +37,6 @@ from pathlib import Path
 CHANNELS = {
     "root": Path("skills"),
     "plugin": Path("plugins/rf-agentskills/skills"),
-    "vscode": Path("vscode-extension/skills"),
 }
 ALLOWED_KEYS = {"name", "description", "license", "compatibility", "metadata", "allowed-tools"}
 REQUIRED_METADATA = ("author", "version")

@@ -7,8 +7,11 @@
 // the error they just caused; that is where the pointer to the skill helps.
 //
 // Schema:
-//   stdin  — Claude Code PostToolUse event JSON for the Bash tool
-//            (tool_response.stdout / .stderr, or a plain string).
+//   stdin  — PostToolUse event JSON for a shell tool, in any agent's shape
+//            (see _hook_input.mjs): Claude Code / Codex `Bash`, Cursor `Shell`,
+//            VS Code `run_in_terminal`. Output comes from `tool_response`
+//            (Copilot CLI: `tool_result`): .stdout / .stderr, or a plain string.
+//            Other tools exit silently (VS Code runs every hook for every tool).
 //   stdout — Either empty or one JSON object:
 //            {"hookSpecificOutput": {"hookEventName": "PostToolUse",
 //             "additionalContext": "..."}}.
@@ -16,6 +19,7 @@
 import { readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { normalizeHookInput } from "./_hook_input.mjs";
 
 const MAX_SCAN = 20000; // characters of output scanned
 const MAX_HINT = 400; // characters per hint
@@ -71,7 +75,8 @@ function outputText(response) {
     const v = response[key];
     if (typeof v === "string") parts.push(v);
   }
-  return parts.join("\n");
+  // Unknown shapes (e.g. VS Code tool results): scan their JSON text.
+  return parts.length ? parts.join("\n") : JSON.stringify(response);
 }
 
 function main() {
@@ -81,8 +86,11 @@ function main() {
   let event;
   try { event = JSON.parse(raw); } catch { return; }
   if (!event || typeof event !== "object") return;
+  // Only shell output; a tool name of another kind (read_file, …) is skipped.
+  const input = normalizeHookInput(event);
+  if (input.tool && !input.isShell) return;
 
-  const text = outputText(event.tool_response).slice(0, MAX_SCAN);
+  const text = outputText(event.tool_response ?? event.tool_result).slice(0, MAX_SCAN);
   if (!text) return;
 
   const sessionId = (event.session_id ?? "").toString();
