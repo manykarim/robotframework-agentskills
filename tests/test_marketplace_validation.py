@@ -61,5 +61,36 @@ def test_skill_md_frontmatter():
     spec = importlib.util.spec_from_file_location("validate_skills", ROOT / "scripts" / "validate-skills.py")
     validator = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(validator)
-    violations = validator.validate(ROOT, ["root", "plugin", "vscode"])
+    violations = validator.validate(ROOT, ["root", "plugin"])
     assert not violations, "\n".join(violations)
+
+
+def _json(path: Path) -> dict:
+    return json.loads(path.read_text(encoding="utf-8"))
+
+
+def test_plugin_sets_no_default_main_agent():
+    """Enabling the plugin must not replace the user's main agent."""
+    assert not (PLUGIN_ROOT / "settings.json").exists()
+    manifest = _json(PLUGIN_ROOT / ".claude-plugin" / "plugin.json")
+    assert "agent" not in (manifest.get("settings") or {})
+
+
+def test_one_claude_format_marketplace_for_every_agent():
+    """Copilot, Codex and Cursor read .claude-plugin/; a root plugin.json or
+    .cursor-plugin/ manifest would take precedence there and drop hooks/agents."""
+    assert not (ROOT / "plugin.json").exists()
+    assert not (PLUGIN_ROOT / "plugin.json").exists()
+    assert not (ROOT / ".cursor-plugin").exists()
+    assert not (PLUGIN_ROOT / ".cursor-plugin").exists()
+
+
+def test_marketplace_and_plugin_manifests_agree():
+    marketplace = _json(ROOT / ".claude-plugin" / "marketplace.json")
+    manifest = _json(PLUGIN_ROOT / ".claude-plugin" / "plugin.json")
+    [entry] = [p for p in marketplace["plugins"] if p["name"] == manifest["name"]]
+    assert entry["source"] == "./plugins/rf-agentskills"
+    assert entry["version"] == manifest["version"]
+    assert marketplace.get("metadata", {}).get("version") == manifest["version"]
+    # A v<VERSION> tag is the pinnable marketplace ref (RELEASING.md).
+    assert (ROOT / "VERSION").read_text(encoding="utf-8").strip() == manifest["version"]

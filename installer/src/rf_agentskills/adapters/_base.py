@@ -27,6 +27,7 @@ without ever touching real user homes.
 
 from __future__ import annotations
 
+import os
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Callable, Iterable, Protocol
@@ -49,6 +50,8 @@ class InstallOptions:
     )
     dry_run: bool = False
     force: bool = False                 # overwrite even when destination is user-modified
+    mode: str = "files"                 # "files" (copy the bundle) | "plugin" (point at the marketplace)
+    ref: str | None = None              # plugin mode: pin the marketplace to this git ref / tag
 
 
 @dataclass(frozen=True)
@@ -179,6 +182,14 @@ class AdapterBase:
         """Filter helper for ``--what`` selectivity."""
         return list(items) if category in what else []
 
+    def plugin_plan(self, opts: InstallOptions) -> InstallPlan | None:
+        """Plan for ``--mode plugin``; ``None`` means "no marketplace, copy files"."""
+        return None
+
+    def plugin_commands(self, opts: InstallOptions) -> list[list[str]]:
+        """Per-user commands plugin mode prints (and runs with ``--yes``)."""
+        return []
+
     def render_skill_dir(self, payload: bytes, src: Path, skill_dir_dst: Path) -> bytes:
         """Apply ``${CLAUDE_SKILL_DIR}`` substitution for non-expanding agents."""
         from .. import transforms as _x  # local import: transforms has no adapter deps
@@ -188,6 +199,55 @@ class AdapterBase:
         return _x.substitute_skill_dir_bytes(
             payload, _x.to_native_path_string(skill_dir_dst.resolve())
         )
+
+
+# ---------------------------------------------------------------------------
+# Plugin mode (marketplace-distribution): point an agent at the marketplace
+# ---------------------------------------------------------------------------
+
+MARKETPLACE_NAME = "robotframework-agentskills"
+MARKETPLACE_REPO = "manykarim/robotframework-agentskills"
+PLUGIN_NAME = "rf-agentskills"
+PLUGIN_ID = f"{PLUGIN_NAME}@{MARKETPLACE_NAME}"
+#: Test hook: a local checkout to use as the marketplace instead of GitHub.
+MARKETPLACE_DIR_ENV = "RF_AGENTSKILLS_MARKETPLACE_DIR"
+
+
+def marketplace_source(ref: str | None) -> dict[str, Any]:
+    """``extraKnownMarketplaces`` source: GitHub (optionally pinned) or a local dir."""
+    local = os.environ.get(MARKETPLACE_DIR_ENV)
+    if local:
+        return {"source": "directory", "path": str(Path(local).resolve())}
+    source: dict[str, Any] = {"source": "github", "repo": MARKETPLACE_REPO}
+    if ref:
+        source["ref"] = ref
+    return source
+
+
+def marketplace_settings_merges(settings_path: Path, ref: str | None) -> list[ConfigMergeOp]:
+    """Merge ``extraKnownMarketplaces`` + ``enabledPlugins`` into a settings JSON.
+
+    The shape Claude Code, Copilot CLI and VS Code read from ``.claude/settings.json``
+    (Copilot also from ``.github/copilot/settings.json``). Each key is its own
+    ``json_nested`` merge, so uninstall removes exactly the entries we added.
+    """
+    from .. import transforms as _x
+
+    def op(key: str, values: dict[str, Any], what: str) -> ConfigMergeOp:
+        return ConfigMergeOp(
+            path=settings_path,
+            description=f"add {what} to {settings_path}",
+            apply=lambda: _x.merge_json_at_path(settings_path, [key], values),
+            revert=lambda: _x.remove_json_keys_at_path(settings_path, [key], list(values)),
+            kind="json_nested",
+            key_path=(key,),
+        )
+
+    return [
+        op("extraKnownMarketplaces", {MARKETPLACE_NAME: {"source": marketplace_source(ref)}},
+           f"marketplace {MARKETPLACE_NAME}"),
+        op("enabledPlugins", {PLUGIN_ID: True}, f"enabled plugin {PLUGIN_ID}"),
+    ]
 
 
 def skill_script_files(src_root: Path) -> list[Path]:

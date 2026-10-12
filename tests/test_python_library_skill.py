@@ -429,7 +429,7 @@ def test_examples_clean() -> None:
 # ---------------------------------------------------------------------------
 
 
-@pytest.mark.parametrize("channel", [PLUGIN / "skills", ROOT / "vscode-extension" / "skills"])
+@pytest.mark.parametrize("channel", [PLUGIN / "skills"])
 def test_channel_copies_are_regular_files(channel: Path) -> None:
     copy = channel / "rf-python-library"
     script = copy / "scripts" / "check_library.py"

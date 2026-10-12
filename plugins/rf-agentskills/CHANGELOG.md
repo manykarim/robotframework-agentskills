@@ -1,18 +1,17 @@
 # Changelog
 
-This is the **content channel** version (also drives the Claude Code
-plugin tarball and the skills tarballs). The `rf-agentskills` Python
-installer is versioned independently — see `RELEASING.md` at the repo
-root for the policy.
+This is the **content channel** version: the `rf-agentskills` plugin, its
+marketplace entry and the skills tarballs. The `rf-agentskills` Python
+installer is versioned independently; see `RELEASING.md` at the repo root
+for the policy. (Until 2.0.0 this file lived in `vscode-extension/`.)
 
-For Copilot users who want subagents and hooks in
-addition to the chat skills shipped here, install the companion
-`rf-agentskills` package:
+## 2.1.0 (unreleased)
 
-```
-pipx install rf-agentskills
-rf-agentskills install --agent copilot
-```
+- **One plugin marketplace for every agent.** The repository's `.claude-plugin/marketplace.json` now serves Claude Code, GitHub Copilot CLI, VS Code (Copilot), Codex and Cursor; the README has the install, scope and pinning steps per agent. Pin a release with its `v<version>` tag.
+- **VS Code extension retired.** No `.vsix` is built or attached to releases any more. Instead, VS Code users add `manykarim/robotframework-agentskills` to `chat.plugins.marketplaces` (user scope), accept the workspace recommendation from a committed `.claude/settings.json` (project scope), or run `rf-agentskills install --agent copilot` (files). Unlike the extension, the plugin also brings subagents and hooks.
+- **No default main agent.** The plugin's `settings.json` (`"agent": "rf-test-architect"`) is removed, so enabling the plugin no longer replaces your main agent. The four subagents remain available for delegation; to keep `rf-test-architect` as your main agent, select it yourself (for example `"agent"` in your own Claude Code settings).
+- **Hooks read every agent's input.** `validate_robot.mjs` and `rf_error_hints.mjs` accept the tool names and input shapes of Claude Code, Copilot CLI, VS Code (`create_file`, `replace_string_in_file`, `apply_patch`, `run_in_terminal`), Codex (`apply_patch`, `Bash`) and Cursor, validate every `.robot`/`.resource` file a patch touches, and exit silently for other tools. Validation errors are now also reported as `{"decision": "block", "reason": ...}`, the only hook output Copilot CLI passes to its model.
+- **Generated per-agent variants** in `variants/` (from `scripts/build-agent-variants.py`, drift-checked in CI): Codex TOML subagents, OpenCode subagents (`mode: subagent`) and an OpenCode JS plugin that runs the same validation, error-hint and environment hooks.
 
 ## 2.0.0 (unreleased)
 

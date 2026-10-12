@@ -1,0 +1,11 @@
+{
+  "hook_event_name": "PostToolUse",
+  "session_id": "s3",
+  "cwd": "/work/proj",
+  "tool_name": "read_file",
+  "tool_input": {
+    "filePath": "/work/proj/tests/a.robot",
+    "startLine": 1,
+    "endLine": 20
+  }
+}

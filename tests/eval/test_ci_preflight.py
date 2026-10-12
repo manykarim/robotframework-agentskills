@@ -38,7 +38,6 @@ def _map(paths: list[str], changed: set[str] | None = None):  # type: ignore[no-
     [
         (["skills/rf-selenium/references/locators.md"], {"rf-selenium"}),
         (["plugins/rf-agentskills/skills/rf-selenium/SKILL.md"], {"rf-selenium"}),
-        (["vscode-extension/skills/rf-browser/SKILL.md"], {"rf-browser"}),
         (["eval/tasks/narrow/narrow-browser-login-01.yaml"], {"rf-browser"}),
         (["eval/fixtures/sut-api/libraries/ApiServer.py"], {"rf-requests", "rf-restinstance"}),
         (["plugins/rf-agentskills/hooks/hooks.json"], {"plugin"}),

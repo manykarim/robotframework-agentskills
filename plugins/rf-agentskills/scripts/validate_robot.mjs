@@ -8,9 +8,10 @@
 //     with the project's configured rule set and a pipe-separated issue format.
 //     Every parsed finding is sorted into one class:
 //       - error severity (E), not a DEPR rule -> real error. The hook exits 2
-//         and writes the diagnostic to stderr; the Claude Code PostToolUse
-//         contract feeds stderr back to the agent on exit 2 so it can
-//         self-correct. Same set as the former `--threshold E` run.
+//         and writes the diagnostic to stderr (Claude Code and Codex feed it
+//         back to the agent) and also prints {"decision":"block","reason":…}
+//         on stdout, the only channel Copilot CLI passes to its model.
+//         Same set as the former `--threshold E` run.
 //       - DEPR03/04/07/08/09/10/11 -> hard deprecation (advisory warning)
 //       - any other DEPR rule (DEPR05/06 …) -> modernization hint (advisory)
 //       - everything else (style rules) -> dropped
@@ -34,7 +35,9 @@
 // leaving a .robocop_cache/ directory in the user's project.
 //
 // Input: the PostToolUse event JSON on stdin (legacy `TOOL_INPUT` env var as a
-// fallback). Interpreter: see _python_env.mjs (VIRTUAL_ENV -> <cwd>/.venv ->
+// fallback), in any agent's shape — see _hook_input.mjs (Claude Code, Copilot
+// CLI, Cursor, VS Code, Codex). Non-edit tools exit silently; a patch that
+// touches several .robot/.resource files is validated file by file. Interpreter: see _python_env.mjs (VIRTUAL_ENV -> <cwd>/.venv ->
 // python_runtime.json -> python3/python); Robocop and Robot Framework are
 // optional — without them the tier is a silent no-op.
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
@@ -42,6 +45,8 @@ import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { tmpdir } from "node:os";
 import { basename, join } from "node:path";
+import { fileURLToPath } from "node:url";
+import { readHookInput } from "./_hook_input.mjs";
 import { findInterpreterWith, projectRoot, spawnOptions } from "./_python_env.mjs";
 
 const ROBOCOP_TIMEOUT_MS = 10000;
@@ -71,33 +76,56 @@ function isTruthy(v) {
   return /^(1|true|yes|on)$/i.test((v ?? "").toString().trim());
 }
 
-function readEvent() {
-  let raw = "";
-  try {
-    raw = readFileSync(0, "utf-8");
-  } catch {
-    // No stdin available; fall through to env.
-  }
-  for (const source of [raw, process.env.TOOL_INPUT ?? ""]) {
-    if (!source) continue;
-    try {
-      const obj = JSON.parse(source);
-      if (!obj || typeof obj !== "object") continue;
-      // PostToolUse stdin shape: { tool_input: { file_path } }.
-      // Legacy TOOL_INPUT shape: { file_path }.
-      const fp = obj?.tool_input?.file_path ?? obj?.file_path ?? "";
-      if (fp) return { event: obj, filePath: fp.toString() };
-    } catch {
-      // Not JSON — try the next source.
-    }
-  }
-  return { event: null, filePath: "" };
+const input = readHookInput();
+const event = input.event;
+const robotFiles = input.isEdit
+  ? input.files.filter((f) => /\.(robot|resource)$/i.test(f) && existsSync(f))
+  : [];
+if (!robotFiles.length) process.exit(0);
+if (robotFiles.length > 1) validateEach(robotFiles);
+const filePath = robotFiles[0];
+
+/** Report real errors: stderr + exit 2, plus the decision JSON for Copilot. */
+function reportErrors(text) {
+  const reason =
+    "The edit was applied, but Robot Framework validation found errors. Fix them:\n" + text.trim();
+  process.stdout.write(JSON.stringify({ decision: "block", reason }) + "\n");
+  process.stderr.write(text.endsWith("\n") ? text : text + "\n");
+  process.exit(2);
 }
 
-const { event, filePath } = readEvent();
-if (!filePath) process.exit(0);
-if (!/\.(robot|resource)$/i.test(filePath)) process.exit(0);
-if (!existsSync(filePath)) process.exit(0);
+// One edit (an apply_patch) touched several files: validate each in a child run
+// of this script, then report the merged result in the same exit-code contract.
+function validateEach(files) {
+  const self = fileURLToPath(import.meta.url);
+  const errors = [];
+  const contexts = [];
+  for (const f of files) {
+    const child = { ...event, tool_name: "Write", tool_input: { file_path: f } };
+    delete child.tool_response;
+    delete child.tool_result;
+    const r = spawnSync(
+      process.execPath,
+      [self],
+      spawnOptions(ROBOCOP_TIMEOUT_MS * 2 + DRYRUN_TIMEOUT_MS, {
+        input: JSON.stringify(child), encoding: "utf-8", env: { ...process.env, TOOL_INPUT: "" },
+      }),
+    );
+    if (r.status === 2) errors.push((r.stderr ?? "").trim());
+    try {
+      const ctx = JSON.parse(r.stdout || "null")?.hookSpecificOutput?.additionalContext;
+      if (ctx) contexts.push(ctx);
+    } catch {
+      // no advisory output
+    }
+  }
+  if (errors.length) reportErrors(errors.join("\n"));
+  if (contexts.length) {
+    const payload = { hookSpecificOutput: { hookEventName: "PostToolUse", additionalContext: contexts.join("\n\n") } };
+    process.stdout.write(JSON.stringify(payload) + "\n");
+  }
+  process.exit(0);
+}
 
 const cwd = projectRoot(event);
 let fileLines = [];
@@ -306,12 +334,10 @@ if (robocopPy) {
   if (findings) {
     const errors = findings.filter((f) => f.severity === "E" && !f.rule.startsWith("DEPR"));
     if (errors.length) {
-      process.stderr.write(
+      reportErrors(
         `Robot Framework validation found errors in ${filePath}:\n` +
-          errors.map((f) => `${filePath}:${f.line}:${f.col} [E] ${f.rule} ${f.desc}`).join("\n") +
-          "\n",
+          errors.map((f) => `${filePath}:${f.line}:${f.col} [E] ${f.rule} ${f.desc}`).join("\n"),
       );
-      process.exit(2);
     }
     const mode = (process.env.RF_AGENTSKILLS_DEPRECATION_CHECK ?? "").trim().toLowerCase();
     if (mode !== "off") {

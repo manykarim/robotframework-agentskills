@@ -7,7 +7,7 @@ today. This document captures why and when that's expected to change.
 
 | Scope | Channel | Source of truth | Current version |
 |---|---|---|---|
-| **Content** | Claude Code plugin · VS Code `.vsix` · skills tarballs | `plugins/rf-agentskills/.claude-plugin/plugin.json` + `vscode-extension/package.json` | **2.0.0** |
+| **Content** | `rf-agentskills` plugin via the `robotframework-agentskills` marketplace · skills tarballs · Claude Desktop skill ZIPs | `VERSION`, kept equal in `plugins/rf-agentskills/.claude-plugin/plugin.json` and `.claude-plugin/marketplace.json` by `scripts/bump-version.sh` | **2.0.0** |
 | **Tooling** | `rf-agentskills` Python installer (PyPI / GitHub release) | `installer/pyproject.toml` | **0.7.0** |
 
 Internal-only:
@@ -20,9 +20,9 @@ Internal-only:
 
 The two scopes are driven by different change axes:
 
-- **Content** changes when a `SKILL.md`, subagent prompt, hook script,
-  or MCP server is edited. Every consumer that *embeds* the content
-  (the plugin tarball, the vsix, the installer's staged `_assets/`)
+- **Content** changes when a `SKILL.md`, subagent prompt or hook script
+  is edited. Every consumer that *embeds* the content (the marketplace
+  plugin, the release tarballs, the installer's staged `_assets/`)
   needs the new bundle.
 - **Tooling** changes when the installer's adapter logic, CLI dispatch,
   manifest format, or transforms are edited. The content is unchanged;
@@ -43,11 +43,29 @@ would falsely advertise stability and violate SemVer expectations of
 
 | Tag pattern | Workflow | What it produces |
 |---|---|---|
-| `v*` (e.g. `v1.3.0`) | `.github/workflows/release.yml` | Plugin tarball, `.vsix`, skills tarballs (Codex/Copilot/generic), GitHub release. Force-pushes `stable` and `latest` branches. |
+| `v*` (e.g. `v1.3.0`) | `.github/workflows/release.yml` | Plugin tarball, skills tarballs (Codex/Copilot/generic), Claude Desktop skill ZIPs, GitHub release. Force-pushes `stable` and `latest` branches. The tag is also the pinnable marketplace ref (see below). |
 | `rf-agentskills-v*` (e.g. `rf-agentskills-v0.4.0`) | none (manual `gh release create` + `uv publish` today) | Wheel + sdist on a GitHub release **and** on PyPI (`uvx rf-agentskills`). |
 
 The two patterns are non-overlapping so the flows can co-trigger or
 fire independently as needed.
+
+## Marketplace refs
+
+Marketplace installs read the plugin straight from this repository's
+git tree, so a git ref is the version a user gets:
+
+- No ref: the default branch (`main`), i.e. unreleased content.
+- `v<version>` tag (e.g. `v2.1.0`): exactly that content release. This is
+  what users pin to: `rf-agentskills install --mode plugin --ref v2.1.0`,
+  `codex plugin marketplace add manykarim/robotframework-agentskills --ref v2.1.0`,
+  or `"ref": "v2.1.0"` in `extraKnownMarketplaces`.
+- `stable` / `latest` branches: the most recent release, moved by
+  `release.yml`.
+
+So every content release must be tagged, the tag must point at a commit
+where `plugin.json`, `marketplace.json` and `VERSION` all carry that
+version (`tests/test_marketplace_validation.py` checks they agree), and a
+pushed tag is never moved.
 
 ## Cross-referencing in release notes
 
@@ -89,13 +107,15 @@ during the messy pre-1.0 phase.
 
 ## Release checklist (content, `v*`)
 
-1. Bump `plugins/rf-agentskills/.claude-plugin/plugin.json` `version`
-   and `.claude-plugin/marketplace.json` `version`.
-2. Bump `vscode-extension/package.json` `version`.
-3. Update `vscode-extension/CHANGELOG.md`.
-4. Run `bash scripts/sync-skills.sh` and `bash scripts/check-drift.sh`.
-5. Commit, push, tag `vX.Y.Z`, push the tag.
-6. `release.yml` runs, attaches the 5 artifacts to the GitHub release,
+1. `bash scripts/bump-version.sh <major|minor|patch>`: bumps `VERSION`,
+   `plugins/rf-agentskills/.claude-plugin/plugin.json`,
+   `.claude-plugin/marketplace.json` and every skill's `metadata.version`.
+2. Update `plugins/rf-agentskills/CHANGELOG.md`.
+3. Run `bash scripts/sync-skills.sh` (also regenerates the Codex/OpenCode
+   variants) and `bash scripts/check-drift.sh`.
+4. Commit, push, tag `vX.Y.Z`, push the tag. The tag is the marketplace
+   ref users pin to; never move it.
+5. `release.yml` runs, attaches the artifacts to the GitHub release,
    and updates `stable` / `latest` branches.
 
 ## Release checklist (tooling, `rf-agentskills-v*`)

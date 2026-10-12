@@ -23,7 +23,6 @@ ROOT = Path(__file__).resolve().parent.parent
 CHANNELS = {
     "root": ROOT / "skills",
     "plugin": ROOT / "plugins" / "rf-agentskills" / "skills",
-    "vscode": ROOT / "vscode-extension" / "skills",
 }
 SCRIPTS = {"rf_libdoc.py": "rf-libdoc", "rf_results.py": "rf-results", "rf_conventions.py": "rf-language",
            "check_library.py": "rf-python-library"}
