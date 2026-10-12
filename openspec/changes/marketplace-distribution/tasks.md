@@ -43,7 +43,7 @@
 ## 5. Retire the VS Code extension
 
 - [x] 5.1 Delete `vscode-extension/` and remove the VS Code channel from `scripts/sync-skills.sh`, `scripts/check-drift.sh`, `scripts/validate-skills.py` and the tests that reference it. Verify with the full test suite, `check-drift.sh` and `validate-skills.py --channel all`.
-- [ ] 5.2 Remove the `Build VS Code extension` CI job and the `.vsix` steps and asset from `release.yml`. Add the manifest-consistency test and `build-agent-variants.py --check` to CI. Verify that the workflows parse and a PR run is green.
+- [x] 5.2 Remove the `Build VS Code extension` CI job and the `.vsix` steps and asset from `release.yml`. Add the manifest-consistency test and `build-agent-variants.py --check` to CI. Verify that the workflows parse and a PR run is green.
 - [x] 5.3 Update `RELEASING.md`: content scope = plugin + marketplace manifest, the version rule, and `v<version>` tags as pinnable marketplace refs. Verify that the doc names no `vscode-extension` path.
 
 ## 6. Documentation and release notes
