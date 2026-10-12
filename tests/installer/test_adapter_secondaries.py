@@ -305,7 +305,8 @@ def test_opencode_installs_generated_subagents(install_prefix: Path) -> None:
     assert len(agent_targets) == 4
     for t in agent_targets:
         assert t.transform_name == "opencode_agent_variant"
-        assert "\nmode: subagent\n" in t.payload.decode("utf-8")
+        # Windows checkouts may carry CRLF; OpenCode parses either.
+        assert "\nmode: subagent\n" in t.payload.decode("utf-8").replace("\r\n", "\n")
 
 
 def test_opencode_skills_install_natively_to_skills_dir(

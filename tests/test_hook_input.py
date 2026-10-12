@@ -6,6 +6,7 @@ Fixtures in ``tests/fixtures/hook_inputs/`` follow the input shapes recorded on
 from __future__ import annotations
 
 import json
+import re
 import shutil
 import subprocess
 from pathlib import Path
@@ -18,6 +19,11 @@ FIXTURES = ROOT / "tests" / "fixtures" / "hook_inputs"
 NODE = shutil.which("node")
 pytestmark = pytest.mark.skipif(NODE is None, reason="node not on PATH")
 CWD = "/work/proj"
+
+
+def _posix(path: str) -> str:
+    """On Windows, Node resolves /work/proj relative paths to D:\\work\\proj\\..."""
+    return re.sub(r"^[A-Za-z]:", "", path).replace("\\", "/")
 
 
 def _normalize(name: str) -> dict:
@@ -45,7 +51,7 @@ def _normalize(name: str) -> dict:
 def test_edit_inputs_yield_the_edited_files(name: str, files: list[str]) -> None:
     r = _normalize(name)
     assert r["isEdit"] is True and r["isShell"] is False
-    assert r["files"] == [f"{CWD}/{f}" for f in files]
+    assert [_posix(f) for f in r["files"]] == [f"{CWD}/{f}" for f in files]
 
 
 @pytest.mark.parametrize(("name", "command"), [
