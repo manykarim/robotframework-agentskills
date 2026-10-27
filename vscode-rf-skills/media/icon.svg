@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+  <rect width="128" height="128" rx="16" fill="#1e8c45"/>
+  <text x="64" y="52" text-anchor="middle" font-family="Arial,sans-serif" font-weight="bold" font-size="36" fill="white">RF</text>
+  <text x="64" y="90" text-anchor="middle" font-family="Arial,sans-serif" font-size="18" fill="white">Skills</text>
+</svg>
