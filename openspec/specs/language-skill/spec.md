@@ -493,11 +493,11 @@ The run and dry-run checks take optional `args` and `expected_tests` (minimum pa
 
 ### Requirement: Skill is distributed to every channel without drift
 
-The skill SHALL be propagated by the sync tooling to the Claude Code plugin (`plugins/rf-agentskills/skills/rf-language/`, with its own `scripts/rf_conventions.py`) and the VS Code extension (`vscode-extension/skills/rf-language/`, listed in `package.json` `chatSkills`), and included in the installer assets through the plugin mirror. The drift check and the skill validator SHALL pass. In addition, the context-injection hook's skill list SHALL name `rf-language`; the subagents `rf-test-architect`, `rf-keyword-consultant` and `rf-migration-guide` SHALL direct the agent to `rf-language` (and, for migration, to its `references/migration.md` and the `rf_conventions` tool); the README skill table and project structure SHALL list the skill; the content CHANGELOG SHALL announce it.
+The skill SHALL be propagated by the sync tooling to the Claude Code plugin (`plugins/rf-agentskills/skills/rf-language/`, with its own `scripts/rf_conventions.py`) and included in the installer assets through the plugin mirror. The drift check and the skill validator SHALL pass. In addition, the context-injection hook's skill list SHALL name `rf-language`; the subagents `rf-test-architect`, `rf-keyword-consultant` and `rf-migration-guide` SHALL direct the agent to `rf-language` (and, for migration, to its `references/migration.md` and the `rf_conventions` report); the README skill table and project structure SHALL list the skill; the content CHANGELOG SHALL announce it.
 
 #### Scenario: Channels populated
 - **WHEN** `scripts/sync-skills.sh` runs
-- **THEN** the plugin and VS Code copies exist with `name: rf-language`, `vscode-extension/package.json` lists the skill, and `scripts/check-drift.sh` exits 0
+- **THEN** the plugin copy exists with `name: rf-language` and `scripts/check-drift.sh` exits 0
 
 #### Scenario: Installer ships the skill
 - **WHEN** the installer is built and installs for Claude Code into a temporary project

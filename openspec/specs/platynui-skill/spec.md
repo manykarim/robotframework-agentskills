@@ -67,11 +67,11 @@ The skill SHALL document the `platynui-cli` / `platynui-inspector` locator-devel
 
 ### Requirement: Skill is integrated into distribution channels without drift
 
-The skill SHALL be registered in the sync tooling so the Claude Code plugin and VS Code extension channels are generated from the single source under the same `rf-platynui` identifier, and the drift check SHALL pass.
+The skill SHALL be registered in the sync tooling so the Claude Code plugin channel is generated from the single source under the same `rf-platynui` identifier, and the drift check SHALL pass.
 
 #### Scenario: Sync registers the skill
 - **WHEN** `scripts/sync-skills.sh` runs
-- **THEN** the skill is propagated to `plugins/rf-agentskills/skills/rf-platynui/` with `name: rf-platynui` and to `vscode-extension/skills/rf-platynui/`, and `vscode-extension/package.json` lists it
+- **THEN** the skill is propagated to `plugins/rf-agentskills/skills/rf-platynui/` with `name: rf-platynui`
 
 #### Scenario: Drift check passes
 - **WHEN** `scripts/check-drift.sh` runs after sync

@@ -76,7 +76,7 @@ The repository SHALL provide a deterministic checker that extracts keyword calls
 
 ### Requirement: Fixes land in the canonical source and are synced
 
-Keyword corrections SHALL be made in the root `skills/` directory and propagated to the plugin and VS Code copies by the sync script. The cross-channel drift check SHALL pass after the change.
+Keyword corrections SHALL be made in the root `skills/` directory and propagated to the plugin copies by the sync script. The cross-channel drift check SHALL pass after the change.
 
 #### Scenario: Channels stay in sync
 - **WHEN** `scripts/sync-skills.sh` and `scripts/check-drift.sh` run after the fixes
