@@ -95,7 +95,7 @@ env:
 jobs:
   preflight:
     name: Preflight (validate + select)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04  # ubuntu-latest (26.04) has no Playwright chromium yet
     timeout-minutes: 15
     outputs:
       has_credentials: ${{ steps.creds.outputs.has_credentials }}
@@ -157,7 +157,7 @@ jobs:
 
   harness-tests:
     name: Harness unit tests (no API calls)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04  # ubuntu-latest (26.04) has no Playwright chromium yet
     timeout-minutes: 30
     steps:
       - name: Checkout
@@ -193,7 +193,7 @@ jobs:
     name: Evaluation not run (no credentials)
     needs: preflight
     if: ${{ needs.preflight.outputs.has_credentials != 'true' && needs.preflight.outputs.run_evals == 'true' }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04  # ubuntu-latest (26.04) has no Playwright chromium yet
     timeout-minutes: 5
     steps:
       - name: Report
@@ -209,7 +209,7 @@ jobs:
     name: PR eval (narrow, treatment, N=3)
     needs: preflight
     if: ${{ github.event_name == 'pull_request' && needs.preflight.outputs.run_evals == 'true' && needs.preflight.outputs.has_credentials == 'true' }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04  # ubuntu-latest (26.04) has no Playwright chromium yet
     # A harness-wide PR selects the full narrow tier (66 sequential sessions)
     # plus trigger evals for every changed description; 90 min was not enough.
     timeout-minutes: 180
@@ -400,7 +400,7 @@ jobs:
     name: Full eval (all tiers, both arms)
     needs: preflight
     if: ${{ github.event_name != 'pull_request' && needs.preflight.outputs.has_credentials == 'true' }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04  # ubuntu-latest (26.04) has no Playwright chromium yet
     timeout-minutes: 360
     env:
       TIERS: ${{ github.event_name == 'workflow_dispatch' && inputs.tiers || 'narrow,realistic,adversarial' }}
