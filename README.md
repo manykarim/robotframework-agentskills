@@ -15,7 +15,7 @@ There are two ways to install, and both work at **user scope** (every project on
 |---|---|---|---|---|
 | **Claude Code** | yes | yes | yes | `.claude/settings.json` enables the plugin |
 | **Copilot CLI** (1.0.91) | yes | yes | yes; only validation errors reach the model (see below) | `.claude/settings.json` or `.github/copilot/settings.json` loads the plugin, no install step |
-| **VS Code Copilot** (1.142) | yes | yes in the Local harness; not offered in the Copilot harness | yes, with `chat.useHooks`; in the Local harness validation errors reach only you (see below) | `.claude/settings.json` recommends the plugin to the workspace |
+| **VS Code Copilot** (1.142) | yes | yes in the Local harness; not offered in the Copilot harness | yes, with `chat.useHooks`; in the Local harness validation errors reach the model only at the end of the reply (see below) | `.claude/settings.json` recommends the plugin to the workspace |
 | **Codex** (0.153.4, 0.161.0) | yes | from the installer | yes, after trusting them once with `/hooks` | none: each user runs the two `codex plugin` commands |
 | **Cursor** (CLI 2026.10.01, verified from its plugin loader, not run live) | yes | yes | yes (Cursor converts them) | imports the plugin from Claude Code's `.claude/settings.json` |
 
@@ -75,7 +75,7 @@ Pin with `"manykarim/robotframework-agentskills#v2.1.0"`. Then install `rf-agent
 VS Code 1.142 has two agent harnesses, with different gaps:
 
 - **Copilot** (agent host): validation errors reach the model, but the plugin's four subagents are not offered.
-- **Local**: skills and subagents work, but VS Code sends the next model request without waiting for PostToolUse hooks. A validation error then appears only as the banner "A hook prevented chat from continuing", and the model does not see it. Fix the reported line yourself or ask the agent to.
+- **Local**: skills and subagents work, but VS Code sends the next model request without waiting for PostToolUse hooks. A validation error first appears only as the banner "A hook prevented chat from continuing". The plugin's Stop hook re-checks the file when the agent finishes its reply and hands the error to the model, which then gets another turn to fix it.
 
 #### OpenAI Codex
 

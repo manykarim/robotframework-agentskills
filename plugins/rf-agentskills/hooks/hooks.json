@@ -52,6 +52,11 @@
         "hooks": [
           {
             "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/report_pending_errors.mjs\"",
+            "timeout": 60
+          },
+          {
+            "type": "command",
             "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/maybe_remind_robot_tests.mjs\""
           },
           {

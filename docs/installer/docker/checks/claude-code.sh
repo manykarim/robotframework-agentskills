@@ -53,6 +53,7 @@ case "${1:-}" in
     need_file "$PLUGIN_FILES/scripts/maybe_inject_rf_context.mjs"
     need_file "$PLUGIN_FILES/scripts/check_rf_environment.mjs"
     need_file "$PLUGIN_FILES/scripts/maybe_remind_robot_tests.mjs"
+    need_file "$PLUGIN_FILES/scripts/report_pending_errors.mjs"
     need_file "$PLUGIN_FILES/scripts/python_runtime.json"
     need_file "$PLUGIN_FILES/.claude-plugin/plugin.json"
     # Substitution actually happened (no literal ${CLAUDE_PLUGIN_ROOT} left)

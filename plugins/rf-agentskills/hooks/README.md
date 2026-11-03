@@ -1,8 +1,8 @@
 # rf-agentskills hooks
 
-This plugin defines five Claude Code lifecycle hook scripts across four
-events. Two (`SessionStart`, `PostToolUse`) run unconditionally; three
-(`UserPromptSubmit`, and two on `Stop`) consult the session or an
+This plugin defines six Claude Code lifecycle hook scripts across four
+events. Two (`SessionStart`, `PostToolUse`) run unconditionally; four
+(`UserPromptSubmit`, and three on `Stop`) consult the session or an
 environment flag before deciding to do anything.
 
 All are **cross-platform Node.js** scripts (`.mjs`). They run
@@ -24,12 +24,14 @@ rather than written-and-broken.
 | `PostToolUse` (matcher: `Write\|Edit`) | `scripts/validate_robot.mjs` | only on Write/Edit | ~30ms (file extension check) | ~1–1.5 s on a 500-line file (one Robocop check + format check); +0.4 s or more with the opt-in dry run | 45 s |
 | `PostToolUse` (matcher: `Bash`) | `scripts/rf_error_hints.mjs` | only on Bash | ~30 ms (text scan) | ~30 ms | 10 s |
 | `UserPromptSubmit` | `scripts/maybe_inject_rf_context.mjs` | always invoked, conditional injection | ~30ms (regex over prompt) | same (≤ 450-character text) | 15 s |
+| `Stop` | `scripts/report_pending_errors.mjs` | always invoked, reports only files whose validation failed and are still broken | ~30 ms (reads the session record) | one `validate_robot.mjs` run per pending file | 60 s |
 | `Stop` | `scripts/maybe_remind_robot_tests.mjs` | always invoked, conditional reminder | ~30ms (chunked grep over transcript) | same | default |
 | `Stop` | `scripts/validate_robot_project.mjs` | only when `RF_AGENTSKILLS_PROJECT_VALIDATION` is set | ~0ms (env-flag check) | project dry run + find-unused (120 s cap each) | default |
 
 Every process a hook starts has a timeout (Robocop 10 s, per-file dry run
 20 s, interpreter probes 5 s, project-wide checks 120 s). A timeout skips that
-check silently. `scripts/_python_env.mjs` is a shared helper, not a hook.
+check silently. `scripts/_python_env.mjs`, `scripts/_hook_input.mjs` and
+`scripts/_pending_errors.mjs` are shared helpers, not hooks.
 
 ## Validation hooks (what catches broken Robot Framework code)
 
@@ -136,6 +138,31 @@ edited path from a `TOOL_INPUT` env var; the documented contract delivers it
 as `tool_input.file_path` on stdin, so the new script reads stdin first and
 treats `TOOL_INPUT` only as a legacy fallback.)
 
+### Errors the agent never saw — re-checked at Stop (`report_pending_errors.mjs`)
+
+VS Code 1.142's Local agent harness sends the next model request without
+waiting for `PostToolUse` hooks, so a validation error shows up only as the
+banner "A hook prevented chat from continuing" and the model never sees it.
+(An OpenTelemetry capture showed the next request leaving 41 ms after
+`validate_robot.mjs` started; the hook takes about 0.7 s.) VS Code does wait
+for `Stop` hooks, so:
+
+- `validate_robot.mjs` records each file with real errors in
+  `<tmpdir>/rf-agentskills-pending-<session_id>.json`, and removes it when a
+  later validation of the file passes.
+- At `Stop`, `report_pending_errors.mjs` re-validates the recorded files (by
+  running `validate_robot.mjs` on each). If any still fail, it blocks with the
+  same contract as `validate_robot.mjs`: stderr + exit 2 (Claude Code, Codex,
+  VS Code), plus `{"decision": "block", "reason": ...}` on stdout (Copilot). The
+  agent then gets one more turn to fix them.
+- Deleted files are dropped. Each content version of a file is reported at most
+  once, so a file the agent can't fix doesn't block every later turn. Like every
+  Stop hook here, it is a no-op when `stop_hook_active` is set.
+
+In agents whose `PostToolUse` feedback reaches the model, the agent normally
+fixes the file right after the edit, which clears the record, and this hook
+stays silent. Without a `session_id` nothing is recorded.
+
 ### Tier 3 — whole project, end of task, opt-in (`validate_robot_project.mjs`)
 
 Fires from `Stop`, **only when `RF_AGENTSKILLS_PROJECT_VALIDATION` is set**
@@ -162,7 +189,8 @@ agent gets one more turn to fix before the turn ends.
 
 ### The exit-2 exception
 
-These two validation scripts are the **deliberate exception** to authoring
+The validation scripts (`validate_robot.mjs`, `report_pending_errors.mjs`,
+`validate_robot_project.mjs`) are the **deliberate exception** to authoring
 guideline #2 below ("hook scripts must always exit 0"). The Claude Code
 `PostToolUse`/`Stop` contract feeds a hook's stderr back to the agent only on
 **exit 2** (exit 1 / other is shown to the user, not the model). Returning a

@@ -14,7 +14,7 @@ content bundle (the marketplace plugin and skills tarballs). See `RELEASING.md` 
 - **Codex subagents** come from the generated `variants/codex/agents/*.toml` in the bundle rather than a conversion at install time (same content).
 
 ### Bundled content
-- Content 2.1.0 (unreleased): VS Code extension retired, default main agent removed, hook input for all agents. See `plugins/rf-agentskills/CHANGELOG.md`.
+- Content 2.1.0 (unreleased): VS Code extension retired, default main agent removed, hook input for all agents, unfixed validation errors re-checked at Stop. See `plugins/rf-agentskills/CHANGELOG.md`.
 
 ## 0.7.0 — 2026-10-06
 
