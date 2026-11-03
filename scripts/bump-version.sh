@@ -2,8 +2,8 @@
 # Usage: ./scripts/bump-version.sh <major|minor|patch>
 # Bumps the CONTENT version (see RELEASING.md) everywhere it is recorded:
 #   VERSION, .claude-plugin/marketplace.json (metadata + rf-agentskills entry),
-#   plugins/rf-agentskills/.claude-plugin/plugin.json, vscode-extension/package.json
-#   and metadata.version in every skills/*/SKILL.md (checked by validate-skills.py).
+#   plugins/rf-agentskills/.claude-plugin/plugin.json and
+#   metadata.version in every skills/*/SKILL.md (checked by validate-skills.py).
 # Run scripts/sync-skills.sh afterwards to propagate the SKILL.md changes.
 #
 # REPO_ROOT can be overridden (used by tests to run against a scratch tree).
@@ -72,7 +72,6 @@ def top_level(data):
 
 update_json(".claude-plugin/marketplace.json", marketplace)
 update_json("plugins/rf-agentskills/.claude-plugin/plugin.json", top_level)
-update_json("vscode-extension/package.json", top_level)
 
 # metadata.version in each root SKILL.md frontmatter (the indented `version:`
 # line of the metadata map, inside the leading --- block only).

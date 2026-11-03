@@ -1,0 +1,90 @@
+// rf-agentskills hooks for OpenCode.
+// __GENERATED_NOTE__
+//
+// OpenCode has no Claude-style hooks.json; plugins are JS modules. This one runs
+// the same hook scripts as the other agents, from ../rf-agentskills-files/scripts/
+// next to this file (the installer puts both there, project or user scope):
+//
+//   tool.execute.after  edits of .robot/.resource files -> __EDIT_SCRIPT__;
+//                       bash output -> __SHELL_SCRIPT__; findings and hints
+//                       are appended to the tool output.
+//   session.created     -> __SESSION_SCRIPT__; its report is appended to the
+//                       session's first tool output (OpenCode cannot inject
+//                       text at session start).
+//
+// Not ported (no OpenCode event can inject text at that point):
+__NOT_PORTED__
+import { spawnSync } from "node:child_process";
+import { existsSync } from "node:fs";
+import { fileURLToPath } from "node:url";
+
+const SCRIPTS = fileURLToPath(new URL("../rf-agentskills-files/scripts/", import.meta.url));
+const EDIT_SCRIPT = "__EDIT_SCRIPT__";
+const SHELL_SCRIPT = "__SHELL_SCRIPT__";
+const SESSION_SCRIPT = "__SESSION_SCRIPT__";
+const TIMEOUT_MS = 60000;
+const EDIT_TOOLS = { edit: "Edit", write: "Write", multiedit: "MultiEdit", patch: "apply_patch", apply_patch: "apply_patch" };
+
+/** Run a hook script with Claude-shaped stdin; return the text it reports, or "". */
+export function runHook(script, payload) {
+  const path = SCRIPTS + script;
+  if (!script || !existsSync(path)) return "";
+  const r = spawnSync("node", [path], {
+    input: JSON.stringify(payload), encoding: "utf-8", timeout: TIMEOUT_MS, windowsHide: true,
+    env: { ...process.env, TOOL_INPUT: "" },
+  });
+  if (r.error || r.status === null) return "";
+  if (r.status === 2) return (r.stderr ?? "").trim();
+  try {
+    return JSON.parse(r.stdout || "null")?.hookSpecificOutput?.additionalContext ?? "";
+  } catch {
+    return "";
+  }
+}
+
+export const RfAgentSkills = async ({ directory }) => {
+  const pendingArgs = new Map(); // callID -> tool args (tool.execute.after has none)
+  const sessionReports = new Map(); // sessionID -> environment report not yet shown
+
+  const append = (output, text) => {
+    if (text) output.output = `${output.output ?? ""}\n\n${text}`;
+  };
+
+  return {
+    "tool.execute.before": async (input, output) => {
+      if (EDIT_TOOLS[input.tool] || input.tool === "bash") pendingArgs.set(input.callID, output.args ?? {});
+    },
+    "tool.execute.after": async (input, output) => {
+      const report = sessionReports.get(input.sessionID);
+      if (report) {
+        sessionReports.delete(input.sessionID);
+        append(output, report);
+      }
+      if (input.tool === "bash") {
+        append(output, runHook(SHELL_SCRIPT, {
+          hook_event_name: "PostToolUse", session_id: input.sessionID, cwd: directory,
+          tool_name: "Bash", tool_input: pendingArgs.get(input.callID) ?? {},
+          tool_response: String(output.output ?? ""),
+        }));
+        pendingArgs.delete(input.callID);
+        return;
+      }
+      const toolName = EDIT_TOOLS[input.tool];
+      if (!toolName) return;
+      const args = pendingArgs.get(input.callID) ?? {};
+      pendingArgs.delete(input.callID);
+      const toolInput = { ...args };
+      if (typeof args.patchText === "string") toolInput.input = args.patchText;
+      append(output, runHook(EDIT_SCRIPT, {
+        hook_event_name: "PostToolUse", session_id: input.sessionID, cwd: directory,
+        tool_name: toolName, tool_input: toolInput,
+      }));
+    },
+    event: async ({ event }) => {
+      if (event?.type !== "session.created") return;
+      const id = event.properties?.info?.id ?? event.properties?.sessionID;
+      const text = runHook(SESSION_SCRIPT, { hook_event_name: "SessionStart", session_id: id, cwd: directory });
+      if (id && text) sessionReports.set(id, text);
+    },
+  };
+};

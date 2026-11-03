@@ -16,7 +16,6 @@ PLUGIN = ROOT / "plugins" / "rf-agentskills"
 CHANNELS = {
     "root": ROOT / "skills",
     "plugin": PLUGIN / "skills",
-    "vscode": ROOT / "vscode-extension" / "skills",
 }
 SCRIPT_SKILLS = {"rf-libdoc": "rf_libdoc.py", "rf-results": "rf_results.py", "rf-language": "rf_conventions.py",
                  "rf-python-library": "check_library.py"}

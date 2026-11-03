@@ -392,7 +392,6 @@ CHANNEL_PARAMS = [
     for name, path in (
         ("root", ROOT / "skills"),
         ("plugin", ROOT / "plugins" / "rf-agentskills" / "skills"),
-        ("vscode", ROOT / "vscode-extension" / "skills"),
     )
 ]
 

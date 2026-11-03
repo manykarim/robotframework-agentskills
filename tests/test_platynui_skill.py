@@ -118,10 +118,8 @@ def test_high_level_platynui_is_placeholder() -> None:
 
 
 def test_distributed_under_same_identifier() -> None:
-    """Plugin and VS Code copies use the same rf-platynui dir and name (skill-metadata-conformance)."""
-    for channel in ("plugins/rf-agentskills/skills", "vscode-extension/skills"):
+    """The plugin copy uses the same rf-platynui dir and name (skill-metadata-conformance)."""
+    for channel in ("plugins/rf-agentskills/skills",):
         md = ROOT / channel / "rf-platynui" / "SKILL.md"
         assert md.is_file(), md
         assert "\nname: rf-platynui\n" in md.read_text(encoding="utf-8"), md
-    pkg = (ROOT / "vscode-extension" / "package.json").read_text(encoding="utf-8")
-    assert "./skills/rf-platynui/SKILL.md" in pkg

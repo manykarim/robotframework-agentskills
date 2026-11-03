@@ -115,8 +115,7 @@ def test_channel_mismatch_is_reported(tmp_path):
     plugin = repo / "plugins" / "rf-agentskills" / "skills" / "rf-other"
     plugin.mkdir(parents=True)
     (plugin / "SKILL.md").write_text(render({**VALID, "name": "rf-other"}), encoding="utf-8")
-    (repo / "vscode-extension" / "skills").mkdir(parents=True)
-    lines = vs.validate(repo, ["root", "plugin", "vscode"])
+    lines = vs.validate(repo, ["root", "plugin"])
     assert any("skills/rf-other: channel-mismatch" in line for line in lines), lines
     assert any("plugins/rf-agentskills/skills/rf-demo: channel-mismatch" in line for line in lines), lines
 
@@ -131,7 +130,7 @@ def test_cli_reports_path_and_rule_and_exits_1(tmp_path):
 
 @pytest.mark.parametrize("use_yaml", PARSERS)
 def test_real_tree_all_channels_valid(use_yaml):
-    lines = vs.validate(ROOT, ["root", "plugin", "vscode"], use_yaml=use_yaml)
+    lines = vs.validate(ROOT, ["root", "plugin"], use_yaml=use_yaml)
     assert not lines, "\n".join(lines)
 
 
@@ -142,8 +141,7 @@ def test_bump_version_keeps_skill_metadata_in_step(tmp_path):
     shutil.copy2(ROOT / "VERSION", repo / "VERSION")
     (repo / "scripts").mkdir()
     shutil.copy2(ROOT / "scripts" / "bump-version.sh", repo / "scripts" / "bump-version.sh")
-    for rel in (".claude-plugin/marketplace.json", "plugins/rf-agentskills/.claude-plugin/plugin.json",
-                "vscode-extension/package.json"):
+    for rel in (".claude-plugin/marketplace.json", "plugins/rf-agentskills/.claude-plugin/plugin.json"):
         (repo / rel).parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2(ROOT / rel, repo / rel)
     res = subprocess.run([BASH, str(repo / "scripts" / "bump-version.sh"), "patch"], capture_output=True,
@@ -152,5 +150,5 @@ def test_bump_version_keeps_skill_metadata_in_step(tmp_path):
     new = (repo / "VERSION").read_text().strip()
     assert new != (ROOT / "VERSION").read_text().strip()
     assert vs.validate(repo, ["root"]) == []
-    for rel in ("plugins/rf-agentskills/.claude-plugin/plugin.json", "vscode-extension/package.json"):
+    for rel in (".claude-plugin/marketplace.json", "plugins/rf-agentskills/.claude-plugin/plugin.json"):
         assert f'"version": "{new}"' in (repo / rel).read_text()

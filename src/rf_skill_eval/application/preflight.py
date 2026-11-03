@@ -1,7 +1,7 @@
 """CI preflight: map a PR's changed paths to the skills whose evals must run (design D9).
 
-* ``skills/<dir>/**``, ``plugins/rf-agentskills/skills/<dir>/**`` and
-  ``vscode-extension/skills/<dir>/**`` -> the skill named by that dir;
+* ``skills/<dir>/**`` and ``plugins/rf-agentskills/skills/<dir>/**`` -> the
+  skill named by that dir;
 * ``eval/tasks/**/<task>.yaml`` -> that task's ``skill``;
 * ``eval/triggers/<skill>.yaml`` -> that skill (trigger set only);
 * ``eval/fixtures/<fixture>/**`` -> skills of the tasks using the fixture;
@@ -26,7 +26,6 @@ from ..domain.task import PLUGIN_SKILL
 _SKILL_DIR_PREFIXES = (
     ("skills",),
     ("plugins", "rf-agentskills", "skills"),
-    ("vscode-extension", "skills"),
 )
 _FULL_TIER_PREFIXES = (("src", "rf_skill_eval"),)
 _FULL_TIER_FILES = {"pyproject.toml", "uv.lock"}

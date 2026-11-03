@@ -3,6 +3,8 @@
 **Date:** 2026-03-17
 **Scope:** Skill structure, script organization, hook/agent/MCP design, cross-agent portability
 
+> Historical report. The VS Code extension channel and the MCP server it reviews have since been removed; the plugin is now distributed through the plugin marketplace (see the README).
+
 ---
 
 ## Executive Summary

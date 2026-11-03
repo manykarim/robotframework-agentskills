@@ -26,7 +26,7 @@ import shutil
 from dataclasses import dataclass
 from pathlib import Path
 
-from ._base import InstallOptions
+from ._base import InstallOptions, InstallPlan, marketplace_settings_merges
 from .claude_code import ClaudeCodeAdapter
 
 
@@ -57,3 +57,28 @@ class CopilotAdapter(ClaudeCodeAdapter):
             "if you want hooks active)."
         )
         return notes
+
+    def plugin_plan(self, opts: InstallOptions) -> InstallPlan | None:
+        """Claude Code's settings entries plus Copilot's own settings file
+        (``.github/copilot/settings.json`` in a project, ``~/.copilot/settings.json``
+        for the user); Copilot CLI reads either."""
+        base = super().plugin_plan(opts)
+        assert base is not None
+        if opts.prefix is not None:
+            copilot_settings = opts.prefix / ".github" / "copilot" / "settings.json"
+        elif opts.scope == "project":
+            project = opts.project_dir if opts.project_dir is not None else Path.cwd()
+            copilot_settings = project / ".github" / "copilot" / "settings.json"
+        else:
+            copilot_settings = Path.home() / ".copilot" / "settings.json"
+        notes = (
+            *base.notes,
+            f"{copilot_settings} carries the same entries for Copilot CLI.",
+            "VS Code: enable `chat.plugins.enabled` and `chat.useHooks`; add "
+            '"manykarim/robotframework-agentskills" to `chat.plugins.marketplaces` '
+            "(user settings) to install it outside this workspace.",
+        )
+        return InstallPlan(
+            merges=(*base.merges, *marketplace_settings_merges(copilot_settings, opts.ref)),
+            notes=notes,
+        )

@@ -123,7 +123,7 @@ packages = ["src/rf_skill_eval"]
 [tool.hatch.build.targets.sdist]
 # Hatch's default sdist picks up everything in the project root —
 # which on a developer machine leaks `.claude/`, `plugins/`,
-# `installer/`, `vscode-extension/`, `tests/`, `docs/`, scratch
+# `installer/`, `tests/`, `docs/`, scratch
 # files, and any README.md in any sub-tree (those are
 # auto-included by hatch as project metadata). Lock the sdist down
 # to exactly what belongs in the rf-skill-eval distribution.
@@ -155,7 +155,6 @@ exclude = [
     "sample.robot",
     "scripts",
     "skills",
-    "vscode-extension",
     "**/__pycache__",
     "**/*.pyc",
     "**/.pytest_cache",
@@ -179,7 +178,6 @@ extend-exclude = [
     "eval/runs",
     "skills",
     "plugins",
-    "vscode-extension",
     "tests/test_*.py",  # legacy plugin tests, not managed by this harness
 ]
 

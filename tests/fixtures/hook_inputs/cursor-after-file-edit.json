@@ -1,0 +1,11 @@
+{
+  "hook_event_name": "afterFileEdit",
+  "conversation_id": "c1",
+  "file_path": "/work/proj/resources/b.resource",
+  "edits": [
+    {
+      "old_string": "a",
+      "new_string": "b"
+    }
+  ]
+}

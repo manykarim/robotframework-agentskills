@@ -1,0 +1,9 @@
+{
+  "hook_event_name": "PostToolUse",
+  "session_id": "s3",
+  "cwd": "/work/proj",
+  "tool_name": "apply_patch",
+  "tool_input": {
+    "input": "*** Begin Patch\n*** Update File: /work/proj/tests/a.robot\n@@\n-    Log    x\n+    Log    y\n*** End Patch"
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "hook_event_name": "PostToolUse",
+  "session_id": "s3",
+  "cwd": "/work/proj",
+  "tool_name": "run_in_terminal",
+  "tool_input": {
+    "command": "robot tests",
+    "explanation": "run",
+    "goal": "run",
+    "mode": "sync"
+  }
+}

@@ -22,10 +22,6 @@ jobs:
         with:
           fetch-depth: 0
 
-      - uses: actions/setup-node@v4
-        with:
-          node-version: "20"
-
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
@@ -33,7 +29,6 @@ jobs:
       - name: Install dependencies
         run: |
           pip install robotframework pytest
-          cd vscode-extension && npm ci
 
       - name: Extract version
         id: version
@@ -47,14 +42,6 @@ jobs:
 
       - name: Check drift
         run: bash scripts/check-drift.sh
-
-      # ── Build VS Code Extension ──
-      - name: Build VS Code extension
-        run: |
-          cd vscode-extension
-          npx tsc
-          npx @vscode/vsce package --no-dependencies \
-            -o ../robotframework-agentskills-${{ steps.version.outputs.version }}.vsix
 
       # ── Build Claude Code Plugin ──
       - name: Package Claude plugin
@@ -104,15 +91,9 @@ jobs:
 
           ### Installation
 
-          **Claude Code Plugin:**
-          ```bash
-          claude plugin add github:manykarim/robotframework-agentskills
-          ```
+          **Plugin marketplace** (Claude Code, GitHub Copilot CLI, VS Code, Codex, Cursor): add `manykarim/robotframework-agentskills` as a marketplace and install `rf-agentskills`. Pin this release with the ref `v${{ steps.version.outputs.version }}`. Per-agent commands: see the README.
 
-          **VS Code Extension:** Download `robotframework-agentskills-${{ steps.version.outputs.version }}.vsix` below, then:
-          ```bash
-          code --install-extension robotframework-agentskills-${{ steps.version.outputs.version }}.vsix
-          ```
+          **Python installer** (any agent, also OpenCode, Goose, Claude Desktop): `pip install rf-agentskills && rf-agentskills install --agent <agent>`.
 
           **Codex:** Extract `robotframework-skills-codex-*.tar.gz` into your project root.
 
@@ -126,7 +107,6 @@ jobs:
 
           | Artifact | Agent | Contents |
           |----------|-------|----------|
-          | `.vsix` | VS Code + Copilot Chat | Extension with @SKILL_COUNT@ chat skills |
           | `claude-plugin-*.tar.gz` | Claude Code | Plugin with skills, agents, hooks |
           | `skills-*.tar.gz` | Any agent | @SKILL_COUNT@ standalone skill folders (`rf-*`) |
           | `skills-codex-*.tar.gz` | OpenAI Codex | Skills in `.codex/skills/` layout |
@@ -173,7 +153,6 @@ jobs:
           draft: false
           prerelease: ${{ contains(github.ref_name, '-rc') || contains(github.ref_name, '-beta') }}
           files: |
-            robotframework-agentskills-${{ steps.version.outputs.version }}.vsix
             rf-agentskills-claude-plugin-${{ steps.version.outputs.version }}.tar.gz
             robotframework-skills-${{ steps.version.outputs.version }}.tar.gz
             robotframework-skills-codex-${{ steps.version.outputs.version }}.tar.gz

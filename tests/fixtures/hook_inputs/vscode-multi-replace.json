@@ -1,0 +1,20 @@
+{
+  "hook_event_name": "PostToolUse",
+  "session_id": "s3",
+  "cwd": "/work/proj",
+  "tool_name": "multi_replace_string_in_file",
+  "tool_input": {
+    "replacements": [
+      {
+        "filePath": "/work/proj/tests/a.robot",
+        "oldString": "a",
+        "newString": "b"
+      },
+      {
+        "filePath": "/work/proj/resources/b.resource",
+        "oldString": "a",
+        "newString": "b"
+      }
+    ]
+  }
+}

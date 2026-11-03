@@ -1,0 +1,12 @@
+{
+  "hook_event_name": "PostToolUse",
+  "session_id": "s3",
+  "cwd": "/work/proj",
+  "tool_name": "create_file",
+  "tool_input": {
+    "filePath": "/work/proj/tests/a.robot",
+    "content": "*** Test Cases ***\n"
+  },
+  "tool_response": "",
+  "tool_use_id": "t1"
+}

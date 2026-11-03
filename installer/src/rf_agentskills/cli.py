@@ -29,6 +29,7 @@ import argparse
 import json
 import os
 import sys
+from dataclasses import replace
 from pathlib import Path
 from typing import Sequence
 
@@ -88,6 +89,15 @@ def _build_parser() -> argparse.ArgumentParser:
              "'mcp' is accepted for compatibility and ignored: the bundle no "
              "longer ships an MCP server.",
     )
+    sp.add_argument(
+        "--mode",
+        choices=("files", "plugin"),
+        default="files",
+        help="files (default): copy skills/agents/hooks. plugin: point the agent at the "
+             "robotframework-agentskills marketplace (committed settings for project "
+             "scope); agents without a marketplace fall back to files.",
+    )
+    sp.add_argument("--ref", help="With --mode plugin: pin the marketplace to this git tag/branch.")
     sp.add_argument("--yes", "-y", action="store_true",
                     help="Accept the detected default without prompting.")
     sp.add_argument("--no-input", action="store_true",
@@ -141,6 +151,8 @@ def _opts_from_args(args: argparse.Namespace) -> InstallOptions:
         what=what,
         dry_run=getattr(args, "dry_run", False),
         force=getattr(args, "force", False),
+        mode=getattr(args, "mode", "files") or "files",
+        ref=getattr(args, "ref", None),
     )
 
 
@@ -276,6 +288,9 @@ def cmd_install(args: argparse.Namespace) -> int:
         return 0
 
     opts = _opts_from_args(args)
+    if opts.ref and opts.mode != "plugin":
+        err_console.print("[red]error:[/red] --ref needs --mode plugin")
+        return 2
     manifest_path = _manifest_path(opts)
 
     rc = 0
@@ -286,12 +301,81 @@ def cmd_install(args: argparse.Namespace) -> int:
             rc = max(rc, 2)
             continue
         adapter = cls()
-        plan = adapter.plan(opts)
+        agent_opts = opts
+        plan = adapter.plugin_plan(opts) if opts.mode == "plugin" else None
+        if plan is None:
+            if opts.mode == "plugin":
+                console.print(
+                    f"[dim]{adapter.name}:[/dim] no plugin marketplace for {adapter.pretty} — "
+                    "installing files instead."
+                )
+                agent_opts = replace(opts, mode="files")
+            plan = adapter.plan(agent_opts)
         if opts.dry_run:
-            _render_plan_dry_run(adapter, plan, opts, manifest_path)
+            _render_plan_dry_run(adapter, plan, agent_opts, manifest_path)
             continue
-        rc |= _execute_plan(adapter, plan, opts, manifest_path)
+        rc |= _execute_plan(adapter, plan, agent_opts, manifest_path)
+        if agent_opts.mode == "plugin":
+            rc |= _run_plugin_commands(adapter, agent_opts, run=bool(getattr(args, "yes", False)))
     return rc
+
+
+def _run_plugin_commands(adapter: Adapter, opts: InstallOptions, *, run: bool) -> int:
+    """Run the adapter's per-user plugin commands (only with --yes)."""
+    commands = adapter.plugin_commands(opts) if hasattr(adapter, "plugin_commands") else []
+    if not commands or not run:
+        return 0
+    import shutil
+    import subprocess
+
+    if shutil.which(commands[0][0]) is None:
+        err_console.print(f"[yellow]warn:[/yellow] {commands[0][0]} not on PATH — run the commands above yourself.")
+        return 0
+    for cmd in commands:
+        console.print(f"  [dim]$[/dim] {' '.join(cmd)}")
+        res = subprocess.run(cmd, check=False)
+        if res.returncode != 0:
+            err_console.print(f"[red]error:[/red] `{' '.join(cmd)}` exited {res.returncode}")
+            return 1
+    return 0
+
+
+def _revert_merge(merge: _m.ConfigMerge) -> None:
+    """Undo one recorded config merge.
+
+    Reconstructs deletion from kind + key_path + added_keys: the in-process
+    ``revert`` callback isn't reachable from a fresh CLI invocation.
+    """
+    from . import transforms as _x
+
+    path = Path(merge.path)
+    if not path.is_file():
+        return
+    try:
+        if merge.kind == "json_top":
+            _x.remove_json_keys(path, merge.added_keys)
+        elif merge.kind == "json_nested":
+            _x.remove_json_keys_at_path(path, key_path=merge.key_path, keys=merge.added_keys)
+        elif merge.kind == "json_hooks":
+            _x.remove_owned_hook_entries(
+                path,
+                marker=merge.marker or "",
+                events=merge.added_keys,
+                top_key=merge.key_path[0] if merge.key_path else "hooks",
+            )
+        elif merge.kind == "toml_table":
+            _x.remove_toml_table(path, merge.key_path)
+        elif merge.kind == "yaml_block":
+            _x.remove_yaml_keys(
+                path, merge.added_keys,
+                parent_key=merge.key_path[0] if merge.key_path else None,
+            )
+        else:
+            err_console.print(
+                f"[yellow]warn:[/yellow] unknown merge kind {merge.kind!r} for {path} — skipping revert"
+            )
+    except Exception as exc:
+        err_console.print(f"[yellow]warn:[/yellow] revert {path}: {exc}")
 
 
 def cmd_uninstall(args: argparse.Namespace) -> int:
@@ -328,41 +412,7 @@ def cmd_uninstall(args: argparse.Namespace) -> int:
 
     if not args.dry_run:
         for merge in record.config_merges:
-            # Reconstruct deletion from kind + key_path + added_keys.
-            # The in-process `revert` callback isn't reachable from
-            # this fresh CLI invocation; we replay the metadata.
-            from . import transforms as _x
-            path = Path(merge.path)
-            if not path.is_file():
-                continue
-            try:
-                if merge.kind == "json_top":
-                    _x.remove_json_keys(path, merge.added_keys)
-                elif merge.kind == "json_nested":
-                    _x.remove_json_keys_at_path(
-                        path, key_path=merge.key_path, keys=merge.added_keys
-                    )
-                elif merge.kind == "json_hooks":
-                    _x.remove_owned_hook_entries(
-                        path,
-                        marker=merge.marker or "",
-                        events=merge.added_keys,
-                        top_key=merge.key_path[0] if merge.key_path else "hooks",
-                    )
-                elif merge.kind == "toml_table":
-                    _x.remove_toml_table(path, merge.key_path)
-                elif merge.kind == "yaml_block":
-                    _x.remove_yaml_keys(
-                        path, merge.added_keys,
-                        parent_key=merge.key_path[0] if merge.key_path else None,
-                    )
-                else:
-                    err_console.print(
-                        f"[yellow]warn:[/yellow] unknown merge kind "
-                        f"{merge.kind!r} for {path} — skipping revert"
-                    )
-            except Exception as exc:
-                err_console.print(f"[yellow]warn:[/yellow] revert {path}: {exc}")
+            _revert_merge(merge)
 
     if not args.dry_run:
         manifest.remove(args.agent, args.scope)
@@ -646,8 +696,9 @@ def _bundled_content_version() -> str | None:
 #: and files (see :func:`_retire_legacy_mcp` and :func:`_is_retired_file`).
 RETIRED_MCP_SERVER = "rf-tools"
 #: Agents whose only support files (``rf-agentskills-files/``) served that
-#: server; for the others the folder still holds hook scripts.
-_SUPPORT_FOR_MCP_ONLY = frozenset({"claude-desktop", "goose", "opencode"})
+#: server; for the others the folder still holds hook scripts (OpenCode's
+#: hook plugin runs them since marketplace-distribution).
+_SUPPORT_FOR_MCP_ONLY = frozenset({"claude-desktop", "goose"})
 
 
 def _is_retired_file(entry: _m.FileEntry, agent: str) -> bool:
@@ -915,6 +966,13 @@ def _execute_plan(
         if (m.path, m.kind, tuple(m.key_path)) not in redone
     ]
     carried_merges, retired_configs = _retire_legacy_mcp(carried_merges)
+    if opts.mode == "plugin":
+        # The plugin brings its own hooks; hook entries of an earlier file
+        # install would point at the support files pruned as stale above.
+        for m in carried_merges:
+            if m.kind == "json_hooks":
+                _revert_merge(m)
+        carried_merges = [m for m in carried_merges if m.kind != "json_hooks"]
 
     # 4. Manifest.
     manifest.upsert(_m.Installation(
@@ -943,7 +1001,8 @@ def _execute_plan(
             f"[yellow]warn:[/yellow] {path} is no longer shipped but was "
             f"modified by you — kept and no longer tracked."
         )
-    for note in adapter.post_install(opts):
+    notes = list(plan.notes) if opts.mode == "plugin" else adapter.post_install(opts)
+    for note in notes:
         console.print(f"  [dim]→[/dim] {note}")
 
     return rc

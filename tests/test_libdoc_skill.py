@@ -17,7 +17,6 @@ SKILL_TREES = (
     ROOT / "skills",
     ROOT / "plugins" / "rf-agentskills" / "skills",
     ROOT / "plugins" / "rf-agentskills" / "scripts",
-    ROOT / "vscode-extension" / "skills",
 )
 OLD_NAMES = (
     "libdoc-search",
@@ -116,16 +115,13 @@ def test_no_symlinks_in_skill_trees(tree: Path) -> None:
 
 
 def test_old_skill_dirs_absent_in_all_channels() -> None:
-    for tree in (SKILL_TREES[0], SKILL_TREES[1], SKILL_TREES[3]):
+    for tree in (SKILL_TREES[0], SKILL_TREES[1]):
         present = [n for n in OLD_NAMES if (tree / n).exists()]
         assert not present, (tree, present)
 
 
 def test_single_libdoc_skill_per_channel() -> None:
     assert (ROOT / "plugins/rf-agentskills/skills/rf-libdoc/SKILL.md").is_file()
-    assert (ROOT / "vscode-extension/skills/rf-libdoc/SKILL.md").is_file()
-    pkg = (ROOT / "vscode-extension/package.json").read_text(encoding="utf-8")
-    assert pkg.count("./skills/rf-libdoc/SKILL.md") == 1
-    for tree in (SKILL_TREES[0], SKILL_TREES[1], SKILL_TREES[3]):
+    for tree in (SKILL_TREES[0], SKILL_TREES[1]):
         libdoc = [p.name for p in tree.iterdir() if p.is_dir() and "libdoc" in p.name]
         assert len(libdoc) == 1, (tree, libdoc)

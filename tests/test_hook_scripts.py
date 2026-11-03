@@ -844,7 +844,8 @@ def test_error_suppresses_warning_until_next_clean_edit(tmp_path: Path, session_
     out, err, rc = _run(VALIDATE_SCRIPT, _write_payload(res, tmp_path, session_id), env=_hook_env())
     assert rc == 2, err
     assert "ERR" in err and "mixed.resource" in err
-    assert "DEPR" not in err and out == ""
+    assert "DEPR" not in err and "DEPR" not in out
+    assert json.loads(out)["decision"] == "block"  # the error, for Copilot CLI
     res.write_text(
         "*** Keywords ***\nK\n    FOR    ${x}    IN    a    b\n        Log    ${x}\n    END\n    [Return]    x\n",
         encoding="utf-8",
@@ -1370,3 +1371,107 @@ def test_error_hint_never_blocks_on_bad_input(stdin: str) -> None:
 def test_error_hint_bounds_long_names() -> None:
     stdout, _err, _rc = _run(HINTS_SCRIPT, _bash_event("No keyword with name '" + "x" * 500 + "' found"))
     assert len(_hint(stdout)) <= 400
+
+
+# --- marketplace-distribution D2: every agent's edit input -----------------
+
+_BROKEN_FOR = "*** Test Cases ***\nT\n    FOR    ${x}    IN    a    b\n        Log    ${x}\n"
+
+
+def _clean_env() -> dict:
+    import os
+    env = os.environ.copy()
+    env.pop("TOOL_INPUT", None)
+    return env
+
+
+@pytest.mark.skipif(not _HAS_ROBOCOP, reason="Robocop not installed")
+def test_validate_codex_apply_patch_adding_broken_robot(tmp_path: Path) -> None:
+    """Codex sends file edits as `apply_patch` with the patch in tool_input.command."""
+    (tmp_path / "tests").mkdir()
+    (tmp_path / "tests" / "new.robot").write_text(_BROKEN_FOR, encoding="utf-8")
+    patch = "*** Begin Patch\n*** Add File: tests/new.robot\n" + "".join(
+        f"+{line}\n" for line in _BROKEN_FOR.splitlines()) + "*** End Patch\n"
+    payload = {"hook_event_name": "PostToolUse", "cwd": str(tmp_path),
+               "tool_name": "apply_patch", "tool_input": {"command": patch}}
+    _out, err, rc = _run(VALIDATE_SCRIPT, payload, env=_clean_env())
+    assert rc == 2, err
+    assert "new.robot" in err and "ERR" in err
+
+
+@pytest.mark.skipif(not _HAS_ROBOCOP, reason="Robocop not installed")
+def test_validate_vscode_apply_patch_with_two_files(tmp_path: Path) -> None:
+    """A VS Code patch (tool_input.input) touching a broken and a clean file:
+    the broken one is reported, the merged result keeps exit 2."""
+    (tmp_path / "bad.robot").write_text(_BROKEN_FOR, encoding="utf-8")
+    (tmp_path / "ok.robot").write_text("*** Test Cases ***\nT\n    Log    hi\n", encoding="utf-8")
+    patch = (f"*** Begin Patch\n*** Update File: {tmp_path / 'ok.robot'}\n@@\n+    Log    hi\n"
+             f"*** Update File: {tmp_path / 'bad.robot'}\n@@\n+        Log    ${{x}}\n*** End Patch")
+    payload = {"hook_event_name": "PostToolUse", "cwd": str(tmp_path),
+               "tool_name": "apply_patch", "tool_input": {"input": patch}}
+    _out, err, rc = _run(VALIDATE_SCRIPT, payload, env=_clean_env())
+    assert rc == 2, err
+    assert "bad.robot" in err and "ok.robot" not in err
+
+
+@pytest.mark.skipif(not _HAS_ROBOCOP, reason="Robocop not installed")
+def test_validate_vscode_create_file_with_camelcase_path(tmp_path: Path) -> None:
+    robot_file = tmp_path / "created.robot"
+    robot_file.write_text(_BROKEN_FOR, encoding="utf-8")
+    payload = {"hook_event_name": "PostToolUse", "cwd": str(tmp_path),
+               "tool_name": "create_file", "tool_input": {"filePath": str(robot_file), "content": _BROKEN_FOR}}
+    _out, err, rc = _run(VALIDATE_SCRIPT, payload, env=_clean_env())
+    assert rc == 2, err
+    assert "created.robot" in err
+
+
+@pytest.mark.parametrize(("script", "tool", "tool_input"), [
+    ("validate", "read_file", {"filePath": "PATH"}),
+    ("validate", "run_in_terminal", {"command": "robot tests"}),
+    ("hints", "read_file", {"filePath": "PATH"}),
+    ("hints", "create_file", {"filePath": "PATH", "content": "No keyword with name 'X' found"}),
+])
+def test_hooks_stay_silent_for_tools_they_do_not_handle(
+    tmp_path: Path, script: str, tool: str, tool_input: dict
+) -> None:
+    """VS Code ignores Claude-format matchers and runs every hook for every tool."""
+    import time
+    robot_file = tmp_path / "x.robot"
+    robot_file.write_text(_BROKEN_FOR, encoding="utf-8")
+    tool_input = {k: (str(robot_file) if v == "PATH" else v) for k, v in tool_input.items()}
+    payload = {"hook_event_name": "PostToolUse", "session_id": f"silent-{uuid.uuid4().hex}",
+               "cwd": str(tmp_path), "tool_name": tool, "tool_input": tool_input,
+               "tool_response": "No keyword with name 'X' found"}
+    start = time.monotonic()
+    out, err, rc = _run(VALIDATE_SCRIPT if script == "validate" else HINTS_SCRIPT, payload, env=_clean_env())
+    elapsed = time.monotonic() - start
+    assert (out, err, rc) == ("", "", 0)
+    # node start-up included (50-80 ms on Linux); Windows starts node slower
+    assert elapsed < (0.5 if sys.platform == "win32" else 0.2)
+
+
+def test_hints_read_vscode_terminal_and_copilot_tool_result() -> None:
+    for payload in (
+        {"session_id": f"hints-vscode-{uuid.uuid4().hex}", "tool_name": "run_in_terminal",
+         "tool_input": {"command": "robot t"}, "tool_response": "No keyword with name 'Foo' found."},
+        {"session_id": f"hints-copilot-{uuid.uuid4().hex}", "tool_name": "Bash",
+         "tool_input": {"command": "robot t"}, "tool_result": {"stdout": "No keyword with name 'Foo' found."}},
+    ):
+        out, _err, rc = _run(HINTS_SCRIPT, payload)
+        assert rc == 0 and "rf-language" in out, payload
+
+
+@pytest.mark.skipif(not _HAS_ROBOCOP, reason="Robocop not installed")
+def test_validate_error_also_reports_decision_for_copilot(tmp_path: Path) -> None:
+    """Copilot CLI passes only decision/reason to its model (not stderr or
+    additionalContext): errors also go out as {"decision": "block", "reason": ...}."""
+    robot_file = tmp_path / "broken.robot"
+    robot_file.write_text(_BROKEN_FOR, encoding="utf-8")
+    payload = {"hook_event_name": "PostToolUse", "cwd": str(tmp_path),
+               "tool_name": "Edit", "tool_input": {"file_path": str(robot_file)}}
+    out, err, rc = _run(VALIDATE_SCRIPT, payload, env=_clean_env())
+    assert rc == 2 and "broken.robot" in err
+    decision = json.loads(out)
+    assert decision["decision"] == "block"
+    assert decision["reason"].startswith("The edit was applied")
+    assert "broken.robot" in decision["reason"] and "ERR" in decision["reason"]

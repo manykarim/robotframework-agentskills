@@ -91,11 +91,6 @@ jobs:
           python ../../scripts/check_library.py ExampleLibrary.py converters.py ResultListener.py --json-out "$out/check_library.json"
           python -c "import json, sys; s = json.load(open(sys.argv[1]))['summary']; print(s); sys.exit(1 if s['error'] or s['warning'] else 0)" "$out/check_library.json"
         shell: bash
-      # vscode-extension/skills/ is gitignored build output; generate it so
-      # checks that read every channel see it.
-      - name: Generate VS Code channel (gitignored build output)
-        shell: bash
-        run: bash scripts/sync-skills.sh
       - name: Run tests
         # tests/eval/ is the rf-skill-eval harness suite — an INTERNAL
         # workspace package (root pyproject; "Private :: Do Not Upload")
@@ -138,13 +133,11 @@ jobs:
       # pytest-asyncio satisfies `asyncio_mode = "auto"` in pyproject
       # (pytest 9+ errors on the unknown config option without it).
       - run: pip install pytest pytest-asyncio
-      # vscode-extension/skills/ is gitignored build output; generate it so
-      # checks that read every channel see it.
-      - name: Generate VS Code channel (gitignored build output)
-        shell: bash
-        run: bash scripts/sync-skills.sh
       - name: Validate manifests and SKILL.md frontmatter
+        # Includes the marketplace/plugin manifest consistency checks.
         run: python -m pytest tests/test_marketplace_validation.py -v
+      - name: Per-agent variants match the generator
+        run: python scripts/build-agent-variants.py --check
       - name: Validate skills in all channels
         run: python scripts/validate-skills.py --channel all
 
@@ -208,8 +201,8 @@ jobs:
       - name: Sync and prove tracked copies were already in sync
         run: |
           bash scripts/sync-skills.sh
-          if ! git diff --exit-code --stat -- plugins/ vscode-extension/package.json; then
-            echo "::error::tracked plugin/package.json copies drifted from skills/ - run scripts/sync-skills.sh and commit"
+          if ! git diff --exit-code --stat -- plugins/; then
+            echo "::error::tracked plugin copies drifted from skills/ - run scripts/sync-skills.sh and commit"
             exit 1
           fi
           untracked="$(git status --porcelain -- plugins/)"
@@ -218,7 +211,7 @@ jobs:
             echo "::error::sync added or removed plugin files - run scripts/sync-skills.sh and commit"
             exit 1
           fi
-      - name: Verify root/plugin/VS Code skills in sync
+      - name: Verify root/plugin skills and per-agent variants in sync
         run: bash scripts/check-drift.sh
 
   validate-skills:
@@ -231,12 +224,7 @@ jobs:
           python-version: "3.12"
       # Stdlib-only: name == dir, charset/length, description <= 1024,
       # compatibility <= 500, no tags, allowed keys, license, metadata,
-      # metadata.version == VERSION, same skill set in all three channels.
-      # vscode-extension/skills/ is gitignored build output; generate it so
-      # checks that read every channel see it.
-      - name: Generate VS Code channel (gitignored build output)
-        shell: bash
-        run: bash scripts/sync-skills.sh
+      # metadata.version == VERSION, same skill set in root and plugin.
       - name: Validate all channels
         run: python scripts/validate-skills.py --channel all
       # Non-blocking cross-check against the reference implementation, so we
@@ -245,36 +233,9 @@ jobs:
         continue-on-error: true
         run: |
           pip install skills-ref
-          for d in skills/rf-*/ plugins/rf-agentskills/skills/rf-*/ vscode-extension/skills/rf-*/; do
+          for d in skills/rf-*/ plugins/rf-agentskills/skills/rf-*/; do
             agentskills validate "$d"
           done
-
-  build-vscode-extension:
-    name: Build VS Code extension
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: "20"
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-      - name: Generate VS Code skills
-        run: bash scripts/sync-skills.sh
-      - name: Install dependencies
-        run: cd vscode-extension && npm ci
-      - name: Compile TypeScript
-        run: cd vscode-extension && npx tsc
-      - name: Package VSIX
-        run: |
-          cd vscode-extension
-          npx @vscode/vsce package --no-dependencies -o robotframework-agentskills.vsix
-      - name: Upload VSIX artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: vscode-extension
-          path: vscode-extension/robotframework-agentskills.vsix
 
   build-claude-plugin:
     name: Build Claude Code plugin
