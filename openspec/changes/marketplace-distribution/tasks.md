@@ -59,7 +59,7 @@
 
   Verify that it covers Claude Code, Copilot CLI, VS Code, Codex, Cursor, OpenCode, Goose and Claude Desktop.
 - [x] 6.2 Add CHANGELOG entries: content (VS Code extension retired, default agent removed, hook input for all agents, generated variants) and installer (`--mode plugin`, Codex/OpenCode variants). Verify that each entry names the replacement for removed behaviour.
-- [ ] 6.3 Re-run the 2026-10-08 probe procedure against the finished plugin:
+- [x] 6.3 Re-run the 2026-10-08 probe procedure against the finished plugin:
   - Copilot CLI and Codex in isolated homes;
   - VS Code in a separate profile;
   - Cursor if an account is available.

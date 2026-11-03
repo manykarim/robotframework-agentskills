@@ -15,7 +15,7 @@ There are two ways to install, and both work at **user scope** (every project on
 |---|---|---|---|---|
 | **Claude Code** | yes | yes | yes | `.claude/settings.json` enables the plugin |
 | **Copilot CLI** (1.0.91) | yes | yes | yes; only validation errors reach the model (see below) | `.claude/settings.json` or `.github/copilot/settings.json` loads the plugin, no install step |
-| **VS Code Copilot** (1.138) | yes | yes | yes, with `chat.useHooks` | `.claude/settings.json` recommends the plugin to the workspace |
+| **VS Code Copilot** (1.142) | yes | yes in the Local harness; not offered in the Copilot harness | yes, with `chat.useHooks`; in the Local harness validation errors reach only you (see below) | `.claude/settings.json` recommends the plugin to the workspace |
 | **Codex** (0.153.4, 0.161.0) | yes | from the installer | yes, after trusting them once with `/hooks` | none: each user runs the two `codex plugin` commands |
 | **Cursor** (CLI 2026.10.01, verified from its plugin loader, not run live) | yes | yes | yes (Cursor converts them) | imports the plugin from Claude Code's `.claude/settings.json` |
 
@@ -71,6 +71,11 @@ Plugins and hooks are preview features. In your **user** settings, enable them a
 ```
 
 Pin with `"manykarim/robotframework-agentskills#v2.1.0"`. Then install `rf-agentskills` from that marketplace in the Extensions view. For project scope, the committed `.claude/settings.json` recommends the plugin to everyone who opens the workspace (`chat.plugins.marketplaces` itself is a user-only setting). VS Code asks before running hook commands unless your chat approval mode allows them.
+
+VS Code 1.142 has two agent harnesses, with different gaps:
+
+- **Copilot** (agent host): validation errors reach the model, but the plugin's four subagents are not offered.
+- **Local**: skills and subagents work, but VS Code sends the next model request without waiting for PostToolUse hooks. A validation error then appears only as the banner "A hook prevented chat from continuing", and the model does not see it. Fix the reported line yourself or ask the agent to.
 
 #### OpenAI Codex
 
@@ -330,7 +335,7 @@ claude --plugin-dir ./plugins/rf-agentskills
 
 - **Robot Framework** 7+ (uses modern syntax: RETURN, IF/ELSE, TRY/EXCEPT)
 - **Python** 3.10+ for the `rf-agentskills` installer; 3.8+ for running the skill scripts themselves
-- **Coding agents** (see the install matrices above): Claude Code ≥ 2.1, GitHub Copilot CLI (plugin verified with 1.0.91), GitHub Copilot in VS Code ≥ 1.108 (plugin verified with 1.138), OpenAI Codex (plugin verified with 0.153.4 and 0.161.0), Cursor ≥ 2.4 (plugin loader checked in CLI 2026.10.01), OpenCode, Project Goose ≥ 1.25, Claude Desktop (skills via ZIP upload)
+- **Coding agents** (see the install matrices above): Claude Code ≥ 2.1, GitHub Copilot CLI (plugin verified with 1.0.91), GitHub Copilot in VS Code ≥ 1.108 (plugin verified with 1.138 and 1.142), OpenAI Codex (plugin verified with 0.153.4 and 0.161.0), Cursor ≥ 2.4 (plugin loader checked in CLI 2026.10.01), OpenCode, Project Goose ≥ 1.25, Claude Desktop (skills via ZIP upload)
 
 Anthropic's SKILL.md format is an open standard supported by all eight agents listed above (Claude Code, Copilot, Codex, Cursor, OpenCode, and Goose all read it natively as of their respective recent releases). The `rf-agentskills` installer handles the path-routing per agent so you don't have to memorise where each one wants its skills.
 
