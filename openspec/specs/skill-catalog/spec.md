@@ -5,23 +5,6 @@ Define which skills, helper scripts and MCP tools the rf-agentskills content bun
 
 ## Requirements
 
-### Requirement: Generator skills are not shipped
-
-The content bundle SHALL NOT contain the skills `rf-keyword-builder`, `rf-testcase-builder` or `rf-resource-architect`, nor the scripts `keyword_builder.py`, `testcase_builder.py` or `resource_architect.py`, in any channel: the root `skills/` tree, the Claude Code plugin, the VS Code extension (skill directories and `package.json` skill list), the installer's bundled assets, or the release tarballs built from them.
-
-#### Scenario: No generator skill directories in any channel
-- **WHEN** the root `skills/`, `plugins/rf-agentskills/skills/`, `vscode-extension/skills/` and a freshly built installer `_assets/` tree are listed
-- **THEN** none contains a skill whose `name:` or directory is `rf-keyword-builder`, `keyword-builder`, `rf-testcase-builder`, `testcase-builder`, `rf-resource-architect` or `resource-architect`
-
-#### Scenario: No generator scripts shipped
-- **WHEN** the plugin `scripts/` directory, the root skill `scripts/` directories and the installer `_assets/scripts/` are listed
-- **THEN** none contains `keyword_builder.py`, `testcase_builder.py` or `resource_architect.py`
-
-#### Scenario: VS Code manifest lists only shipped skills
-- **WHEN** `vscode-extension/package.json` is read
-- **THEN** every skill path it lists exists on disk
-- **AND** no listed path refers to a retired generator skill
-
 ### Requirement: No references to retired skills remain in shipped content
 
 Shipped content SHALL NOT name, link to or instruct the agent to use a retired skill, its script or its MCP tool. This covers every `SKILL.md` and reference file, the subagent prompts, the hook scripts and their injected text, plugin/marketplace/extension descriptions, the README, and current-behaviour docs and test fixtures. Historical records (archived OpenSpec changes, dated plans and reports, eval run outputs) are exempt.
@@ -46,11 +29,11 @@ Shipped content SHALL NOT name, link to or instruct the agent to use a retired s
 
 ### Requirement: Distribution tooling rejects orphaned copies
 
-The sync script SHALL make each distribution channel mirror the root `skills/` tree, removing plugin skill directories and plugin scripts that have no root source. The drift check SHALL fail when a plugin skill directory, plugin helper script or VS Code skill directory exists without a corresponding root skill or script.
+The sync script SHALL make each distribution channel mirror the root `skills/` tree, removing plugin skill directories and plugin scripts that have no root source. The drift check SHALL fail when a plugin skill directory, or plugin helper script exists without a corresponding root skill or script.
 
 #### Scenario: Sync removes a retired skill's copies
 - **WHEN** a skill directory is deleted from root `skills/` and `scripts/sync-skills.sh` runs
-- **THEN** its plugin skill directory, its plugin script(s) and its VS Code skill directory no longer exist
+- **THEN** its plugin skill directory and its plugin script(s) no longer exist
 
 #### Scenario: Drift check catches an orphan
 - **WHEN** a plugin skill directory or plugin Python helper script exists that no root skill provides
@@ -70,11 +53,11 @@ Eval tasks SHALL only target skills that ship. Every task's `skill:` field SHALL
 
 ### Requirement: Retirements are released as a breaking content change
 
-Removing a skill or an MCP tool SHALL bump the content channel's major version (plugin manifest, marketplace entry and VS Code extension in lockstep) and SHALL be recorded in the content and installer CHANGELOGs with what was removed, why, and what to use instead.
+Removing a skill or an MCP tool SHALL bump the content channel's major version (every plugin and marketplace manifest in lockstep) and SHALL be recorded in the content and installer CHANGELOGs with what was removed, why, and what to use instead.
 
 #### Scenario: Version and changelog reflect the retirement
 - **WHEN** the release containing this change is prepared
-- **THEN** `plugins/rf-agentskills/.claude-plugin/plugin.json`, `.claude-plugin/marketplace.json` and `vscode-extension/package.json` carry the same new major version
+- **THEN** `plugins/rf-agentskills/.claude-plugin/plugin.json` and `.claude-plugin/marketplace.json` carry the same new major version
 - **AND** the CHANGELOG entry lists the three removed skills, the three removed MCP tools and the replacement guidance (write Robot Framework directly; verify with libdoc and `robot --dryrun`)
 
 ### Requirement: The bundle ships no MCP server
@@ -88,3 +71,15 @@ The content bundle SHALL NOT ship an MCP server or an MCP server configuration i
 #### Scenario: Subagents name skills, not tools
 - **WHEN** the subagent files are searched for the retired tool names
 - **THEN** none is found, and keyword lookup and results reading point to the `rf-libdoc` and `rf-results` skills
+
+### Requirement: Generator skills are not shipped in any remaining channel
+
+The content bundle SHALL NOT contain the skills `rf-keyword-builder`, `rf-testcase-builder` or `rf-resource-architect`, nor the scripts `keyword_builder.py`, `testcase_builder.py` or `resource_architect.py`, in any channel: the root `skills/` tree, the Claude Code plugin (also the source of every marketplace install), the installer's bundled assets, or the release tarballs built from them.
+
+#### Scenario: No generator skill directories in any channel
+- **WHEN** the root `skills/`, `plugins/rf-agentskills/skills/` and a freshly built installer `_assets/` tree are listed
+- **THEN** none contains a skill whose `name:` or directory is `rf-keyword-builder`, `keyword-builder`, `rf-testcase-builder`, `testcase-builder`, `rf-resource-architect` or `resource-architect`
+
+#### Scenario: No generator scripts shipped
+- **WHEN** the plugin `scripts/` directory, the root skill `scripts/` directories and the installer `_assets/scripts/` are listed
+- **THEN** none contains `keyword_builder.py`, `testcase_builder.py` or `resource_architect.py`
