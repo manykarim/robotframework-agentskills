@@ -14,6 +14,7 @@
 //
 // Not ported (no OpenCode event can inject text at that point):
 //   Stop * -> maybe_remind_robot_tests.mjs
+//   Stop * -> report_pending_errors.mjs
 //   Stop * -> validate_robot_project.mjs
 //   UserPromptSubmit * -> maybe_inject_rf_context.mjs
 import { spawnSync } from "node:child_process";

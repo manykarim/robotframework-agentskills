@@ -30,6 +30,9 @@
 //     edited suite (.robot only, not __init__.robot). Advisory context only.
 //
 // Advisory output (tiers 1-3) is written only when no exit-2 diagnostic is.
+// A file with real errors is also recorded per session (_pending_errors.mjs) and
+// cleared by its next passing run; report_pending_errors.mjs re-checks the
+// recorded files at Stop, for agents that don't wait for this hook (VS Code Local).
 // Every spawned process has a timeout (Robocop 10 s, dry run 20 s, probes
 // 5 s); a timeout skips that tier silently. `--no-cache` keeps Robocop from
 // leaving a .robocop_cache/ directory in the user's project.
@@ -47,6 +50,7 @@ import { tmpdir } from "node:os";
 import { basename, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { readHookInput } from "./_hook_input.mjs";
+import { recordResult } from "./_pending_errors.mjs";
 import { findInterpreterWith, projectRoot, spawnOptions } from "./_python_env.mjs";
 
 const ROBOCOP_TIMEOUT_MS = 10000;
@@ -333,6 +337,8 @@ if (robocopPy) {
   const findings = runRobocop(robocopPy);
   if (findings) {
     const errors = findings.filter((f) => f.severity === "E" && !f.rule.startsWith("DEPR"));
+    // Remember the result for the Stop-time re-check (report_pending_errors.mjs).
+    recordResult(sessionId, filePath, errors.length > 0);
     if (errors.length) {
       reportErrors(
         `Robot Framework validation found errors in ${filePath}:\n` +

@@ -1475,3 +1475,99 @@ def test_validate_error_also_reports_decision_for_copilot(tmp_path: Path) -> Non
     assert decision["decision"] == "block"
     assert decision["reason"].startswith("The edit was applied")
     assert "broken.robot" in decision["reason"] and "ERR" in decision["reason"]
+
+
+# --- report_pending_errors.mjs: Stop-time re-check (stop-hook-revalidation) ---
+
+PENDING_SCRIPT = PLUGIN_SCRIPTS / "report_pending_errors.mjs"
+
+
+@pytest.fixture
+def pending_session():
+    import tempfile
+
+    sid = _new_session()
+    yield sid
+    for prefix in ("rf-agentskills-pending-", "rf-agentskills-depr-"):
+        (Path(tempfile.gettempdir()) / f"{prefix}{sid}.json").unlink(missing_ok=True)
+
+
+def _edit(file: Path, cwd: Path, sid: str) -> tuple[str, str, int]:
+    payload = {"hook_event_name": "PostToolUse", "session_id": sid, "cwd": str(cwd),
+               "tool_name": "create_file", "tool_input": {"filePath": str(file)}}
+    return _run(VALIDATE_SCRIPT, payload, env=_hook_env())
+
+
+def _stop(cwd: Path, sid: str, active: bool = False) -> tuple[str, str, int]:
+    payload = {"hook_event_name": "Stop", "session_id": sid, "cwd": str(cwd), "stop_hook_active": active}
+    return _run(PENDING_SCRIPT, payload, env=_hook_env())
+
+
+@_needs_robocop
+def test_pending_error_is_reported_at_stop(tmp_path: Path, pending_session: str) -> None:
+    """VS Code Local doesn't wait for PostToolUse: the error the model never saw
+    is reported at Stop, with stderr + exit 2 and the Copilot decision JSON."""
+    robot = tmp_path / "a.robot"
+    robot.write_text(_BROKEN_FOR, encoding="utf-8")
+    assert _edit(robot, tmp_path, pending_session)[2] == 2
+    out, err, rc = _stop(tmp_path, pending_session)
+    assert rc == 2
+    assert "a.robot" in err and "ERR12" in err
+    decision = json.loads(out)
+    assert decision["decision"] == "block"
+    assert "a.robot" in decision["reason"] and "ERR12" in decision["reason"]
+
+
+@_needs_robocop
+def test_fixed_file_is_not_reported_at_stop(tmp_path: Path, pending_session: str) -> None:
+    robot = tmp_path / "a.robot"
+    robot.write_text(_BROKEN_FOR, encoding="utf-8")
+    assert _edit(robot, tmp_path, pending_session)[2] == 2
+    robot.write_text(_BROKEN_FOR + "    END\n", encoding="utf-8")
+    assert _edit(robot, tmp_path, pending_session)[2] == 0
+    assert _stop(tmp_path, pending_session) == ("", "", 0)
+
+
+def test_stop_is_silent_when_nothing_failed(tmp_path: Path, pending_session: str) -> None:
+    assert _stop(tmp_path, pending_session) == ("", "", 0)
+
+
+@_needs_robocop
+def test_deleted_pending_file_is_dropped(tmp_path: Path, pending_session: str) -> None:
+    import tempfile
+
+    robot = tmp_path / "a.robot"
+    robot.write_text(_BROKEN_FOR, encoding="utf-8")
+    assert _edit(robot, tmp_path, pending_session)[2] == 2
+    robot.unlink()
+    assert _stop(tmp_path, pending_session) == ("", "", 0)
+    state = Path(tempfile.gettempdir()) / f"rf-agentskills-pending-{pending_session}.json"
+    assert json.loads(state.read_text(encoding="utf-8")) == {}
+
+
+@_needs_robocop
+def test_unchanged_pending_file_is_reported_once(tmp_path: Path, pending_session: str) -> None:
+    robot = tmp_path / "a.robot"
+    robot.write_text(_BROKEN_FOR, encoding="utf-8")
+    assert _edit(robot, tmp_path, pending_session)[2] == 2
+    assert _stop(tmp_path, pending_session)[2] == 2
+    assert _stop(tmp_path, pending_session) == ("", "", 0)
+
+
+@_needs_robocop
+def test_changed_pending_file_is_reported_again(tmp_path: Path, pending_session: str) -> None:
+    robot = tmp_path / "a.robot"
+    robot.write_text(_BROKEN_FOR, encoding="utf-8")
+    assert _edit(robot, tmp_path, pending_session)[2] == 2
+    assert _stop(tmp_path, pending_session)[2] == 2
+    robot.write_text(_BROKEN_FOR + "    Log    more\n", encoding="utf-8")  # still no END
+    _out, err, rc = _stop(tmp_path, pending_session)
+    assert rc == 2 and "ERR12" in err
+
+
+@_needs_robocop
+def test_pending_hook_silent_when_stop_hook_active(tmp_path: Path, pending_session: str) -> None:
+    robot = tmp_path / "a.robot"
+    robot.write_text(_BROKEN_FOR, encoding="utf-8")
+    assert _edit(robot, tmp_path, pending_session)[2] == 2
+    assert _stop(tmp_path, pending_session, active=True) == ("", "", 0)
