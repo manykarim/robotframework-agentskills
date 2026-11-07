@@ -6,6 +6,7 @@ Give agents whose subagent or hook mechanisms differ from Claude Code's (Codex s
 
 ## Requirements
 
+
 ### Requirement: Variants are generated from the canonical plugin sources
 
 The canonical sources SHALL be the plugin's `agents/*.md`, `hooks/hooks.json` and `scripts/`. A generator script SHALL produce every per-agent variant from them under `plugins/rf-agentskills/variants/`, and the drift check SHALL fail when a committed variant differs from what the generator produces. Variants SHALL NOT be edited by hand.
@@ -20,11 +21,13 @@ For each `agents/*.md`, a Codex subagent file SHALL exist in TOML with `name`, `
 
 #### Scenario: Codex lists the subagents
 - **WHEN** the installer has set up Codex for a project
-- **THEN** `.codex/agents/` holds `rf-test-architect.toml`, `rf-debug-expert.toml`, `rf-keyword-consultant.toml` and `rf-migration-guide.toml`, each with the three required fields
+- **THEN** `.codex/agents/` holds `rf-test-architect.toml`, `rf-debug-expert.toml` and `rf-migration-guide.toml`, each with the three required fields, and no `rf-keyword-consultant.toml`
 
 ### Requirement: OpenCode receives subagents and a hook plugin
 
-For each `agents/*.md`, an OpenCode agent file SHALL exist with frontmatter `description` and `mode: subagent`. An OpenCode JS plugin SHALL run the same hook scripts on OpenCode events:
+For each `agents/*.md`, an OpenCode agent file SHALL exist with frontmatter `description` and `mode: subagent`. A subagent whose Claude frontmatter restricts tools SHALL carry the matching OpenCode `permission`.
+
+An OpenCode JS plugin SHALL run the same hook scripts on OpenCode events:
 - `tool.execute.after` for edits of `.robot`/`.resource` files, standing in for the validation `PostToolUse` hook;
 - `session.created`, standing in for the environment check `SessionStart` hook.
 
@@ -36,4 +39,4 @@ Any canonical hook that has no OpenCode equivalent SHALL be listed as not ported
 
 #### Scenario: OpenCode subagents
 - **WHEN** OpenCode starts in that project
-- **THEN** `@rf-debug-expert` and the other three subagents are available
+- **THEN** `@rf-debug-expert`, `@rf-test-architect` and `@rf-migration-guide` are available, and `@rf-keyword-consultant` is not
