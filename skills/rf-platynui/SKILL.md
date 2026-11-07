@@ -2,7 +2,7 @@
 name: rf-platynui
 description: "Use first, before answering, for RF desktop app tests with PlatynUI: windows, dialogs."
 license: Apache-2.0
-compatibility: Requires Python 3.12+, robotframework>=7 and the PlatynUI new_core pre-release (robotframework-PlatynUI 0.12.0.dev); Windows (UIA) or a Linux desktop with AT-SPI2. macOS is not supported.
+compatibility: Requires Python 3.12+, robotframework>=7, robotcode[all]>=2.8 in the project environment and the PlatynUI new_core pre-release (robotframework-PlatynUI 0.12.0.dev); Windows (UIA) or a Linux desktop with AT-SPI2. macOS is not supported.
 metadata:
   author: manykarim
   version: "2.0.0"
@@ -260,7 +260,6 @@ platynui-cli highlight "//control:Button[@Name='OK']"  # visually confirm on scr
 |------|-------|
 | Mobile app tests with AppiumLibrary | `rf-appium` |
 | Install Robot Framework or a library, fix the environment | `rf-setup` |
-| Look up keyword names, arguments and docs | `rf-libdoc` (or `rf-robotcode`: `robotcode libdoc`) |
-| Analyze output.xml results | `rf-results` (or `rf-robotcode`: `robotcode results`) |
-| Discover, run, debug and statically check with the robotcode CLI | `rf-robotcode` |
 | Write tests, suites, user keywords, resources and variables in Robot Framework syntax | `rf-language` |
+
+For running, discovering, keyword documentation, result analysis and debugging with the robotcode CLI, use the `robotcode` skill of the robotcode plugin (`robotcode@robotframework-agent-plugins`). Look up PlatynUI keywords with `robotcode doc keywords PlatynUI.BareMetal "<text>"` and `robotcode doc keyword PlatynUI.BareMetal "<Keyword>"`, and check changed files with `robotcode analyze code <files>`.

@@ -29,7 +29,7 @@ runner = CliRunner()
 def _task(task_id: str) -> Task:
     return Task(
         id=task_id,
-        skill="rf-results",
+        skill="rf-requests",
         prompt="write out.txt",
         primary_metric="file_exists",
         grader_checks=[{"type": "file_exists", "path": "out.txt"}],
@@ -119,7 +119,7 @@ def _tasks_dir(tmp_path: Path, n: int = 2) -> Path:
             yaml.safe_dump(
                 {
                     "id": f"narrow-t{i}",
-                    "skill": "rf-results",
+                    "skill": "rf-requests",
                     "tier": "narrow",
                     "prompt": "x",
                     "primary_metric": "file_exists",

@@ -10,8 +10,8 @@ source "${SCRIPT_DIR}/eval-setup.sh"
 _info() { printf '\033[36m[eval-smoke]\033[0m %s\n' "$*" >&2; }
 _err()  { printf '\033[31m[eval-smoke]\033[0m %s\n' "$*" >&2; }
 
-# Task id kept from before the libdoc merge; it targets the `rf-libdoc` skill.
-TASK="eval/tasks/narrow/narrow-libdoc-search-01.yaml"
+# A narrow library-skill task (rf-requests) with a local fixture API.
+TASK="eval/tasks/narrow/narrow-requests-users-01.yaml"
 if [[ ! -f "${TASK}" ]]; then
   _err "Smoke task not found: ${TASK}"
   exit 1

@@ -44,7 +44,7 @@ from rf_skill_eval.reporting.trigger_report import render_trigger_markdown
 from .fakes import FakeRunner, skill_call
 
 _REPO = Path(__file__).resolve().parents[2]
-#: Trimmed ``skill_listing`` from a re-baseline session (Claude Code 2.1.284,
+#: Trimmed ``skill_listing`` from a re-baseline session (Claude Code 2.1.284, recorded with the 12-skill catalog,
 #: Haiku 4.5, default budget): 3 rf-* descriptions shown, 9 names only.
 _LISTING = _REPO / "tests" / "eval" / "fixtures" / "transcripts" / (
     "skill-listing-default-budget.session.jsonl"
@@ -54,7 +54,7 @@ _VISIBLE = ("rf-appium", "rf-browser", "rf-language")
 cli_runner = CliRunner()
 
 
-def _set(skill: str = "rf-results", n: int = 4) -> TriggerSet:
+def _set(skill: str = "rf-requests", n: int = 4) -> TriggerSet:
     queries = [
         TriggerQuery(id=f"t{i}", query=f"train {i}", should_trigger=i < 8, split="train")
         for i in range(16)
@@ -90,10 +90,10 @@ def test_recorded_listing_three_visible_nine_by_name() -> None:
 
 def test_listing_parser_edge_cases(tmp_path: Path) -> None:
     listing = parse_listing_content(
-        "- rf-agentskills:rf-results: Parses output.xml.\n- rf-agentskills:rf-setup\n"
+        "- rf-agentskills:rf-requests: Parses output.xml.\n- rf-agentskills:rf-setup\n"
         "  - not an entry\n- rf-libdoc: \n"
     )
-    assert listing.with_description == {"rf-results"}
+    assert listing.with_description == {"rf-requests"}
     assert listing.name_only == {"rf-setup", "rf-libdoc"}  # empty description = name only
     assert read_skill_listing(None) is None
     assert read_skill_listing(tmp_path / "missing.jsonl") is None
@@ -113,25 +113,25 @@ def test_visibility_recorded_per_run_and_reported(tmp_path: Path) -> None:
 
     store = OutcomeStore(tmp_path / OUTCOMES_FILE)
     result = evaluate_trigger_sets(
-        [_set("rf-results"), _set("rf-browser")], fn, splits=("validation",), runs=2,
+        [_set("rf-requests"), _set("rf-browser")], fn, splits=("validation",), runs=2,
         store=store,
     )
     first = result.outcomes[0]
-    assert first.skill == "rf-results" and first.runs == 2
+    assert first.skill == "rf-requests" and first.runs == 2
     assert first.visible_descriptions == (_VISIBLE,)
     assert first.listed_runs == 1 and first.description_visible_runs == 0
     browser = next(o for o in result.outcomes if o.skill == "rf-browser")
     assert browser.description_visible_runs == 1
 
     vis = {v.skill: v for v in result.visibility}
-    assert (vis["rf-results"].own_visible, vis["rf-results"].own_listed) == (0, 4)
+    assert (vis["rf-requests"].own_visible, vis["rf-requests"].own_listed) == (0, 4)
     assert (vis["rf-browser"].own_visible, vis["rf-browser"].own_listed) == (4, 4)
     assert (vis["rf-appium"].all_visible, vis["rf-appium"].all_listed) == (8, 8)
-    assert (vis["rf-results"].all_visible, vis["rf-results"].all_listed) == (0, 8)
+    assert (vis["rf-requests"].all_visible, vis["rf-requests"].all_listed) == (0, 8)
 
     data = result.to_json(harness_version="t")
     assert data["listing_budget"] is None
-    assert data["visibility"]["rf-results"] == {
+    assert data["visibility"]["rf-requests"] == {
         "own_visible": 0, "own_listed": 4, "all_visible": 0, "all_listed": 8
     }
     assert json.loads(json.dumps(data))["outcomes"][0]["visible_descriptions"] == [list(_VISIBLE)]
@@ -143,7 +143,7 @@ def test_visibility_recorded_per_run_and_reported(tmp_path: Path) -> None:
 
     md = render_trigger_markdown(result)
     assert "## Description visibility" in md
-    assert "| rf-results | 0/4 | 0/8 |" in md
+    assert "| rf-requests | 0/4 | 0/8 |" in md
     assert "| rf-browser | 4/4 | 8/8 |" in md
 
 
@@ -187,11 +187,11 @@ def test_cli_two_budgets_in_one_output_directory(
 
     def behaviour(task, profile, replicate):  # type: ignore[no-untyped-def]
         seen.append(profile)
-        return {}, skill_call("rf-results") if "rs-v" in task.id else [], 0.001
+        return {}, skill_call("rf-requests") if "rs-v" in task.id else [], 0.001
 
     monkeypatch.setattr(cli, "RUNNER_FACTORY", lambda: FakeRunner(behaviour))
     out = tmp_path / "trig"
-    base = ["trigger", "--skills", "rf-results", "--split", "validation", "--runs", "1",
+    base = ["trigger", "--skills", "rf-requests", "--split", "validation", "--runs", "1",
             "--output", str(out), "--triggers-dir", str(_REPO / "eval" / "triggers"),
             "--baseline", str(tmp_path / "none.json")]
     res = cli_runner.invoke(cli.app, base)
@@ -231,7 +231,7 @@ def test_cli_records_an_inherited_budget(tmp_path: Path, monkeypatch: pytest.Mon
     monkeypatch.setattr(cli, "RUNNER_FACTORY", lambda: FakeRunner(behaviour))
     out = tmp_path / "trig"
     res = cli_runner.invoke(cli.app, [
-        "trigger", "--skills", "rf-results", "--split", "validation", "--runs", "1",
+        "trigger", "--skills", "rf-requests", "--split", "validation", "--runs", "1",
         "--output", str(out), "--triggers-dir", str(_REPO / "eval" / "triggers"),
         "--baseline", str(tmp_path / "none.json")])
     assert res.exit_code == 0, res.output
@@ -300,7 +300,7 @@ def _writer_claude(tmp_path: Path) -> Path:
 
 
 def _task(tools: tuple[str, ...]) -> Task:
-    return Task(id="iso-1", skill="rf-results", prompt="p", allowed_tools=tools, max_turns=2,
+    return Task(id="iso-1", skill="rf-requests", prompt="p", allowed_tools=tools, max_turns=2,
                 timeout_seconds=30, model="claude-haiku-4-5-20251001", tier="narrow")
 
 
@@ -343,7 +343,7 @@ def test_violation_makes_the_gate_result_not_a_pass(
     passing = Verdict(run_id=run.id, check_name="c", status="passed", score=1.0, gating=True)
     scorecard = Scorecard(run_id=run.id, task_id=run.task_id, verdicts=(passing,),
                           incomplete_reason=run.error)
-    result = RunResult(run=run, scorecard=scorecard, skill="rf-results", tier="narrow")
+    result = RunResult(run=run, scorecard=scorecard, skill="rf-requests", tier="narrow")
     assert result.gate_result != "pass"
     assert scorecard.gate_result != "pass"
     assert (repo / "src" / "leak.txt").is_file()

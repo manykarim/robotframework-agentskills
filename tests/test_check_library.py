@@ -262,7 +262,7 @@ def test_outside_root_path_refused_without_import(project: Path, tmp_path: Path)
 def test_installed_module_name_refused(project: Path) -> None:
     res = run(["json"], project)
     assert_failure(res, 4)
-    assert "rf-libdoc" in res.stderr
+    assert "robotcode doc keywords" in res.stderr
 
 
 @pytest.mark.parametrize("args", [["libraries/NoSuch.py"], ["NoSuchModule"],

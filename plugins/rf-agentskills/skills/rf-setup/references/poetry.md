@@ -9,7 +9,7 @@ mkdir my-tests && cd my-tests
 poetry init --no-interaction --python ">=3.12,<3.14"
 poetry env use 3.12                      # or a full interpreter path
 poetry add robotframework robotframework-requests
-poetry add --group dev "robotcode[all]" robotframework-robocop
+poetry add --group dev "robotcode[all]>=2.8"   # robotcode CLI + Robocop
 ```
 
 Then add **non-package mode** to `pyproject.toml`. A test project is not a Python package to build:
@@ -38,8 +38,7 @@ package-mode = false
 
 [dependency-groups]
 dev = [
-    "robotcode[all] (>=2.7.0,<3.0.0)",
-    "robotframework-robocop (>=9.1.0,<10.0.0)"
+    "robotcode[all] (>=2.8.0,<3.0.0)"
 ]
 ```
 

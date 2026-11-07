@@ -53,5 +53,5 @@ queries:
   - {id: ap-k06, split: holdout2, should_trigger: false, note: "sibling rf-setup (env error near-miss)", query: "Set ANDROID_HOME and JAVA_HOME so the Appium server stops complaining before our Robot Framework mobile suite starts"}
   - {id: ap-k07, split: holdout2, should_trigger: false, note: "sibling rf-setup (install near-miss)", query: "npm install -g appium fails with EACCES on our Robot Framework CI agent; how do I get Appium 2 installed there?"}
   - {id: ap-k08, split: holdout2, should_trigger: false, note: "sibling rf-setup (install near-miss)", query: "Which pip package provides the AppiumLibrary keywords, and how do I add it to the uv lock file of our robot project?"}
-  - {id: ap-k09, split: holdout2, should_trigger: false, note: "sibling rf-robotcode (robotcode near-miss)", query: "robotcode is installed; list every test under tests/mobile tagged android without running them"}
+  - {id: ap-k09, split: holdout2, should_trigger: false, note: "sibling robotcode-plugin (robotcode near-miss)", query: "robotcode is installed; list every test under tests/mobile tagged android without running them"}
   - {id: ap-k10, split: holdout2, should_trigger: false, note: "non-RF look-alike", query: "Write a WebdriverIO + Appium test in JavaScript that taps the login button on Android"}

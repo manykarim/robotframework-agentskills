@@ -17,8 +17,7 @@ CHANNELS = {
     "root": ROOT / "skills",
     "plugin": PLUGIN / "skills",
 }
-SCRIPT_SKILLS = {"rf-libdoc": "rf_libdoc.py", "rf-results": "rf_results.py", "rf-language": "rf_conventions.py",
-                 "rf-python-library": "check_library.py"}
+SCRIPT_SKILLS = {"rf-language": "rf_conventions.py", "rf-python-library": "check_library.py"}
 #: Skills whose content is Robot Framework code, so `${var}` is expected; only
 #: agent-specific variables such as ${CLAUDE_SKILL_DIR} are forbidden there.
 RF_CODE_SKILLS = {"rf-language", "rf-python-library"}
@@ -99,16 +98,14 @@ def test_subagents_do_not_run_script_paths() -> None:
         assert "scripts/rf_" not in text, md.name
         assert "${CLAUDE_PLUGIN_ROOT}/scripts" not in text, md.name
         assert not any(_is_bare(ln) for ln in text.splitlines()), md.name
-    consultant = (PLUGIN / "agents" / "rf-keyword-consultant.md").read_text(encoding="utf-8")
-    assert "`rf-libdoc` skill" in consultant
-    assert "`rf-results` skill" in (PLUGIN / "agents" / "rf-debug-expert.md").read_text(encoding="utf-8")
+    debug = (PLUGIN / "agents" / "rf-debug-expert.md").read_text(encoding="utf-8")
+    assert "robotcode results" in debug
 
 
 def test_hook_reminder_uses_project_environment() -> None:
     text = (PLUGIN / "scripts" / "maybe_remind_robot_tests.mjs").read_text(encoding="utf-8")
     assert "${CLAUDE_PLUGIN_ROOT}" not in text
-    assert "import.meta.url" in text
-    assert "uv run python" in text
+    assert "uv run robotcode robot -bl" in text and "uv run robotcode results summary --failed" in text
     assert "pip install" not in text
     assert not any(_is_bare(ln) for ln in text.splitlines())
 

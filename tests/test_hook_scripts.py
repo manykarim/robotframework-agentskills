@@ -72,7 +72,9 @@ def _module_importable(module: str) -> bool:
 
 _HAS_ROBOCOP = _module_importable("robocop")
 _HAS_ROBOT = _module_importable("robot")
-_HAS_FIND_UNUSED = _module_importable("robotframework_find_unused")
+# The hooks find robotcode in the project venv or on PATH (no `python -m` entry point).
+_HAS_ROBOTCODE = shutil.which("robotcode") is not None
+_needs_robotcode = pytest.mark.skipif(not _HAS_ROBOTCODE, reason="robotcode not installed")
 
 
 def _run(script: Path, payload: dict | None = None, *,
@@ -125,9 +127,9 @@ def _expect_injection(stdout: str) -> dict:
         "What does AppiumLibrary provide for swiping?",
         "Show me how to use libdoc to search for keywords",
         "Run robocop against this resource file",
-        "Use rf-results to summarise why the login test failed",
-        "Have rf-keyword-consultant suggest a keyword for these duplicated steps",
-        "Should I use rf-libdoc here?",
+        "Use robotcode results to summarise why the login test failed",
+        "Have rf-debug-expert explain why these duplicated steps fail",
+        "Should I use rf-language here?",
         "Check the keyword arguments with libdoc",
         "Have rf-test-architect plan a CI pipeline",
         "robotidy says this file has formatting issues",
@@ -148,9 +150,9 @@ def test_inject_fires_on_rf_signals(prompt: str) -> None:
     ctx = payload["additionalContext"]
     # The injected context names the rf-agentskills, so callers can spot it.
     assert "rf-agentskills" in ctx
-    assert "rf-libdoc" in ctx
+    assert "robotcode doc keyword" in ctx and "robotcode results" in ctx
     assert "libdoc-search" not in ctx and "libdoc-explain" not in ctx
-    assert "rf-robotcode" in ctx
+    assert "rf-libdoc" not in ctx and "rf-robotcode" not in ctx and "rf-results" not in ctx
     assert "rf-setup" in ctx
 
 
@@ -160,6 +162,10 @@ RETIRED_SKILLS = (
     "resource-architect",
     "libdoc-search",
     "libdoc-explain",
+    "rf-libdoc",
+    "rf-results",
+    "rf-robotcode",
+    "rf-keyword-consultant",
 )
 
 
@@ -210,7 +216,7 @@ def test_injection_budget_and_routing(prompt: str) -> None:
     assert hso["hookEventName"] == "UserPromptSubmit"
     ctx = hso["additionalContext"]
     assert len(ctx) <= INJECTION_BUDGET, len(ctx)
-    for name in ("rf-language", "rf-python-library", "rf-libdoc", "robotcode libdoc"):
+    for name in ("rf-language", "rf-python-library", "robotcode doc keyword", "robotcode results"):
         assert name in ctx, name
     assert ctx.rstrip().endswith("Write RF 7 syntax: RETURN, VAR, IF, Test Tags.")
     # No skill / subagent lists any more: the text routes by task.
@@ -227,7 +233,7 @@ def test_injection_budget_and_routing(prompt: str) -> None:
         "What goes under *** Variables *** here?",
         "*** Tasks ***\nDo It\n    Log    x",
         "Ask rf-debug-expert why this fails",
-        "rf-results says three tests failed",
+        "rf-migration-guide says three files need changes",
     ],
 )
 def test_inject_fires_on_new_ids_and_section_headers(prompt: str) -> None:
@@ -278,7 +284,7 @@ def test_inject_fires_on_language_skill_id() -> None:
 
 def test_subagents_route_language_work_to_rf_language() -> None:
     agents = INJECT_SCRIPT.parent.parent / "agents"
-    for name in ("rf-test-architect.md", "rf-keyword-consultant.md", "rf-migration-guide.md"):
+    for name in ("rf-test-architect.md", "rf-debug-expert.md", "rf-migration-guide.md"):
         text = (agents / name).read_text(encoding="utf-8")
         assert "rf-language" in text, name
         assert "scripts/rf_conventions" not in text, name
@@ -383,12 +389,11 @@ def test_remind_fires_when_robot_file_was_written(tmp_path: Path) -> None:
     out, _err, rc = _run(REMIND_SCRIPT, {"transcript_path": str(transcript)})
     assert rc == 0
     payload = _expect_injection(out)
-    assert "robot --outputdir" in payload["additionalContext"]
+    assert "robotcode robot" in payload["additionalContext"]
 
 
-def test_remind_uses_absolute_results_script_path(tmp_path: Path) -> None:
-    """The reminder names the real rf_results.py (computed from the hook's own
-    location) and runs it through the project environment."""
+def test_remind_uses_robotcode_commands(tmp_path: Path) -> None:
+    """The reminder runs and reads tests with robotcode through the project environment."""
     transcript = _write_transcript(
         tmp_path,
         [json.dumps({"type": "tool_use", "input": {"file_path": "/w/a.robot", "content": "x"}})],
@@ -397,10 +402,8 @@ def test_remind_uses_absolute_results_script_path(tmp_path: Path) -> None:
                                          "session_id": f"abs-path-{os.getpid()}-{time.time_ns()}"})
     assert rc == 0
     ctx = _expect_injection(out)["additionalContext"]
-    expected = (PLUGIN_SCRIPTS.parent / "skills" / "rf-results" / "scripts" / "rf_results.py").resolve()
-    assert expected.is_file()
-    assert f'uv run python "{expected}"' in ctx
-    assert "${CLAUDE_PLUGIN_ROOT}" not in ctx
+    assert 'uv run robotcode robot -bl "' in ctx and "uv run robotcode results summary --failed" in ctx
+    assert "rf_results" not in ctx and "${CLAUDE_PLUGIN_ROOT}" not in ctx
     assert "pip install" not in ctx
 
 
@@ -619,6 +622,7 @@ def test_validate_clean_undocumented_file_passes(tmp_path: Path) -> None:
 
 
 @pytest.mark.skipif(not _HAS_ROBOCOP, reason="Robocop not installed")
+@_needs_robotcode
 def test_validate_flags_structural_error_with_exit_2(tmp_path: Path) -> None:
     """A structural error (unterminated FOR) → exit 2 (NOT 1) with the
     diagnostic on stderr so the agent receives it and can self-correct."""
@@ -633,11 +637,12 @@ def test_validate_flags_structural_error_with_exit_2(tmp_path: Path) -> None:
     out, err, rc = _run(VALIDATE_SCRIPT, stdin="", env=env)
     assert rc == 2, f"expected exit 2, got {rc}; stderr={err!r}"
     assert "broken.robot" in err
-    # The specific Robocop error id for invalid FOR syntax.
-    assert "ERR" in err
+    # robotcode's diagnostic for the unterminated FOR loop.
+    assert "ModelError: FOR loop must have closing END." in err
 
 
 @pytest.mark.skipif(not _HAS_ROBOCOP, reason="Robocop not installed")
+@_needs_robotcode
 def test_validate_reads_file_path_from_stdin_json(tmp_path: Path) -> None:
     """The new script reads `tool_input.file_path` from stdin JSON (the
     documented PostToolUse contract), not just the legacy TOOL_INPUT env."""
@@ -658,7 +663,6 @@ def test_validate_reads_file_path_from_stdin_json(tmp_path: Path) -> None:
 # --- validate_robot.mjs: deprecation tier (modernize-plugin-agents-and-hooks) ---
 
 HOOK_FIXTURES = Path(__file__).resolve().parent / "fixtures" / "hooks"
-PRE_CHANGE_VALIDATE = HOOK_FIXTURES / "validate_robot_pre_change.mjs"
 _needs_robocop = pytest.mark.skipif(not _HAS_ROBOCOP, reason="Robocop not installed")
 _posix_only = pytest.mark.skipif(sys.platform == "win32", reason="POSIX stub interpreter")
 
@@ -833,6 +837,7 @@ def test_same_finding_is_listed_once_per_session(tmp_path: Path, session_id: str
 
 
 @_needs_robocop
+@_needs_robotcode
 def test_error_suppresses_warning_until_next_clean_edit(tmp_path: Path, session_id: str) -> None:
     """Unterminated FOR + new `[Return]` -> exit 2 with only the error on stderr;
     the DEPR11 warning is not recorded and shows on the next clean edit."""
@@ -870,6 +875,7 @@ def test_warning_output_is_capped(tmp_path: Path, session_id: str) -> None:
 
 
 @_needs_robocop
+@_needs_robotcode
 def test_off_mode_silences_deprecations_but_not_errors(tmp_path: Path, session_id: str) -> None:
     res = tmp_path / "off.resource"
     res.write_text("*** Keywords ***\nK\n    [Return]    x\n", encoding="utf-8")
@@ -1048,12 +1054,12 @@ def test_file_dryrun_reports_unknown_keyword(tmp_path: Path) -> None:
         other = tmp_path / name
         other.write_text("*** Keywords ***\nK\n    Nope Nope\n", encoding="utf-8")
         out, _err, rc = _run(VALIDATE_SCRIPT, _write_payload(other, tmp_path), env=env)
-        assert rc == 0 and "No keyword with name" not in out
+        assert rc == 0 and "robot --dryrun of" not in out
 
 
 def test_hooks_json_declares_timeouts() -> None:
     hooks = json.loads((PLUGIN_ROOT / "hooks" / "hooks.json").read_text(encoding="utf-8"))["hooks"]
-    expected = {"PostToolUse": 45, "UserPromptSubmit": 15, "SessionStart": 15}
+    expected = {"PostToolUse": 60, "UserPromptSubmit": 15, "SessionStart": 15}
     # Per-script overrides: the Bash error-hint hook only scans text.
     per_script = {"rf_error_hints.mjs": 10}
     for event, timeout in expected.items():
@@ -1061,8 +1067,9 @@ def test_hooks_json_declares_timeouts() -> None:
             for hook in entry["hooks"]:
                 script = next((s for s in per_script if s in hook["command"]), None)
                 assert hook.get("timeout") == per_script.get(script, timeout), (event, hook)
-    # 45 s covers Robocop check (10) + format (10) + opt-in dry run (20) + probes.
-    assert expected["PostToolUse"] >= 10 + 10 + 20
+    # 60 s covers robotcode analyze (20; Robocop check/format run in parallel, 10)
+    # + opt-in dry run (20) + probes.
+    assert expected["PostToolUse"] >= 20 + 20 + 10
 
 
 def test_every_spawn_in_hooks_has_a_timeout() -> None:
@@ -1100,12 +1107,12 @@ def _median_ms(script: Path, payload: dict, env: dict, cwd: Path, runs: int = 5)
 
 
 @pytest.mark.slow
-@_needs_robocop
+@_needs_robotcode
 @pytest.mark.skipif(bool(os.environ.get("CI")) and not os.environ.get("RF_AGENTSKILLS_BENCH"),
                     reason="latency budget is measured on the dev machine (set RF_AGENTSKILLS_BENCH=1 in CI)")
 def test_latency_budget_500_lines(tmp_path: Path) -> None:
-    """D9: the new hook adds <= 150 ms (median of 5) over the pre-change hook on a
-    generated 500-line valid .robot file."""
+    """rf-validation-hooks: median <= 1.5 s on a generated 500-line valid .robot
+    file once robotcode's analysis cache is warm (robotcode and Robocop run in parallel)."""
     lines = ["*** Test Cases ***"]
     for i in range(100):
         lines += [f"Test {i}", "    [Documentation]    generated", f"    Log    {i}", "    Should Be True    ${TRUE}", ""]
@@ -1114,12 +1121,10 @@ def test_latency_budget_500_lines(tmp_path: Path) -> None:
     assert len(suite.read_text(encoding="utf-8").splitlines()) >= 500
     payload = _write_payload(suite, tmp_path)
     env = _hook_env()
-    _median_ms(VALIDATE_SCRIPT, payload, env, tmp_path, runs=1)  # warm-up
-    old = _median_ms(PRE_CHANGE_VALIDATE, payload, env, tmp_path)
+    _median_ms(VALIDATE_SCRIPT, payload, env, tmp_path, runs=1)  # warm-up: fills .robotcode_cache
     new = _median_ms(VALIDATE_SCRIPT, payload, env, tmp_path)
-    print(f"validate_robot.mjs latency on 500 lines: pre-change {old:.0f} ms, new {new:.0f} ms, "
-          f"added {new - old:.0f} ms")
-    assert new - old <= 150, (old, new)
+    print(f"validate_robot.mjs latency on 500 lines (warm cache): {new:.0f} ms")
+    assert new <= 1500, new
 
 
 # --- check_rf_environment.mjs ---------------------------------------------
@@ -1130,7 +1135,7 @@ def test_check_rf_environment_runs_to_completion() -> None:
     out, err, rc = _run(CHECK_ENV_SCRIPT, {"cwd": str(Path.cwd()), "hook_event_name": "SessionStart"})
     assert rc == 0
     assert "Robot Framework Environment Check" in err
-    assert "Robocop" in err
+    assert "Robocop" in err and "robotcode" in err
 
 
 @pytest.mark.parametrize("stdin", ["", "not json {", "[]", '"text"'])
@@ -1146,7 +1151,7 @@ def test_check_rf_environment_points_to_setup_skill(tmp_path: Path) -> None:
     never recommends pip install or rfbrowser init. Fake ``python3``/``python`` first on
     PATH make every import check fail; the event cwd has no .venv."""
     import stat
-    for name in ("python3", "python"):
+    for name in ("python3", "python", "robotcode"):
         fake = tmp_path / name
         fake.write_text("#!/bin/sh\nexit 1\n", encoding="utf-8")
         fake.chmod(fake.stat().st_mode | stat.S_IEXEC)
@@ -1157,10 +1162,25 @@ def test_check_rf_environment_points_to_setup_skill(tmp_path: Path) -> None:
     assert "Not installed:" in err
     assert "rf-setup skill" in err
     assert "uv add robotframework" in err
-    assert "uv add --dev robotframework-robocop" in err
-    assert "robocop" in err.lower() and "checks on edit are disabled" in err
+    assert 'uv add --dev "robotcode[all]>=2.8"' in err
+    assert "robotcode: not installed" in err and "error check on edit" in err
+    assert "robotcode@robotframework-agent-plugins" in err
+    assert "Robocop: not installed" in err and "robotcode[all]" in err
     assert "pip install" not in err
     assert "rfbrowser init" not in err
+
+
+@pytest.mark.skipif(sys.platform == "win32", reason="fake POSIX robotcode shim")
+def test_check_rf_environment_flags_old_robotcode(tmp_path: Path) -> None:
+    import stat
+    fake = tmp_path / "robotcode"
+    fake.write_text("#!/bin/sh\necho 'robotcode, version 2.7.0'\n", encoding="utf-8")
+    fake.chmod(fake.stat().st_mode | stat.S_IEXEC)
+    env = {k: v for k, v in os.environ.items() if k != "VIRTUAL_ENV"}
+    env["PATH"] = f"{tmp_path}{os.pathsep}{os.environ.get('PATH', '')}"
+    _out, err, rc = _run(CHECK_ENV_SCRIPT, {"cwd": str(tmp_path)}, env=env)
+    assert rc == 0
+    assert "robotcode 2.7.0 is older than 2.8" in err and 'uv add --dev "robotcode[all]>=2.8"' in err
 
 
 @pytest.mark.skipif(sys.platform == "win32", reason="POSIX .venv layout")
@@ -1200,12 +1220,12 @@ def test_project_validation_noop_when_flag_unset(tmp_path: Path) -> None:
     assert err == ""
 
 
-@pytest.mark.skipif(not _HAS_ROBOT, reason="robotframework not installed")
+@_needs_robotcode
 def test_project_validation_detects_broken_import_via_error_line(
     tmp_path: Path,
 ) -> None:
-    """A broken import surfaces only as a dryrun `[ ERROR ]` line (dryrun
-    exits 0 for it). The tier must catch it anyway and exit 2."""
+    """A broken import is reported by `robotcode analyze code` (it never runs
+    the suite) and the tier exits 2."""
     import os
     (tmp_path / "suite.robot").write_text(
         "*** Settings ***\nResource    nonexistent.resource\n"
@@ -1222,9 +1242,9 @@ def test_project_validation_detects_broken_import_via_error_line(
     assert "nonexistent.resource" in err
 
 
-@pytest.mark.skipif(not _HAS_FIND_UNUSED, reason="find-unused not installed")
+@_needs_robotcode
 def test_project_validation_reports_unused_keyword(tmp_path: Path) -> None:
-    """An never-called keyword is reported by the find-unused check."""
+    """A never-called keyword is reported by `analyze code --collect-unused`."""
     import os
     (tmp_path / "helpers.resource").write_text(
         "*** Keywords ***\nUsed Keyword\n    Log    used\n"
@@ -1243,7 +1263,8 @@ def test_project_validation_reports_unused_keyword(tmp_path: Path) -> None:
         VALIDATE_PROJECT_SCRIPT, stdin=json.dumps(payload), env=env
     )
     assert rc == 2, f"expected exit 2, got {rc}; stderr={err!r}"
-    assert "Unused Keyword" in err
+    assert "KeywordNotUsed: Keyword 'Unused Keyword' is not used." in err
+    assert "Used Keyword'" not in err.replace("'Unused Keyword'", "")
 
 
 # --- Cross-script invariants ----------------------------------------------
@@ -1333,6 +1354,7 @@ def test_error_hint_for_keyword_with_values_in_name(tmp_path) -> None:
     assert rc == 0
     assert "embedded-argument" in hint and "${team:\\S+}" in hint and "literal" in hint
     assert "rf-language" in hint and len(hint) <= 400
+    assert "robotcode doc keywords <Library> <pattern>" in hint and "rf-libdoc" not in hint
 
 
 @pytest.mark.parametrize(
@@ -1386,6 +1408,7 @@ def _clean_env() -> dict:
 
 
 @pytest.mark.skipif(not _HAS_ROBOCOP, reason="Robocop not installed")
+@_needs_robotcode
 def test_validate_codex_apply_patch_adding_broken_robot(tmp_path: Path) -> None:
     """Codex sends file edits as `apply_patch` with the patch in tool_input.command."""
     (tmp_path / "tests").mkdir()
@@ -1504,6 +1527,7 @@ def _stop(cwd: Path, sid: str, active: bool = False) -> tuple[str, str, int]:
 
 
 @_needs_robocop
+@_needs_robotcode
 def test_pending_error_is_reported_at_stop(tmp_path: Path, pending_session: str) -> None:
     """VS Code Local doesn't wait for PostToolUse: the error the model never saw
     is reported at Stop, with stderr + exit 2 and the Copilot decision JSON."""
@@ -1512,10 +1536,10 @@ def test_pending_error_is_reported_at_stop(tmp_path: Path, pending_session: str)
     assert _edit(robot, tmp_path, pending_session)[2] == 2
     out, err, rc = _stop(tmp_path, pending_session)
     assert rc == 2
-    assert "a.robot" in err and "ERR12" in err
+    assert "a.robot" in err and "FOR loop must have closing END." in err
     decision = json.loads(out)
     assert decision["decision"] == "block"
-    assert "a.robot" in decision["reason"] and "ERR12" in decision["reason"]
+    assert "a.robot" in decision["reason"] and "FOR loop must have closing END." in decision["reason"]
 
 
 @_needs_robocop
@@ -1555,6 +1579,7 @@ def test_unchanged_pending_file_is_reported_once(tmp_path: Path, pending_session
 
 
 @_needs_robocop
+@_needs_robotcode
 def test_changed_pending_file_is_reported_again(tmp_path: Path, pending_session: str) -> None:
     robot = tmp_path / "a.robot"
     robot.write_text(_BROKEN_FOR, encoding="utf-8")
@@ -1562,7 +1587,7 @@ def test_changed_pending_file_is_reported_again(tmp_path: Path, pending_session:
     assert _stop(tmp_path, pending_session)[2] == 2
     robot.write_text(_BROKEN_FOR + "    Log    more\n", encoding="utf-8")  # still no END
     _out, err, rc = _stop(tmp_path, pending_session)
-    assert rc == 2 and "ERR12" in err
+    assert rc == 2 and "FOR loop must have closing END." in err
 
 
 @_needs_robocop
@@ -1571,3 +1596,118 @@ def test_pending_hook_silent_when_stop_hook_active(tmp_path: Path, pending_sessi
     robot.write_text(_BROKEN_FOR, encoding="utf-8")
     assert _edit(robot, tmp_path, pending_session)[2] == 2
     assert _stop(tmp_path, pending_session, active=True) == ("", "", 0)
+
+
+# --- validate_robot.mjs: robotcode error tier (delegate-robotcode-skills) ---
+
+_ROBOTCODE_FIXTURE = Path(__file__).resolve().parent / "fixtures" / "hooks" / "robotcode-2.8.0-analyze.json"
+
+
+def _no_robotcode_env(tmp_path: Path, **extra: str) -> dict:
+    """A hook env whose VIRTUAL_ENV and PATH hold no robotcode (node stays on PATH)."""
+    venv = tmp_path / "stubenv"
+    _stub_python(venv / "bin" / "python", 'case "$1" in -c) exit 1;; esac\nexit 1\n')
+    node_dir = str(Path(NODE).resolve().parent)  # type: ignore[arg-type]
+    return _hook_env(VIRTUAL_ENV=str(venv), PATH=os.pathsep.join([node_dir, "/usr/bin", "/bin"]), **extra)
+
+
+def _stub_robotcode_env(tmp_path: Path, body: str, **extra: str) -> dict:
+    env = _no_robotcode_env(tmp_path, **extra)
+    _stub_python(tmp_path / "stubenv" / "bin" / "robotcode", body)
+    return env
+
+
+@_needs_robotcode
+def test_wrong_argument_count_blocks(tmp_path: Path) -> None:
+    suite = tmp_path / "args.robot"
+    suite.write_text("*** Test Cases ***\nT\n    Should Be Equal    1\n", encoding="utf-8")
+    out, err, rc = _run(VALIDATE_SCRIPT, _write_payload(suite, tmp_path), env=_hook_env())
+    assert rc == 2, err
+    assert "args.robot:3:5: [ERROR] DataError" in err and "expected 2 to 10 arguments, got 1" in err
+    assert json.loads(out.splitlines()[0])["decision"] == "block"
+
+
+@_needs_robotcode
+def test_unknown_keyword_is_advisory_on_edit(tmp_path: Path) -> None:
+    suite = tmp_path / "later.robot"
+    suite.write_text("*** Test Cases ***\nT\n    Open Order Page\n", encoding="utf-8")
+    out, err, rc = _run(VALIDATE_SCRIPT, _write_payload(suite, tmp_path),
+                        env=_hook_env(RF_AGENTSKILLS_DEPRECATION_CHECK="off"))
+    assert (rc, err) == (0, "")
+    ctx = _context(out)
+    assert "KeywordNotFound: No keyword with name 'Open Order Page' found." in ctx and "advisory" in ctx
+
+
+@_needs_robotcode
+def test_blocking_output_is_capped_at_five(tmp_path: Path) -> None:
+    suite = tmp_path / "many.robot"
+    body = "".join(f"    Should Be Equal    {i}\n" for i in range(12))
+    suite.write_text("*** Test Cases ***\nT\n" + body, encoding="utf-8")
+    _out, err, rc = _run(VALIDATE_SCRIPT, _write_payload(suite, tmp_path), env=_hook_env())
+    assert rc == 2
+    assert err.count("[ERROR] DataError") == 5 and "… 7 more omitted." in err
+
+
+@_posix_only
+def test_missing_robotcode_never_blocks(tmp_path: Path) -> None:
+    suite = tmp_path / "broken.robot"
+    suite.write_text(_BROKEN_FOR, encoding="utf-8")
+    out, err, rc = _run(VALIDATE_SCRIPT, _write_payload(suite, tmp_path), env=_no_robotcode_env(tmp_path))
+    assert (rc, out, err) == (0, "", "")
+
+
+@_posix_only
+def test_unparsable_robotcode_output_is_silent(tmp_path: Path) -> None:
+    suite = tmp_path / "broken.robot"
+    suite.write_text(_BROKEN_FOR, encoding="utf-8")
+    env = _stub_robotcode_env(tmp_path, 'echo "Traceback (most recent call last): boom"\nexit 1\n')
+    out, err, rc = _run(VALIDATE_SCRIPT, _write_payload(suite, tmp_path), env=env)
+    assert (rc, out, err) == (0, "", "")
+
+
+@_posix_only
+def test_hung_robotcode_times_out_silently(tmp_path: Path) -> None:
+    suite = tmp_path / "broken.robot"
+    suite.write_text(_BROKEN_FOR, encoding="utf-8")
+    env = _stub_robotcode_env(tmp_path, "exec sleep 30\n", RF_AGENTSKILLS_HOOK_TIMEOUT_MS="1000")
+    start = time.monotonic()
+    out, err, rc = _run(VALIDATE_SCRIPT, _write_payload(suite, tmp_path), env=env)
+    assert (rc, out, err) == (0, "", "")
+    assert time.monotonic() - start < 15
+
+
+@_posix_only
+def test_recorded_robotcode_json_is_classified(tmp_path: Path) -> None:
+    """Pins the robotcode 2.8.0 `--format json analyze code` shape the hook parses."""
+    suite = tmp_path / "t.robot"
+    suite.write_text(_BROKEN_FOR, encoding="utf-8")
+    fixture = _ROBOTCODE_FIXTURE.read_text(encoding="utf-8")
+    env = _stub_robotcode_env(tmp_path, f"cat <<'JSON'\n{fixture}\nJSON\nexit 1\n",
+                              RF_AGENTSKILLS_DEPRECATION_CHECK="off")
+    out, err, rc = _run(VALIDATE_SCRIPT, _write_payload(suite, tmp_path), env=env)
+    assert rc == 2
+    assert "t.robot:8:5: [ERROR] DataError" in err and "t.robot:9:5: [ERROR] ModelError" in err
+    assert "KeywordNotFound" not in err and "VariableNotFound" not in err  # advisory, and exit 2 wins
+
+
+@_needs_robotcode
+def test_unresolved_keyword_escalates_at_stop(tmp_path: Path, pending_session: str) -> None:
+    suite = tmp_path / "later.robot"
+    suite.write_text("*** Test Cases ***\nT\n    Open Order Page\n", encoding="utf-8")
+    assert _edit(suite, tmp_path, pending_session)[2] == 0
+    out, err, rc = _stop(tmp_path, pending_session)
+    assert rc == 2 and "KeywordNotFound" in err and "later.robot" in err
+    assert json.loads(out)["decision"] == "block"
+
+
+@_needs_robotcode
+def test_keyword_written_later_is_not_reported(tmp_path: Path, pending_session: str) -> None:
+    suite = tmp_path / "later.robot"
+    suite.write_text("*** Settings ***\nResource    orders.resource\n\n*** Test Cases ***\nT\n    Open Order Page\n",
+                     encoding="utf-8")
+    (tmp_path / "orders.resource").write_text("*** Keywords ***\nPlaceholder\n    No Operation\n", encoding="utf-8")
+    assert _edit(suite, tmp_path, pending_session)[2] == 0
+    resource = tmp_path / "orders.resource"
+    resource.write_text("*** Keywords ***\nOpen Order Page\n    No Operation\n", encoding="utf-8")
+    assert _edit(resource, tmp_path, pending_session)[2] == 0
+    assert _stop(tmp_path, pending_session) == ("", "", 0)

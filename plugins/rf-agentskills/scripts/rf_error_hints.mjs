@@ -34,7 +34,7 @@ const SIGNATURES = [
       `Robot Framework found no keyword '${name}'. If the call carries values inside the name ` +
       "(e.g. 'Select team Los Angeles Lakers'), define an embedded-argument keyword such as " +
       "`Select team ${city} ${team:\\S+}`; the text between arguments is literal, not a regex. " +
-      "Load the rf-language skill. For library keywords, check the exact name with rf-libdoc.",
+      "Load rf-language. Library keyword names: `robotcode doc keywords <Library> <pattern>`.",
   },
   {
     kind: "multiple-keywords",

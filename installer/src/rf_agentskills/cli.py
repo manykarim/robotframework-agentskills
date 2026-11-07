@@ -505,6 +505,16 @@ LEGACY_SKILL_NAMES: frozenset[str] = frozenset(
     set(_LEGACY_TOPICS) | {f"rf-{t}" for t in _LEGACY_TOPICS}
 )
 
+# Skills retired in content 3.0.0: the robotcode CLI (robotcode doc / results)
+# and the RobotCode project's own `robotcode` plugin cover them. Installs that
+# recorded them prune them as stale; copies made by hand are reported.
+RETIRED_SKILL_DIRS: frozenset[str] = frozenset({"rf-robotcode", "rf-libdoc", "rf-results"})
+RETIRED_SKILL_REPLACEMENT = {
+    "rf-robotcode": "the robotcode plugin (robotcode@robotframework-agent-plugins)",
+    "rf-libdoc": "`robotcode doc keywords` / `robotcode doc keyword`",
+    "rf-results": "`robotcode results`",
+}
+
 
 def _skill_md_name(skill_md: Path) -> str | None:
     try:
@@ -561,12 +571,12 @@ def find_legacy_skill_dirs() -> list[Path]:
     owned = _owned_paths()
     found: list[Path] = []
     for folder in _skill_folders():
-        for name in sorted(LEGACY_SKILL_DIRS):
+        for name in sorted(LEGACY_SKILL_DIRS | RETIRED_SKILL_DIRS):
             d = folder / name
             skill_md = d / "SKILL.md"
             if not skill_md.is_file():
                 continue
-            if _skill_md_name(skill_md) not in LEGACY_SKILL_NAMES:
+            if _skill_md_name(skill_md) not in LEGACY_SKILL_NAMES | RETIRED_SKILL_DIRS:
                 continue
             try:
                 if "robot" not in skill_md.read_text(encoding="utf-8", errors="replace").lower():
@@ -577,6 +587,20 @@ def find_legacy_skill_dirs() -> list[Path]:
                 continue
             found.append(d)
     return found
+
+
+def _legacy_dir_warning(d: Path) -> str:
+    if d.name in RETIRED_SKILL_DIRS:
+        return (
+            f"[yellow]warn:[/yellow] {d} is the {d.name} skill, retired in content 3.0.0 "
+            f"(use {RETIRED_SKILL_REPLACEMENT[d.name]}); rf-agentskills did not install this copy, "
+            f"so it was kept. Remove it with: rm -r \"{d}\""
+        )
+    return (
+        f"[yellow]warn:[/yellow] {d} is a pre-2.0 rf-agentskills skill directory "
+        f"(renamed to rf-<topic> in content 2.0.0) that rf-agentskills did not install; "
+        f"remove it with: rm -r \"{d}\""
+    )
 
 
 def cmd_doctor(_args: argparse.Namespace) -> int:
@@ -628,16 +652,12 @@ def cmd_doctor(_args: argparse.Namespace) -> int:
     table.add_row(
         "legacy skill dirs",
         "[yellow]warn[/yellow]" if legacy else "[green]ok[/green]",
-        f"{len(legacy)} unowned pre-2.0 skill dir(s)" if legacy else "none found",
+        f"{len(legacy)} unowned legacy or retired skill dir(s)" if legacy else "none found",
     )
 
     console.print(table)
     for d in legacy:
-        err_console.print(
-            f"[yellow]warn:[/yellow] {d} is a pre-2.0 rf-agentskills skill directory "
-            f"(renamed to rf-<topic> in content 2.0.0) that rf-agentskills did not install; "
-            f"remove it with: rm -r \"{d}\""
-        )
+        err_console.print(_legacy_dir_warning(d))
     return rc
 
 
@@ -1004,6 +1024,9 @@ def _execute_plan(
     notes = list(plan.notes) if opts.mode == "plugin" else adapter.post_install(opts)
     for note in notes:
         console.print(f"  [dim]→[/dim] {note}")
+    for d in find_legacy_skill_dirs():
+        if d.name in RETIRED_SKILL_DIRS:
+            err_console.print(_legacy_dir_warning(d))
 
     return rc
 

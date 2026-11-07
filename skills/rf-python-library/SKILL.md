@@ -2,7 +2,7 @@
 name: rf-python-library
 description: "Use first, before answering, to write or fix Robot Framework keyword libraries or listeners in Python."
 license: Apache-2.0
-compatibility: "Requires Python 3.10+ with robotframework>=7 in the project environment for the bundled check_library script; guidance is version-gated from RF 6.1 to 7.5 and the examples need RF 7.0+."
+compatibility: "Requires Python 3.10+ with robotframework>=7 in the project environment for the bundled check_library script, and robotcode[all]>=2.8 there for keyword listing and static checks; guidance is version-gated from RF 6.1 to 7.5 and the examples need RF 7.0+."
 metadata:
   author: manykarim
   version: "2.0.0"
@@ -160,10 +160,10 @@ Plain `robot` needs `--pythonpath libraries`. Import by name, not by a relative 
    uv run python scripts/check_library.py libraries/<Name>.py
    ```
 
-4. List the keyword names the tests will call: `robotcode libdoc libraries/<Name>.py list`, or the rf-libdoc skill.
+4. List the keyword names the tests will call: `uv run robotcode doc keywords libraries/<Name>.py` (one keyword in full: `uv run robotcode doc keyword libraries/<Name>.py "<Keyword>"`).
 5. Pure Python logic with branches gets pytest unit tests.
-6. `uv run robot --dryrun --pythonpath libraries tests/`. Dry run misses variables, named-argument typos, embedded-argument mismatches and `str` in unions.
-7. `uv run robot --pythonpath libraries --outputdir results tests/`; on failure rerun with `--loglevel DEBUG` for tracebacks and read the results with rf-robotcode (`robotcode results`) or rf-results.
+6. `uv run robotcode analyze code tests/` on the suites that import the library (with `libraries` on the python-path in `robot.toml`). It finds unknown keywords and wrong argument counts without running anything, so it misses variables set at run time, named-argument typos, embedded-argument mismatches and `str` in unions; the real run in step 7 catches them.
+7. `uv run robot --pythonpath libraries --outputdir results tests/` (or `uv run robotcode robot` with the `robot.toml` python-path); on failure rerun with `--loglevel DEBUG` for tracebacks and read the results with `uv run robotcode results show --failed` and `uv run robotcode results log --failed`.
 8. Fix and go back to step 3.
 
 The script path is relative to this skill's directory; library paths are relative to the project root. More checker calls:
@@ -212,6 +212,5 @@ The runnable examples in `assets/examples/` (`ExampleLibrary.py`, `converters.py
 |------|-------|
 | Write tests, suites, user keywords, resources and variables in Robot Framework syntax | `rf-language` |
 | Install Robot Framework or a library, fix the environment | `rf-setup` |
-| Look up keyword names, arguments and docs | `rf-libdoc` (or `rf-robotcode`: `robotcode libdoc`) |
-| Analyze output.xml results | `rf-results` (or `rf-robotcode`: `robotcode results`) |
-| Discover, run, debug and statically check with the robotcode CLI | `rf-robotcode` |
+
+For running, discovering, keyword documentation, result analysis and debugging with the robotcode CLI, use the `robotcode` skill of the robotcode plugin (`robotcode@robotframework-agent-plugins`); the commands above work without it.

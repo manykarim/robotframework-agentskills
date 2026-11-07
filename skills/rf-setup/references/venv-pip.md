@@ -38,8 +38,7 @@ Always use `python -m pip`, not bare `pip`, so the pip belongs to the venv's int
 ```text
 robotframework>=7.3
 robotframework-requests>=0.9.7
-robotcode[all]>=2.7
-robotframework-robocop>=9.0
+robotcode[all]>=2.8
 ```
 
 ```bash

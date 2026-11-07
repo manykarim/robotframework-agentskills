@@ -102,16 +102,12 @@ uv add --prerelease allow robotframework-PlatynUI        # pip: pip install --pr
 
 - The `rf-platynui` skill documents the exact version it was verified against, plus platform requirements (Linux AT-SPI2, X11). Pin to that version when fidelity matters.
 
-## robotcode → `rf-robotcode`
+## robotcode (required)
 
-- Package `robotcode[all]` (2.7, Python ≥ 3.10). Install as a **dev dependency in the project env**, never with `pipx` / `uv tool`: it imports your libraries.
-- Verify: `uv run robotcode discover info` shows the project's `.venv` Python.
-
-## Robocop
-
-- Package `robotframework-robocop` (9.x, Python ≥ 3.10). Dev dependency. Also available as `robotframework-browser[robocop]`.
-- Verify: `uv run robocop check --no-cache tests` and `uv run robocop format --no-cache --check tests`.
-- The rf-agentskills validation hook uses robocop when it is importable from the recorded interpreter.
+- Package `robotcode[all]>=2.8` (Python ≥ 3.10). Install as a **dev dependency in the project env**, never with `pipx`, `uvx` or `uv tool`: it imports your libraries. The `[all]` extra also installs Robocop (`robotframework-robocop>=6`), so Robocop needs no separate install.
+- uv: `uv add --dev "robotcode[all]>=2.8"` · Poetry: `poetry add --group dev "robotcode[all]>=2.8"` · pip: `pip install "robotcode[all]>=2.8"`.
+- Verify: `uv run robotcode discover info` shows the project's `.venv` Python; `uv run robocop --version` works.
+- The rf-agentskills validation hooks run `robotcode analyze code` (errors) and Robocop (deprecations, formatting) from the project environment.
 
 ## Other common packages
 

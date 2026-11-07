@@ -15,10 +15,14 @@ import { readFileSync } from "node:fs";
 import {
   PROBE_TIMEOUT_MS,
   findInterpreterWith,
+  findRobotcode,
   firstPython,
   projectRoot,
   spawnOptions,
+  versionAtLeast,
 } from "./_python_env.mjs";
+
+const ROBOTCODE_MIN = "2.8";
 
 // Missing, empty or malformed event -> no output (the hook never blocks).
 let event = null;
@@ -74,14 +78,29 @@ if (rfOk) {
 process.stderr.write(`  Robot Framework version: ${rfVersion}\n`);
 if (py) process.stderr.write(`  Interpreter: ${py}\n`);
 
-process.stderr.write("\nLinting:\n");
+process.stderr.write("\nrobotcode (required by rf-agentskills):\n");
+const rc = findRobotcode(cwd, { withVersion: true });
+const rcOk = rc !== null && versionAtLeast(rc.version, ROBOTCODE_MIN);
+check(rcOk, `robotcode[all]>=${ROBOTCODE_MIN}`);
+if (rcOk) {
+  process.stderr.write(`  robotcode ${rc.version}: available (${rc.exe}); errors are checked on every .robot/.resource edit\n`);
+} else {
+  process.stderr.write(
+    (rc
+      ? `  robotcode ${rc.version ?? "(unknown version)"} is older than ${ROBOTCODE_MIN} (robotcode doc needs ${ROBOTCODE_MIN}): `
+      : "  robotcode: not installed — ") +
+      "keyword lookup (robotcode doc), result analysis (robotcode results) and the error check on edit " +
+      "need it. Install it into the project environment: uv add --dev \"robotcode[all]>=2.8\" " +
+      "(see the rf-setup skill). Recommended companion plugin: robotcode@robotframework-agent-plugins.\n",
+  );
+}
 const robocopOk = check(pythonImportExists(py, "robocop") ||
   findInterpreterWith("robocop", cwd) !== null, "robotframework-robocop");
 process.stderr.write(
   robocopOk
-    ? "  Robocop: available (invalid and deprecated syntax is checked on every .robot/.resource edit)\n"
-    : "  Robocop: not installed — syntax and deprecation checks on edit are disabled " +
-        "(uv add --dev robotframework-robocop; see the rf-setup skill)\n",
+    ? "  Robocop: available (deprecation and formatting advice on edit)\n"
+    : "  Robocop: not installed — deprecation and formatting advice on edit is disabled " +
+        "(it comes with robotcode[all])\n",
 );
 
 process.stderr.write("\nWeb Testing:\n");
@@ -107,7 +126,7 @@ if (missing.length) {
       "See the rf-setup skill for the full steps (uv, venv, poetry; Browser needs Node.js):\n",
   );
   process.stderr.write("  uv add robotframework                        # core\n");
-  process.stderr.write("  uv add --dev robotframework-robocop          # lint + checks on edit\n");
+  process.stderr.write("  uv add --dev \"robotcode[all]>=2.8\"         # required: robotcode CLI + Robocop\n");
   process.stderr.write("  uv add robotframework-requests               # API (default)\n");
   process.stderr.write("  uv add \"robotframework-browser[bb]\"          # web (default; see rf-setup)\n");
 } else {

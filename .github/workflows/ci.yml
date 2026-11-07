@@ -33,9 +33,10 @@ jobs:
         run: |
           # pytest-asyncio is required by `asyncio_mode = "auto"` in
           # pyproject; pytest 9+ treats the unknown config option as a
-          # fatal error otherwise. robocop + find-unused let the
-          # validation-hook tests run for real here instead of skipping.
-          pip install robotframework pytest pytest-asyncio robotframework-robocop robotframework-find-unused
+          # fatal error otherwise. robotcode[all] (the documented
+          # prerequisite; it also brings Robocop) lets the validation-hook
+          # tests run for real here instead of skipping.
+          pip install robotframework pytest pytest-asyncio pyyaml "robotcode[all]>=2.8"
           pip install -e ./installer
         shell: bash
       - name: Install PlatynUI (optional — rf-platynui keyword-fidelity test)
@@ -45,10 +46,10 @@ jobs:
         # pre-release; prebuilt wheel, no Rust.
         run: pip install "robotframework-PlatynUI==0.12.0.dev330" || echo "PlatynUI unavailable on this interpreter — rf-platynui fidelity test will skip"
         shell: bash
-      - name: Install Browser Library (optional — libdoc output regression tests)
-        # Lets the Browser-specific rf_libdoc tests (named-only args, payload
-        # bounds) run for real; skip-if-absent otherwise. No `rfbrowser init`
-        # needed — libdoc only introspects the Python library.
+      - name: Install Browser Library (optional — rf-browser example and keyword checks)
+        # Lets the rf-browser example dry runs and decision-table keyword checks
+        # run for real; skip-if-absent otherwise. No `rfbrowser init` needed —
+        # libdoc only introspects the Python library.
         run: pip install robotframework-browser || echo "Browser unavailable — those libdoc tests will skip"
         shell: bash
       - name: Install other library-skill libraries (optional — example dry runs)
@@ -62,12 +63,6 @@ jobs:
           pip install robotframework-appiumlibrary || echo "AppiumLibrary unavailable — its example dry runs will skip"
           pip install robotframework-requests || echo "RequestsLibrary unavailable — its example dry runs will skip"
           pip install RESTinstance || echo "RESTinstance unavailable on this interpreter — its example dry runs will skip"
-        shell: bash
-      - name: Install robotcode (optional — rf-robotcode CLI-fidelity test)
-        # Pinned to the version the skill was verified against; bumping the pin
-        # is the moment to re-check references/gotchas.md. Fail-soft: the
-        # fidelity test skips when robotcode is not on PATH.
-        run: pip install "robotcode[all]==2.7.0" || echo "robotcode unavailable — rf-robotcode fidelity test will skip"
         shell: bash
       - name: Install Robocop 9.x and PyYAML (optional — rf-language rule-ID fidelity and YAML example tests)
         # tests/test_language_skill.py checks every Robocop rule ID the rf-language

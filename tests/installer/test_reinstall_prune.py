@@ -175,9 +175,9 @@ def test_category_for_path(path: str, category: str) -> None:
     assert _m.category_for_path(path) == category
 
 
-def test_upgrade_from_split_libdoc_skills_installs_merged_skill(fake_home: Path) -> None:
-    """A 1.2.0-style install with libdoc-search/ + libdoc-explain/ is upgraded
-    to the single merged rf-libdoc skill (libdoc-skill spec)."""
+def test_upgrade_from_split_libdoc_skills_removes_them(fake_home: Path) -> None:
+    """A 1.2.0-style install with libdoc-search/ + libdoc-explain/ loses both on
+    upgrade; no libdoc skill ships any more (robotcode doc replaces it)."""
     assert _install() == 0
     old = [
         _plant(fake_home, "skills/libdoc-search/SKILL.md", "---\nname: libdoc-search\n---\n"),
@@ -189,12 +189,49 @@ def test_upgrade_from_split_libdoc_skills_installs_merged_skill(fake_home: Path)
     for path in old:
         assert not path.exists()
         assert not path.parent.exists(), "old skill dir must be pruned"
-    merged = fake_home / ".claude" / "skills" / "rf-libdoc" / "SKILL.md"
-    assert merged.is_file()
-    assert "name: rf-libdoc" in merged.read_text(encoding="utf-8")
-    tracked = _tracked(fake_home)
-    assert str(merged) in tracked
-    assert not {str(p) for p in old} & tracked
+    assert not (fake_home / ".claude" / "skills" / "rf-libdoc").exists()
+    assert not {str(p) for p in old} & _tracked(fake_home)
+
+
+def test_upgrade_removes_managed_robotcode_overlap_skills_and_agent(fake_home: Path, capsys) -> None:
+    """skill-catalog: an install made by 2.x (rf-libdoc, rf-results, rf-robotcode and
+    the rf-keyword-consultant subagent recorded in the manifest) loses them on upgrade."""
+    assert _install() == 0
+    old = [
+        _plant(fake_home, "skills/rf-libdoc/SKILL.md", "---\nname: rf-libdoc\n---\nRobot Framework\n"),
+        _plant(fake_home, "skills/rf-libdoc/scripts/rf_libdoc.py", "print()\n"),
+        _plant(fake_home, "skills/rf-results/SKILL.md", "---\nname: rf-results\n---\nRobot Framework\n"),
+        _plant(fake_home, "skills/rf-robotcode/SKILL.md", "---\nname: rf-robotcode\n---\nRobot Framework\n"),
+        _plant(fake_home, "agents/rf-keyword-consultant.md", "---\nname: rf-keyword-consultant\n---\n"),
+    ]
+    capsys.readouterr()
+
+    assert _install() == 0
+
+    skills = fake_home / ".claude" / "skills"
+    for path in old:
+        assert not path.exists(), path
+    for name in ("rf-libdoc", "rf-results", "rf-robotcode"):
+        assert not (skills / name).exists(), name
+    assert len([d for d in skills.iterdir() if d.name.startswith("rf-")]) == 9
+    agents = sorted(p.stem for p in (fake_home / ".claude" / "agents").glob("rf-*.md"))
+    assert agents == ["rf-debug-expert", "rf-migration-guide", "rf-test-architect"]
+    assert "5 removed" in capsys.readouterr().out
+
+
+def test_hand_copied_retired_skill_is_kept_with_a_note(fake_home: Path, capsys) -> None:
+    """A retired skill folder the installer did not record is kept and reported."""
+    assert _install() == 0
+    copied = fake_home / ".claude" / "skills" / "rf-results"
+    copied.mkdir(parents=True)
+    (copied / "SKILL.md").write_text("---\nname: rf-results\n---\nRobot Framework results\n", encoding="utf-8")
+    capsys.readouterr()
+
+    assert _install() == 0
+
+    assert (copied / "SKILL.md").is_file()
+    err = " ".join(capsys.readouterr().err.split())
+    assert "rf-results skill, retired in content 3.0.0" in err and "robotcode results" in err
 
 
 def _downgrade_to_short_names(home: Path) -> dict[str, Path]:
@@ -224,7 +261,7 @@ def test_upgrade_renames_short_skill_dirs_to_rf_ids(fake_home: Path, capsys) -> 
     dir names (browser/, setup/, …) is migrated to the rf-* dirs."""
     assert _install() == 0
     mapping = _downgrade_to_short_names(fake_home)
-    assert {"rf-browser", "rf-setup", "rf-results", "rf-libdoc"} <= set(mapping)
+    assert {"rf-browser", "rf-setup", "rf-language", "rf-python-library"} <= set(mapping)
     assert (fake_home / ".claude" / "skills" / "browser" / "SKILL.md").is_file()
     capsys.readouterr()
 

@@ -152,3 +152,20 @@ def test_bump_version_keeps_skill_metadata_in_step(tmp_path):
     assert vs.validate(repo, ["root"]) == []
     for rel in (".claude-plugin/marketplace.json", "plugins/rf-agentskills/.claude-plugin/plugin.json"):
         assert f'"version": "{new}"' in (repo / rel).read_text()
+
+
+def _frontmatter_field(md: Path, field: str) -> str:
+    for line in md.read_text(encoding="utf-8").split("\n---", 1)[0].splitlines():
+        if line.startswith(f"{field}:"):
+            return line.split(":", 1)[1].strip().strip('"')
+    return ""
+
+
+@pytest.mark.parametrize("md", sorted((ROOT / "skills").glob("*/SKILL.md")), ids=lambda p: p.parent.name)
+def test_skills_running_robotcode_declare_it(md: Path) -> None:
+    """robotcode-prerequisite: a skill that runs robotcode names robotcode[all]>=2.8."""
+    if "robotcode " not in md.read_text(encoding="utf-8").split("\n---", 1)[1]:
+        pytest.skip("skill runs no robotcode command")
+    compat = _frontmatter_field(md, "compatibility")
+    assert "robotcode[all]>=2.8" in compat, md.parent.name
+    assert len(compat) <= 500, (md.parent.name, len(compat))

@@ -1,7 +1,7 @@
 # plugin-subagents Specification
 
 ## Purpose
-Defines what the rf-agentskills subagents (`rf-test-architect`, `rf-keyword-consultant`, `rf-migration-guide`, `rf-debug-expert`) contain. It also defines how they hand work to the skills that own Robot Framework knowledge, so that the subagents stay short, correct and consistent with the skill catalog.
+Defines what the rf-agentskills subagents (`rf-test-architect`, `rf-migration-guide` and the read-only `rf-debug-expert`) contain. It also defines how they hand work to the skills that own Robot Framework knowledge, so that the subagents stay short, correct and consistent with the skill catalog.
 
 ## Requirements
 

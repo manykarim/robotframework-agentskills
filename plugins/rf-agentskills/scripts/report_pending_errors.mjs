@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 // report_pending_errors.mjs — Stop hook: re-validate the .robot/.resource
-// files whose PostToolUse validation failed this session and, if they still
-// fail, block the stop so the agent gets one more turn to fix them.
+// files whose PostToolUse validation found errors or unresolved names this
+// session and, if they still fail, block the stop so the agent gets one more
+// turn to fix them. Unresolved keywords/variables (advisory on edit) block here.
 //
 // Needed for VS Code's Local agent mode, which does not wait for PostToolUse
 // hooks before the next model request (the error only reaches the user as a
@@ -45,7 +46,12 @@ for (const [file, info] of stillPending) {
   const r = spawnSync(
     process.execPath,
     [VALIDATOR],
-    spawnOptions(45000, { input: JSON.stringify(child), encoding: "utf-8", env: { ...process.env, TOOL_INPUT: "" } }),
+    spawnOptions(45000, {
+      input: JSON.stringify(child),
+      encoding: "utf-8",
+      // Stop mode: unresolved keywords/variables block too, advisory tiers are skipped.
+      env: { ...process.env, TOOL_INPUT: "", RF_AGENTSKILLS_STOP_RECHECK: "1" },
+    }),
   );
   if (r.status === 2 && (r.stderr ?? "").trim()) errors.push({ file, hash, text: r.stderr.trim() });
 }

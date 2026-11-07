@@ -270,7 +270,7 @@ Dynamic Keywords Run With Converted Arguments
 ```
 
 List the keywords: `uv run python -m robot.libdoc Commands list` (with the
-module on the python-path), `robotcode libdoc Commands list`, or the checker.
+module on the python-path), `robotcode doc keywords libraries/Commands.py`, or the checker.
 The checker skips its method-based checks (`public_method_not_keyword`,
 `state_in_test_scope`) for hybrid and dynamic libraries.
 

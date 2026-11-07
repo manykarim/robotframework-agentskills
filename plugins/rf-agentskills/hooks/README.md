@@ -21,47 +21,63 @@ rather than written-and-broken.
 | Event | Script | Always fires? | Cost when no-op | Cost when active | Hook timeout |
 |---|---|---|---|---|---|
 | `SessionStart` | `scripts/check_rf_environment.mjs` | yes | — | ~0.5–1 s (import probes) | 15 s |
-| `PostToolUse` (matcher: `Write\|Edit`) | `scripts/validate_robot.mjs` | only on Write/Edit | ~30ms (file extension check) | ~1–1.5 s on a 500-line file (one Robocop check + format check); +0.4 s or more with the opt-in dry run | 45 s |
+| `PostToolUse` (matcher: `Write\|Edit`) | `scripts/validate_robot.mjs` | only on Write/Edit | ~30ms (file extension check) | ~1–1.5 s on a 500-line file once robotcode's cache is warm (`robotcode analyze code`, Robocop check and format run in parallel); the first run in a project ~4 s; +0.4 s or more with the opt-in dry run | 60 s |
 | `PostToolUse` (matcher: `Bash`) | `scripts/rf_error_hints.mjs` | only on Bash | ~30 ms (text scan) | ~30 ms | 10 s |
 | `UserPromptSubmit` | `scripts/maybe_inject_rf_context.mjs` | always invoked, conditional injection | ~30ms (regex over prompt) | same (≤ 450-character text) | 15 s |
-| `Stop` | `scripts/report_pending_errors.mjs` | always invoked, reports only files whose validation failed and are still broken | ~30 ms (reads the session record) | one `validate_robot.mjs` run per pending file | 60 s |
+| `Stop` | `scripts/report_pending_errors.mjs` | always invoked, reports only files whose validation found errors or unresolved names that are still there | ~30 ms (reads the session record) | one `validate_robot.mjs` run per pending file | 60 s |
 | `Stop` | `scripts/maybe_remind_robot_tests.mjs` | always invoked, conditional reminder | ~30ms (chunked grep over transcript) | same | default |
-| `Stop` | `scripts/validate_robot_project.mjs` | only when `RF_AGENTSKILLS_PROJECT_VALIDATION` is set | ~0ms (env-flag check) | project dry run + find-unused (120 s cap each) | default |
+| `Stop` | `scripts/validate_robot_project.mjs` | only when `RF_AGENTSKILLS_PROJECT_VALIDATION` is set | ~0ms (env-flag check) | `robotcode analyze code --collect-unused` (120 s cap) | default |
 
-Every process a hook starts has a timeout (Robocop 10 s, per-file dry run
-20 s, interpreter probes 5 s, project-wide checks 120 s). A timeout skips that
+Every process a hook starts has a timeout (`robotcode analyze code` 20 s,
+Robocop 10 s, per-file dry run 20 s, interpreter probes 5 s, project-wide
+check 120 s). A timeout skips that
 check silently. `scripts/_python_env.mjs`, `scripts/_hook_input.mjs` and
 `scripts/_pending_errors.mjs` are shared helpers, not hooks.
 
 ## Validation hooks (what catches broken Robot Framework code)
 
 Two scripts validate the Robot Framework files the agent writes, at two
-different points in the lifecycle. Both are **optional** — they degrade
-to a silent no-op when their underlying tools aren't installed. Install
-the tooling into the project environment (see the rf-setup skill), or into
-the installer's environment with the `validation` extra:
+different points in the lifecycle. They need **robotcode** in the project
+environment — the documented prerequisite of rf-agentskills — and degrade to a
+silent no-op when it isn't installed. `robotcode[all]` also brings Robocop,
+which the advisory tiers use:
 
 ```bash
-uv add --dev robotframework-robocop        # project environment (preferred)
-uv tool install "rf-agentskills[validation]"   # installer env: robotframework-robocop + robotframework-find-unused
+uv add --dev "robotcode[all]>=2.8"        # project environment (see the rf-setup skill)
 ```
 
 ### Tier 1 + 2 — per file, on every write (`validate_robot.mjs`)
 
 Fires from `PostToolUse` after a Write/Edit of a `.robot`/`.resource` file.
 
-- **Tier 1 — one Robocop pass, classified by rule ID.** Runs
+- **Tier 0 — errors: `robotcode --format json analyze code <file>`**, run
+  from the project root (the event's `cwd`; a file outside it is analyzed from
+  its own folder), so `robot.toml`, profiles, the python-path and the installed
+  libraries apply. Error-severity diagnostics are sorted by code; warnings,
+  infos and hints are dropped:
+  - **Blocking errors** — everything except the two codes below: an
+    unterminated `FOR`/`IF`/`TRY` (`ModelError`), wrong argument counts and
+    other `DataError`s, failed imports, duplicate definitions. The diagnostic
+    goes to **stderr and the hook exits 2**, which feeds it back to the agent
+    (see "the exit-2 exception" below), plus the Copilot `decision` JSON.
+  - **Unresolved names** — `KeywordNotFound`, `VariableNotFound`. Reported as
+    advisory `additionalContext` (exit 0), because the agent may be about to
+    write that keyword or variable in another file. The file is recorded as
+    pending; if the name still doesn't resolve when the agent stops, the Stop
+    re-check blocks (below).
+  - Each list shows at most 5 diagnostics plus "… N more omitted."
+  - robotcode missing, a timeout (20 s), unparsable JSON or "0 files analyzed"
+    makes the tier silent — a tool failure is never a finding.
+  - robotcode keeps its analysis cache in `.robotcode_cache/` in the project
+    (the RobotCode VS Code extension uses the same folder; the rf-setup
+    `.gitignore` example lists it). With a warm cache the check takes under a
+    second; disabling the cache would make every edit take ~4 s.
+- **Tier 1 — deprecations: one Robocop pass, classified by rule ID.** Runs
   `robocop check --no-cache` once, with the **project's configured rule set**
   and a parsable issue format
-  (`-c print_issues.output_format=simple --issue-format '{severity}|{rule_id}|{source}:{line}:{col}|{desc}'`).
-  Each finding is sorted into one class; everything else (style rules such as
-  `DOC03`) is dropped, as before:
-  - **Errors** — error severity (`E`), not a `DEPR` rule: invalid
-    `FOR`/`IF`/`TRY` syntax, argument errors, duplicate definitions, imports
-    Robocop can see are broken. This is the set the former `--threshold E` run
-    selected, and errors **block exactly as before**: the diagnostic goes to
-    **stderr and the hook exits 2**, which feeds it back to the agent (see "the
-    exit-2 exception" below).
+  (`-c print_issues.output_format=simple --issue-format '{severity}|{rule_id}|{source}:{line}:{col}|{desc}'`),
+  in parallel with tier 0. Robocop's own error findings are left to tier 0;
+  style rules such as `DOC03` are dropped:
   - **Hard deprecations** — `DEPR03` `WITH NAME`, `DEPR04` singular section
     headers, `DEPR07` `Force/Default Tags`, `DEPR08` `Run Keyword If/Unless`,
     `DEPR09` loop-exit keywords, `DEPR10` `Return From Keyword*`, `DEPR11`
@@ -147,11 +163,14 @@ banner "A hook prevented chat from continuing" and the model never sees it.
 `validate_robot.mjs` started; the hook takes about 0.7 s.) VS Code does wait
 for `Stop` hooks, so:
 
-- `validate_robot.mjs` records each file with real errors in
-  `<tmpdir>/rf-agentskills-pending-<session_id>.json`, and removes it when a
-  later validation of the file passes.
+- `validate_robot.mjs` records each file with blocking errors or unresolved
+  names in `<tmpdir>/rf-agentskills-pending-<session_id>.json`, and removes it
+  when a later validation of the file is clean.
 - At `Stop`, `report_pending_errors.mjs` re-validates the recorded files (by
-  running `validate_robot.mjs` on each). If any still fail, it blocks with the
+  running `validate_robot.mjs` on each with `RF_AGENTSKILLS_STOP_RECHECK=1`,
+  which makes unresolved names blocking and skips the advisory tiers). So a
+  keyword the agent called but never defined blocks here, while one it defined
+  in a later edit of another file clears. If any file still fails, it blocks with the
   same contract as `validate_robot.mjs`: stderr + exit 2 (Claude Code, Codex,
   VS Code), plus `{"decision": "block", "reason": ...}` on stdout (Copilot). The
   agent then gets one more turn to fix them.
@@ -166,22 +185,17 @@ stays silent. Without a `session_id` nothing is recorded.
 ### Tier 3 — whole project, end of task, opt-in (`validate_robot_project.mjs`)
 
 Fires from `Stop`, **only when `RF_AGENTSKILLS_PROJECT_VALIDATION` is set**
-to a truthy value (`1`/`true`/`yes`/`on`). Runs two cross-file checks that
-only make sense once the whole project is on disk:
+to a truthy value (`1`/`true`/`yes`/`on`). Runs one cross-file check that
+only makes sense once the whole project is on disk:
+`robotcode --format json analyze code --collect-unused` from the project root.
+It reads `robot.toml`, and reports every error-severity diagnostic (unresolved
+keywords and variables, broken imports, argument errors) and every unused
+keyword and variable (`KeywordNotUsed`, `VariableNotUsed`), at most 20 of each.
+The JSON is parsed; robotcode's bitmask exit code is not used.
 
-- `robot --dryrun` over the project — resolves imports and keyword references
-  without executing keyword bodies. Catches undefined keywords, argument
-  errors, and broken imports. **Note:** dryrun's exit code does *not* reflect
-  an import error when the broken import is never used by an executed keyword
-  — those surface only as `[ ERROR ]` console lines, so the hook inspects
-  both the exit code and the output.
-- `robotframework-find-unused keywords` — reports dead (never-called)
-  keywords across the project.
-
-It is **off by default** for two reasons: (1) `robot --dryrun` *imports
-libraries*, which runs their import-time code (a library import could open a
-browser or connect to a database — a real side effect); and (2) both checks
-scale with project size. Running them per-save would also false-alarm
+It is **off by default** for two reasons: (1) the analysis *loads the
+project's libraries* to read their keywords, which runs their import-time
+code; and (2) it scales with project size. Running them per-save would also false-alarm
 constantly — a keyword you just wrote looks "unused" until something calls
 it; a call into a not-yet-written resource looks "undefined". Deferring to
 `Stop` (end of turn) avoids that. When findings exist the hook exits 2 so the
@@ -206,7 +220,7 @@ After every Bash command it scans the output (first 20 000 characters) for Robot
 
 | Error message | Hint |
 |---|---|
-| `No keyword with name '…' found` | embedded arguments (`Select team ${city} ${team:\S+}`; text between arguments is literal), rf-language; exact names via rf-libdoc |
+| `No keyword with name '…' found` | embedded arguments (`Select team ${city} ${team:\S+}`; text between arguments is literal), rf-language; exact names via `robotcode doc keywords <Library> <pattern>` |
 | `Multiple keywords with name '…' found` | qualify the call or use `Set Library Search Order` (rf-language) |
 | `Invalid argument syntax '…'` | typed arguments `${count: int}` need RF 7.3+ (rf-language) |
 | `Resolving variable '…' failed` | scope, import order, `$var` in expressions (rf-language) |
@@ -217,11 +231,11 @@ It never blocks. It always exits 0, and unrelated or malformed input produces no
 ## Python interpreter resolution
 
 `validate_robot.mjs`, `validate_robot_project.mjs`, and
-`check_rf_environment.mjs` shell out to Python for the parts that need
-Robot Framework tooling (`robocop`, `robot --dryrun`,
-`robotframework_find_unused`, `import robot` for the version probe). They
-share `scripts/_python_env.mjs`, which takes the first interpreter that can
-import the needed tool, in this order:
+`check_rf_environment.mjs` run Robot Framework tooling (`robotcode`,
+`robocop`, `robot --dryrun`, `import robot` for the version probe). They share
+`scripts/_python_env.mjs`, which takes the first environment that has the
+needed tool, in this order (for robotcode, the `robotcode` executable in that
+environment's `bin/` or `Scripts\` — robotcode has no `python -m` entry point):
 
 1. the active virtual environment (`$VIRTUAL_ENV`);
 2. the project's `.venv` under the event's `cwd`
@@ -230,8 +244,8 @@ import the needed tool, in this order:
    (written from `sys.executable`; needed for pipx / uv tool installs);
 4. `python3`, then `python` on `PATH`.
 
-The project environment wins so that Robocop sees the project's Robot
-Framework version (version-gated rules such as the `VAR` hint follow it). If
+The project environment wins so that robotcode and Robocop see the project's
+libraries and Robot Framework version (version-gated rules such as the `VAR` hint follow it). If
 the project environment has no Robocop, the search falls through to the
 installer's interpreter, whose RF version may differ — a few version-gated
 hints can then be off. The hooks never start `uv run` or another package
@@ -271,11 +285,10 @@ Robot Framework signal. Non-RF sessions are unaffected.
     `AppiumLibrary`, `RequestsLibrary`, `RESTinstance`, `PlatynUI`, plus
     space-separated forms (`Browser Library`, etc.)
   - rf-agentskills skill ids: `rf-language`, `rf-python-library`,
-    `rf-libdoc`, `rf-results`, `rf-robotcode`, `rf-setup` and the library
-    skills `rf-browser`, `rf-selenium`, `rf-appium`, `rf-requests`,
+    `rf-setup` and the library skills `rf-browser`, `rf-selenium`, `rf-appium`, `rf-requests`,
     `rf-restinstance`, `rf-platynui`
   - rf-agentskills subagent ids: `rf-test-architect`, `rf-debug-expert`,
-    `rf-keyword-consultant`, `rf-migration-guide`
+    `rf-migration-guide`
   - RF section headers pasted into the prompt: `*** Settings ***`,
     `*** Variables ***`, `*** Test Cases ***`, `*** Tasks ***`,
     `*** Keywords ***`, `*** Comments ***`
@@ -288,8 +301,8 @@ Robot Framework signal. Non-RF sessions are unaffected.
   resources and variables → `rf-language`; Python libraries and listeners →
   `rf-python-library`; library usage → the library skill (defaults
   `rf-browser` for web, `rf-requests` for API); installs → `rf-setup`;
-  keyword names and arguments → `rf-libdoc` / `robotcode libdoc`, not
-  memory; and a closing reminder to write RF 7 syntax (`RETURN`, `VAR`,
+  keyword names and arguments → `robotcode doc keyword`, not memory; run
+  results → `robotcode results`, not `output.xml`; and a closing reminder to write RF 7 syntax (`RETURN`, `VAR`,
   `IF`, `Test Tags`). Skill descriptions and subagents are already listed
   by Claude Code, so the text only says which one to use when.
 - On miss: stdout stays empty.
@@ -303,11 +316,12 @@ is a shipped skill or subagent.
 ## What `check_rf_environment.mjs` reports
 
 At `SessionStart` it reports the Robot Framework version and interpreter
-(same resolution as above, from the event's `cwd`), whether Robocop is
-available — without it, syntax and deprecation checks on edit are disabled —
-and which library packages are importable. For missing packages it shows
-project-environment commands (`uv add …`, `uv add --dev
-robotframework-robocop`) and points to the rf-setup skill; it never
+(same resolution as above, from the event's `cwd`), the robotcode version —
+without robotcode (or below 2.8) the error check on edit is disabled, and it
+names the robotcode plugin as the recommended companion — whether Robocop is
+available (deprecation and formatting advice), and which library packages are
+importable. For missing packages it shows project-environment commands
+(`uv add …`, `uv add --dev "robotcode[all]"`) and points to the rf-setup skill; it never
 recommends `pip install` or `rfbrowser init`. A missing, empty or malformed
 event produces no output; it always exits 0.
 
@@ -321,9 +335,9 @@ event produces no output; it always exits 0.
   does not count). Streaming chunking keeps memory bounded on
   long sessions.
 - On hit: emits `additionalContext` reminding the user to run
-  `uv run robot --outputdir results tests/`, inspect with
-  `uv run python "<abs path>/skills/rf-results/scripts/rf_results.py"`
-  (path computed from the hook's own location), and open `results/report.html`.
+  the affected tests (`uv run robotcode robot -bl "<longname>"`), read the
+  results with `uv run robotcode results summary --failed`, and open
+  `results/report.html`.
 - On miss: stdout stays empty.
 
 ## Verifying the hooks fire

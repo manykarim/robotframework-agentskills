@@ -5,8 +5,8 @@
 // the user's prompt for Robot Framework signals, and only emits an
 // additionalContext injection when at least one signal is present.
 // The injection is a short routing text (<= 450 characters): which skill
-// to load for which kind of work, keyword lookup via rf-libdoc /
-// `robotcode libdoc`, and a one-line RF 7 syntax reminder.
+// to load for which kind of work, keyword lookup via `robotcode doc keyword`,
+// results via `robotcode results`, and a one-line RF 7 syntax reminder.
 //
 // Schema:
 //   stdin  — Claude Code UserPromptSubmit event JSON.
@@ -31,12 +31,11 @@ if (!prompt) process.exit(0);
 //   - File extensions: .robot, .resource
 //   - Library names: SeleniumLibrary, Browser Library, AppiumLibrary,
 //     RequestsLibrary, RESTinstance, PlatynUI
-//   - rf-agentskills skill ids (one identifier in every channel): rf-libdoc,
-//     rf-results, rf-robotcode, rf-setup, rf-language, rf-python-library, rf-browser, rf-selenium, rf-appium,
-//     rf-requests, rf-restinstance, rf-platynui (the pre-2.0 short plugin id
-//     "libdoc" is still caught by the generic \blibdoc\b tooling term)
+//   - rf-agentskills skill ids (one identifier in every channel): rf-setup,
+//     rf-language, rf-python-library, rf-browser, rf-selenium, rf-appium,
+//     rf-requests, rf-restinstance, rf-platynui
 //   - rf-agentskills subagent ids: rf-test-architect, rf-debug-expert,
-//     rf-keyword-consultant, rf-migration-guide
+//     rf-migration-guide
 //   - Tooling: libdoc, robotidy, robocop, rfbrowser, robotcode,
 //     robot-debug, robot.toml
 //   - Python library API: @keyword, robot.api.deco, ROBOT_LIBRARY_SCOPE (and
@@ -46,7 +45,7 @@ if (!prompt) process.exit(0);
 //     *** Test Cases ***, *** Tasks ***, *** Keywords ***, *** Comments ***
 //     (singular legacy spellings included)
 // Things NOT matched: bare "test" (too noisy), bare "RF" (ambiguous).
-const RF_REGEX = /robot[ -]?framework|\.robot\b|\.resource\b|\b(selenium|browser|appium|requests)library\b|\brestinstance\b|\b(selenium|browser|appium|requests) library\b|\bplatynui\b|\blibdoc\b|\b(robotidy|robocop|rfbrowser|robotcode)\b|\brobot-debug\b|\brobot\.toml\b|@keyword\b|\brobot\.api\.deco\b|\bROBOT_(LIBRARY|LISTENER)_[A-Z_]+|contains no keywords|\brobot( framework)? listeners?\b|\blistener api\b|\brf-(libdoc|results|robotcode|setup|language|python-library|browser|selenium|appium|requests|restinstance|platynui)\b|\brf-(test-architect|debug-expert|keyword-consultant|migration-guide)\b|\*\*\*\s*(settings?|variables?|test cases?|tasks?|keywords?|comments?)\s*\*\*\*/i;
+const RF_REGEX = /robot[ -]?framework|\.robot\b|\.resource\b|\b(selenium|browser|appium|requests)library\b|\brestinstance\b|\b(selenium|browser|appium|requests) library\b|\bplatynui\b|\blibdoc\b|\b(robotidy|robocop|rfbrowser|robotcode)\b|\brobot-debug\b|\brobot\.toml\b|@keyword\b|\brobot\.api\.deco\b|\bROBOT_(LIBRARY|LISTENER)_[A-Z_]+|contains no keywords|\brobot( framework)? listeners?\b|\blistener api\b|\brf-(setup|language|python-library|browser|selenium|appium|requests|restinstance|platynui)\b|\brf-(test-architect|debug-expert|migration-guide)\b|\*\*\*\s*(settings?|variables?|test cases?|tasks?|keywords?|comments?)\s*\*\*\*/i;
 
 if (!RF_REGEX.test(prompt)) process.exit(0);
 
@@ -58,7 +57,7 @@ const CONTEXT = [
   "tests, suites, keywords, resources, variables -> rf-language; ",
   "Python libraries/listeners -> rf-python-library; ",
   "library usage -> rf-<library> (defaults: rf-browser web, rf-requests API); installs -> rf-setup. ",
-  "Check keyword names/arguments with rf-libdoc or `robotcode libdoc` (rf-robotcode), not memory. ",
+  "Check keywords with `robotcode doc keyword`, not memory; results: `robotcode results`, not output.xml. ",
   "Write RF 7 syntax: RETURN, VAR, IF, Test Tags.",
 ].join("");
 

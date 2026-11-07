@@ -91,10 +91,10 @@ def test_switching_from_files_to_plugin_removes_copies_and_old_hooks(tmp_path: P
     project = tmp_path / "proj"
     project.mkdir()
     assert _install(project, "--agent", "claude-code") == 0
-    assert (project / ".claude" / "skills" / "rf-libdoc" / "SKILL.md").is_file()
+    assert (project / ".claude" / "skills" / "rf-python-library" / "SKILL.md").is_file()
     assert "hooks" in _settings(project / ".claude" / "settings.json")
     assert _install(project, "--agent", "claude-code", "--mode", "plugin") == 0
-    assert not (project / ".claude" / "skills" / "rf-libdoc" / "SKILL.md").exists()
+    assert not (project / ".claude" / "skills" / "rf-python-library" / "SKILL.md").exists()
     data = _settings(project / ".claude" / "settings.json")
     assert not data.get("hooks") and data["enabledPlugins"] == {PLUGIN_ID: True}
 
@@ -109,7 +109,7 @@ def test_codex_plugin_mode_installs_agents_and_prints_commands(
     project.mkdir()
     assert _install(project, "--agent", "codex", "--mode", "plugin", "--ref", "v2.1.0") == 0
     agents = sorted(p.name for p in (project / ".codex" / "agents").glob("*.toml"))
-    assert len(agents) == 4 and "rf-debug-expert.toml" in agents
+    assert len(agents) == 3 and "rf-debug-expert.toml" in agents
     out = " ".join(capsys.readouterr().out.split())
     assert "codex plugin marketplace add manykarim/robotframework-agentskills --ref v2.1.0" in out
     assert f"codex plugin add {PLUGIN_ID}" in out and "/hooks" in out

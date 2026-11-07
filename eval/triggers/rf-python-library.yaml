@@ -30,8 +30,8 @@ queries:
   - {id: pylib-n05, split: train, should_trigger: false, note: "sibling rf-language", query: "Call a Python expression inline in my robot test to compute a date"}
   - {id: pylib-n06, split: train, should_trigger: false, note: "non-RF look-alike", query: "Write a Python decorator that logs how long a function takes"}
   # should NOT trigger (validation)
-  - {id: pylib-n07, split: validation, should_trigger: false, note: "sibling rf-robotcode", query: "Debug the failing robot test at a breakpoint"}
-  - {id: pylib-n08, split: validation, should_trigger: false, note: "sibling rf-libdoc", query: "What arguments does Browser's Click keyword take?"}
+  - {id: pylib-n07, split: validation, should_trigger: false, note: "sibling robotcode-plugin", query: "Debug the failing robot test at a breakpoint"}
+  - {id: pylib-n08, split: validation, should_trigger: false, note: "sibling robotcode-plugin", query: "What arguments does Browser's Click keyword take?"}
   - {id: pylib-n09, split: validation, should_trigger: false, note: "non-RF look-alike", query: "Write a Flask route that returns JSON"}
   - {id: pylib-n10, split: validation, should_trigger: false, note: "non-RF look-alike", query: "Add an event listener in JavaScript that tracks button clicks"}
   # retired holdout (tune-skill-descriptions task 7.1): its results were inspected in the
@@ -43,6 +43,6 @@ queries:
   - {id: pylib-h05, split: train, should_trigger: true, note: "retired holdout (2026-09-30 evidence)", query: "Make my Python library log an HTML table into the robot log.html"}
   - {id: pylib-h06, split: train, should_trigger: false, note: "sibling rf-language; retired holdout (2026-09-30 evidence)", query: "Write a user keyword in keywords/orders.resource that creates an order and returns its id"}
   - {id: pylib-h07, split: train, should_trigger: false, note: "sibling rf-requests; retired holdout (2026-09-30 evidence)", query: "Call our /payments endpoint with RequestsLibrary and check the response JSON"}
-  - {id: pylib-h08, split: train, should_trigger: false, note: "sibling rf-libdoc; retired holdout (2026-09-30 evidence)", query: "Which BuiltIn keyword evaluates a Python expression?"}
+  - {id: pylib-h08, split: train, should_trigger: false, note: "sibling robotcode-plugin; retired holdout (2026-09-30 evidence)", query: "Which BuiltIn keyword evaluates a Python expression?"}
   - {id: pylib-h09, split: train, should_trigger: false, note: "non-RF look-alike; retired holdout (2026-09-30 evidence)", query: "Write a Click CLI command in Python with two options"}
   - {id: pylib-h10, split: train, should_trigger: false, note: "non-RF look-alike; retired holdout (2026-09-30 evidence)", query: "Package my Python module for PyPI with hatchling"}

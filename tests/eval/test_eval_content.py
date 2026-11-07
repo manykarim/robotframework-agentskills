@@ -85,7 +85,6 @@ NARROW = [
     "narrow-requests-users-01",
     "narrow-restinstance-schema-01",
     "narrow-platynui-calculator-01",
-    "narrow-robotcode-discover-01",
     "narrow-setup-requests-01",
 ]
 

@@ -260,7 +260,7 @@ def _tasks(tmp_path: Path) -> Path:
     tasks.mkdir(parents=True)
     (tasks / "t.yaml").write_text(
         yaml.safe_dump(
-            {"id": "narrow-t", "skill": "rf-results", "tier": "narrow", "prompt": "x",
+            {"id": "narrow-t", "skill": "rf-requests", "tier": "narrow", "prompt": "x",
              "primary_metric": "file_exists",
              "grader_checks": [{"type": "file_exists", "path": "out.txt"}]}
         )

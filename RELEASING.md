@@ -55,10 +55,10 @@ Marketplace installs read the plugin straight from this repository's
 git tree, so a git ref is the version a user gets:
 
 - No ref: the default branch (`main`), i.e. unreleased content.
-- `v<version>` tag (e.g. `v2.1.0`): exactly that content release. This is
-  what users pin to: `rf-agentskills install --mode plugin --ref v2.1.0`,
-  `codex plugin marketplace add manykarim/robotframework-agentskills --ref v2.1.0`,
-  or `"ref": "v2.1.0"` in `extraKnownMarketplaces`.
+- `v<version>` tag (e.g. `v3.0.0`): exactly that content release. This is
+  what users pin to: `rf-agentskills install --mode plugin --ref v3.0.0`,
+  `codex plugin marketplace add manykarim/robotframework-agentskills --ref v3.0.0`,
+  or `"ref": "v3.0.0"` in `extraKnownMarketplaces`.
 - `stable` / `latest` branches: the most recent release, moved by
   `release.yml`.
 

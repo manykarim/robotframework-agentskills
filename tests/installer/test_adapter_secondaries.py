@@ -129,7 +129,7 @@ def test_codex_installs_the_committed_toml_variants(
     base = (project if scope == "project" else fake_home) / ".codex" / "agents"
     with _assets.asset_root_path() as src_root:
         variants = sorted((src_root / "variants" / "codex" / "agents").glob("*.toml"))
-        assert sorted(agents) == [v.name for v in variants] and len(variants) == 4
+        assert sorted(agents) == [v.name for v in variants] and len(variants) == 3
         for v in variants:
             assert agents[v.name].dst == base / v.name
             assert agents[v.name].payload == v.read_bytes()
@@ -302,7 +302,7 @@ def test_opencode_installs_generated_subagents(install_prefix: Path) -> None:
     assert cls is not None
     plan = cls().plan(InstallOptions(prefix=install_prefix))
     agent_targets = [t for t in plan.targets if t.dst.parent == install_prefix / "agents"]
-    assert len(agent_targets) == 4
+    assert len(agent_targets) == 3
     for t in agent_targets:
         assert t.transform_name == "opencode_agent_variant"
         # Windows checkouts may carry CRLF; OpenCode parses either.
@@ -368,16 +368,16 @@ def test_claude_desktop_emits_one_upload_zip_per_skill(install_prefix: Path) -> 
     assert plan.merges == ()
     zips = {t.dst.name: t for t in plan.targets}
     assert all(t.dst.parent == install_prefix for t in plan.targets)
-    assert "rf-browser.zip" in zips and "rf-results.zip" in zips
+    assert "rf-browser.zip" in zips and "rf-language.zip" in zips
     with _assets.asset_root_path() as src_root:
         shipped = sorted(p.name for p in (src_root / "skills").iterdir()
                          if (p / "SKILL.md").is_file())
     assert sorted(n.removesuffix(".zip") for n in zips) == shipped
-    names = zipfile.ZipFile(io.BytesIO(zips["rf-results.zip"].payload)).namelist()
+    names = zipfile.ZipFile(io.BytesIO(zips["rf-language.zip"].payload)).namelist()
     # the skill folder is the archive root, as Claude's skill upload expects
-    assert "rf-results/SKILL.md" in names
-    assert "rf-results/scripts/rf_results.py" in names
-    assert all(n.startswith("rf-results/") and "__pycache__" not in n for n in names)
+    assert "rf-language/SKILL.md" in names
+    assert "rf-language/scripts/rf_conventions.py" in names
+    assert all(n.startswith("rf-language/") and "__pycache__" not in n for n in names)
     # deterministic: the same tree gives the same bytes (manifest hashes)
     again = cls().plan(InstallOptions(prefix=install_prefix))
     assert {t.dst.name: t.payload for t in again.targets} == {
@@ -432,7 +432,7 @@ def test_claude_desktop_e2e_round_trip(
 ) -> None:
     rc = main(["install", "--agent", "claude-desktop", "--prefix", str(install_prefix)])
     assert rc == 0
-    assert (install_prefix / "rf-libdoc.zip").is_file()
+    assert (install_prefix / "rf-python-library.zip").is_file()
     assert not (install_prefix / "claude_desktop_config.json").exists()
 
     rc = main(["uninstall", "--agent", "claude-desktop"])
@@ -512,8 +512,8 @@ def test_skill_script_paths_rendered_absolute_for_non_expanding_agents(
     rc = main(["install", "--agent", agent, "--prefix", str(install_prefix)])
     assert rc == 0
     for skill, script in (
-        ("rf-libdoc", "rf_libdoc.py"),
-        ("rf-results", "rf_results.py"),
+        ("rf-python-library", "check_library.py"),
+        ("rf-language", "rf_conventions.py"),
         ("rf-language", "rf_conventions.py"),
         ("rf-python-library", "check_library.py"),
     ):
@@ -536,7 +536,7 @@ def test_no_agent_stages_the_retired_mcp_server(install_prefix: Path, fake_home:
     assert not list(install_prefix.rglob("servers"))
     support = install_prefix / "rf-agentskills-files"
     if agent in ("codex", "cursor"):
-        assert (support / "skills" / "rf-results" / "scripts" / "rf_results.py").is_file()
+        assert (support / "skills" / "rf-language" / "scripts" / "rf_conventions.py").is_file()
         assert not list((support / "scripts").glob("*.py"))
     elif agent == "opencode":  # hook scripts for the OpenCode plugin
         assert (support / "scripts" / "validate_robot.mjs").is_file()

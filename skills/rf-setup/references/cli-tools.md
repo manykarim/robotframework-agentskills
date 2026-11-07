@@ -6,8 +6,8 @@
 |---|---|
 | `rf-agentskills` (this skill bundle's installer) | `robotframework` |
 | `uv` itself (`pipx install uv`) | Every test library (Browser, SeleniumLibrary, RequestsLibrary, …) |
-| `platynui-cli`, `platynui-inspector` (optional PlatynUI tools) | `robotcode` (it imports your libraries for `libdoc`, `discover`, `analyze`) |
-| One-off commands: `uvx rf-agentskills install` | `robocop` when it should use the project's RF version (recommended) |
+| `platynui-cli`, `platynui-inspector` (optional PlatynUI tools) | `robotcode[all]` (it imports your libraries for `doc`, `discover`, `analyze`; never `uvx robotcode`) |
+| One-off commands: `uvx rf-agentskills install` | `robocop` (comes with `robotcode[all]`; uses the project's RF version) |
 
 Why: a library installed with `pipx install robotframework-browser` lives in `~/.local/pipx/venvs/robotframework-browser/`. Your project's `robot` can't import it, so you get `No module named 'Browser'` or `Importing library 'Browser' failed`.
 
@@ -30,4 +30,4 @@ Pre-release tools need an opt-in: `uv tool install --prerelease allow platynui-c
 
 ## Hooks and the rf-agentskills installer
 
-The rf-agentskills hooks (validation, environment check) run Python. The installer records the interpreter it was installed with in `python_runtime.json`, and the hooks prefer it. If hooks report "robotframework not installed" although the project has it, the hooks are using a different interpreter than the project. Install rf-agentskills (or at least `robotframework-robocop`) into the project env, or rerun the installer from inside the project env: `uv run rf-agentskills install` after `uv add --dev rf-agentskills`.
+The rf-agentskills hooks (validation, environment check) run Python. The installer records the interpreter it was installed with in `python_runtime.json`, and the hooks prefer it. If hooks report "robotframework not installed" although the project has it, the hooks are using a different interpreter than the project. Install `robotcode[all]` into the project env (see the robotcode step in SKILL.md), or rerun the installer from inside the project env: `uv run rf-agentskills install` after `uv add --dev rf-agentskills`.

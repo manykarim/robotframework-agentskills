@@ -115,8 +115,8 @@ def test_browser_set_has_selenium_and_pytest_playwright_near_misses() -> None:
         ("rf-selenium", "rf-browser"),
         ("rf-requests", "rf-restinstance"),
         ("rf-restinstance", "rf-requests"),
-        ("rf-results", "rf-robotcode"),
-        ("rf-libdoc", "rf-robotcode"),
+        ("rf-language", "robotcode-plugin"),
+        ("rf-setup", "robotcode-plugin"),
         ("rf-setup", "rf-browser"),
     ],
 )
