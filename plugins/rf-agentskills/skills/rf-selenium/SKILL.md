@@ -5,7 +5,7 @@ license: Apache-2.0
 compatibility: Requires Python 3.10+, robotframework>=7, robotcode[all]>=2.8 in the project environment and robotframework-seleniumlibrary 6.x, plus a locally installed browser (drivers resolved by Selenium Manager) or a Selenium Grid URL.
 metadata:
   author: manykarim
-  version: "2.0.0"
+  version: "3.0.0"
 ---
 
 

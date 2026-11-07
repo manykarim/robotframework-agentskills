@@ -5,7 +5,7 @@ license: Apache-2.0
 compatibility: Requires Python 3.10+, robotframework>=7, robotcode[all]>=2.8 and robotframework-browser in the project environment. Node.js 22+ LTS only when the robotframework-browser[bb] batteries extra is not used. Needs network access for rfbrowser install.
 metadata:
   author: manykarim
-  version: "2.0.0"
+  version: "3.0.0"
 ---
 
 # Browser Library Skill

@@ -1,6 +1,6 @@
 {
   "name": "rf-agentskills",
-  "version": "2.0.0",
+  "version": "3.0.0",
   "description": "Robot Framework agent skills for Claude Code - library references, environment setup, robotcode CLI, libdoc keyword lookup, and results analysis",
   "author": {
     "name": "manykarim",
