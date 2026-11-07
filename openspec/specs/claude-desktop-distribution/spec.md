@@ -5,13 +5,14 @@ Give Claude Desktop and claude.ai users the skills themselves, as upload-ready a
 
 ## Requirements
 
+
 ### Requirement: One upload archive per skill
 
 The project SHALL produce, for every shipped skill, a `<skill>.zip` whose root entry is the skill folder (`<skill>/SKILL.md` plus its `references/`, `scripts/`, `assets/` tree), without bytecode caches. The same skill tree SHALL always yield byte-identical archives. `scripts/build-skill-zips.py` SHALL build them using only the Python standard library.
 
 #### Scenario: Archive layout
-- **WHEN** `rf-results.zip` is listed
-- **THEN** it contains `rf-results/SKILL.md` and `rf-results/scripts/rf_results.py`, and every entry starts with `rf-results/`
+- **WHEN** `rf-language.zip` is listed
+- **THEN** it contains `rf-language/SKILL.md` and `rf-language/scripts/rf_conventions.py`, every entry starts with `rf-language/`, and no `rf-libdoc.zip`, `rf-results.zip` or `rf-robotcode.zip` is produced
 
 #### Scenario: Deterministic
 - **WHEN** the archives are built twice from the same tree
@@ -23,7 +24,7 @@ The project SHALL produce, for every shipped skill, a `<skill>.zip` whose root e
 
 #### Scenario: Install and uninstall
 - **WHEN** the Claude Desktop install runs with `--prefix P` and is then uninstalled
-- **THEN** `P/rf-libdoc.zip` existed after install, no `claude_desktop_config.json` was written, and no file is left after uninstall
+- **THEN** `P/rf-language.zip` existed after install, no `claude_desktop_config.json` was written, and no file is left after uninstall
 
 ### Requirement: CI and releases publish the archives
 

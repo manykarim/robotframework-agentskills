@@ -5,6 +5,7 @@ Define the structure, content rules, size budget, reference and example rules, a
 
 ## Requirements
 
+
 ### Requirement: Library skills follow the standard SKILL.md skeleton
 
 Each library skill's `SKILL.md` (`skills/rf-{browser,selenium,appium,requests,restinstance}/SKILL.md`) SHALL contain these level-2 sections in this order:
@@ -58,15 +59,15 @@ The `Which keyword for which situation` section SHALL be a table that maps commo
 
 ### Requirement: Library skills include an agent workflow with a validate-and-fix loop
 
-The `Agent workflow` section SHALL be a numbered list that has the agent, in order: look up the signatures of the keywords it plans to use with libdoc (`robotcode libdoc <Library> show "<Keyword>"`, or the `rf-libdoc` script skill when robotcode is not available); write the test; run `robot --dryrun` on the changed suites; run the tests; read the results with `robotcode results` (or the `rf-results` skill); and fix and repeat from the dry run until the tests pass or the failure is shown to be in the system under test.
+The `Agent workflow` section SHALL be a numbered list that has the agent, in order: look up the signatures of the keywords it plans to use (`robotcode doc keyword <Library> "<Keyword>"`); write the test; run `robotcode analyze code` on the changed files and fix every error; run the tests by longname (`robotcode robot -bl "<longname>"`) or a whole directory; read the results with `robotcode results show --failed` and `robotcode results log -bl "<longname>"`; and fix and repeat from the static check until the tests pass or the failure is shown to be in the system under test.
 
 #### Scenario: Workflow steps present in order
 - **WHEN** the `Agent workflow` section of any library skill is read
-- **THEN** it is a numbered list that names libdoc lookup, writing, `robot --dryrun`, running, reading results, and fixing in that order, and it says the loop goes back to the dry run after a fix
+- **THEN** it is a numbered list that names keyword lookup, writing, `robotcode analyze code`, running, reading results, and fixing in that order, and it says the loop goes back to the static check after a fix
 
 #### Scenario: Both tool paths named
 - **WHEN** the workflow is read
-- **THEN** the libdoc and results steps each name the robotcode command and the script-based fallback skill
+- **THEN** the lookup, check, run and results steps each give a complete `robotcode` command, and no step names `rf-libdoc` or `rf-results`
 
 ### Requirement: Library skills keep library-specific traps in a Gotchas section
 
@@ -94,7 +95,7 @@ Each library `SKILL.md` SHALL be at most 250 lines and at most 12,000 characters
 
 ### Requirement: Library skills query libdoc instead of shipping keyword catalogs
 
-The library skills SHALL NOT contain a keyword catalog file. `references/keywords-reference.md` SHALL NOT exist in any of the five library skills or their distribution copies. Each `SKILL.md` SHALL tell the agent how to list and show keywords with libdoc (`robotcode libdoc <Library> list "<pattern>"` and `robotcode libdoc <Library> show "<Keyword>"`, or the `rf-libdoc` script skill), using the library's import name.
+The library skills SHALL NOT contain a keyword catalog file. `references/keywords-reference.md` SHALL NOT exist in any of the five library skills or their distribution copies. Each `SKILL.md` SHALL tell the agent how to list and show keywords with `robotcode doc keywords <Library> "<pattern>"` and `robotcode doc keyword <Library> "<Keyword>"`, using the library's import name.
 
 #### Scenario: Catalog files absent in all channels
 - **WHEN** `skills/` and `plugins/rf-agentskills/skills/` are searched for `keywords-reference.md` under the five library skills
@@ -102,7 +103,7 @@ The library skills SHALL NOT contain a keyword catalog file. `references/keyword
 
 #### Scenario: Libdoc instruction present
 - **WHEN** a library `SKILL.md` is read
-- **THEN** it contains a `robotcode libdoc <Library>` command with that library's import name (`Browser`, `SeleniumLibrary`, `AppiumLibrary`, `RequestsLibrary`, `REST`) and names the `rf-libdoc` script skill as the fallback
+- **THEN** it contains a `robotcode doc keyword <Library>` command with that library's import name (`Browser`, `SeleniumLibrary`, `AppiumLibrary`, `RequestsLibrary`, `REST`) and does not name `rf-libdoc`
 
 ### Requirement: Reference files are gated, shallow and navigable
 
