@@ -23,7 +23,7 @@ def make_result(
     skipped: str | None = None,
     skill: str = "rf-browser",
     tier: str = "narrow",
-    model: str = "claude-haiku-4-5-20251001",
+    model: str = "claude-haiku-5-5",
     input_tokens: int = 1000,
     output_tokens: int = 200,
     turns: int = 4,

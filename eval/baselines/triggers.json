@@ -1,777 +1,34 @@
 {
   "acceptance_basis": "6 runs per query on validation; gate compares run-level loads (positive_/negative_ counts) with a one-sided Fisher exact test. train/holdout3 entries: 3 runs per query, informational",
-  "budget_40000": {
-    "co_installed": {
-      "lang_r01_rf_language_loads": [
-        0,
-        3
-      ],
-      "robotcode_listing": {
-        "desc": 879
-      },
-      "runs_per_query": 3,
-      "skills": {
-        "rf-appium": {
-          "train": {
-            "accuracy": 0.9565,
-            "fn": 0,
-            "fp": 1,
-            "negative_loads": 2,
-            "negative_runs": 33,
-            "positive_loads": 36,
-            "positive_runs": 36,
-            "precision": 0.9231,
-            "queries": 23,
-            "recall": 1.0,
-            "robotcode_loads": {
-              "on_should_not_trigger": 0,
-              "on_should_trigger": 0
-            },
-            "tn": 10,
-            "tp": 12
-          },
-          "validation": {
-            "accuracy": 1.0,
-            "fn": 0,
-            "fp": 0,
-            "negative_loads": 0,
-            "negative_runs": 12,
-            "positive_loads": 12,
-            "positive_runs": 12,
-            "precision": 1.0,
-            "queries": 8,
-            "recall": 1.0,
-            "robotcode_loads": {
-              "on_should_not_trigger": 0,
-              "on_should_trigger": 0
-            },
-            "tn": 4,
-            "tp": 4
-          }
-        },
-        "rf-browser": {
-          "holdout3": {
-            "accuracy": 1.0,
-            "fn": 0,
-            "fp": 0,
-            "negative_loads": 0,
-            "negative_runs": 9,
-            "positive_loads": 0,
-            "positive_runs": 0,
-            "precision": null,
-            "queries": 3,
-            "recall": null,
-            "robotcode_loads": {
-              "on_should_not_trigger": 9,
-              "on_should_trigger": 0
-            },
-            "tn": 3,
-            "tp": 0
-          },
-          "train": {
-            "accuracy": 1.0,
-            "fn": 0,
-            "fp": 0,
-            "negative_loads": 0,
-            "negative_runs": 33,
-            "positive_loads": 35,
-            "positive_runs": 36,
-            "precision": 1.0,
-            "queries": 23,
-            "recall": 1.0,
-            "robotcode_loads": {
-              "on_should_not_trigger": 4,
-              "on_should_trigger": 0
-            },
-            "tn": 11,
-            "tp": 12
-          },
-          "validation": {
-            "accuracy": 0.875,
-            "fn": 1,
-            "fp": 0,
-            "negative_loads": 0,
-            "negative_runs": 12,
-            "positive_loads": 10,
-            "positive_runs": 12,
-            "precision": 1.0,
-            "queries": 8,
-            "recall": 0.75,
-            "robotcode_loads": {
-              "on_should_not_trigger": 0,
-              "on_should_trigger": 1
-            },
-            "tn": 4,
-            "tp": 3
-          }
-        },
-        "rf-language": {
-          "holdout3": {
-            "accuracy": 1.0,
-            "fn": 0,
-            "fp": 0,
-            "negative_loads": 0,
-            "negative_runs": 12,
-            "positive_loads": 0,
-            "positive_runs": 0,
-            "precision": null,
-            "queries": 4,
-            "recall": null,
-            "robotcode_loads": {
-              "on_should_not_trigger": 12,
-              "on_should_trigger": 0
-            },
-            "tn": 4,
-            "tp": 0
-          },
-          "train": {
-            "accuracy": 0.84,
-            "fn": 4,
-            "fp": 0,
-            "negative_loads": 1,
-            "negative_runs": 36,
-            "positive_loads": 25,
-            "positive_runs": 39,
-            "precision": 1.0,
-            "queries": 25,
-            "recall": 0.6923,
-            "robotcode_loads": {
-              "on_should_not_trigger": 6,
-              "on_should_trigger": 9
-            },
-            "tn": 12,
-            "tp": 9
-          },
-          "validation": {
-            "accuracy": 0.8182,
-            "fn": 2,
-            "fp": 0,
-            "negative_loads": 0,
-            "negative_runs": 15,
-            "positive_loads": 10,
-            "positive_runs": 18,
-            "precision": 1.0,
-            "queries": 11,
-            "recall": 0.6667,
-            "robotcode_loads": {
-              "on_should_not_trigger": 3,
-              "on_should_trigger": 2
-            },
-            "tn": 5,
-            "tp": 4
-          }
-        },
-        "rf-platynui": {
-          "train": {
-            "accuracy": 1.0,
-            "fn": 0,
-            "fp": 0,
-            "negative_loads": 0,
-            "negative_runs": 33,
-            "positive_loads": 36,
-            "positive_runs": 36,
-            "precision": 1.0,
-            "queries": 23,
-            "recall": 1.0,
-            "robotcode_loads": {
-              "on_should_not_trigger": 1,
-              "on_should_trigger": 0
-            },
-            "tn": 11,
-            "tp": 12
-          },
-          "validation": {
-            "accuracy": 1.0,
-            "fn": 0,
-            "fp": 0,
-            "negative_loads": 0,
-            "negative_runs": 12,
-            "positive_loads": 12,
-            "positive_runs": 12,
-            "precision": 1.0,
-            "queries": 8,
-            "recall": 1.0,
-            "robotcode_loads": {
-              "on_should_not_trigger": 2,
-              "on_should_trigger": 0
-            },
-            "tn": 4,
-            "tp": 4
-          }
-        },
-        "rf-python-library": {
-          "train": {
-            "accuracy": 1.0,
-            "fn": 0,
-            "fp": 0,
-            "negative_loads": 0,
-            "negative_runs": 33,
-            "positive_loads": 33,
-            "positive_runs": 33,
-            "precision": 1.0,
-            "queries": 22,
-            "recall": 1.0,
-            "robotcode_loads": {
-              "on_should_not_trigger": 1,
-              "on_should_trigger": 0
-            },
-            "tn": 11,
-            "tp": 11
-          },
-          "validation": {
-            "accuracy": 0.75,
-            "fn": 2,
-            "fp": 0,
-            "negative_loads": 0,
-            "negative_runs": 12,
-            "positive_loads": 7,
-            "positive_runs": 12,
-            "precision": 1.0,
-            "queries": 8,
-            "recall": 0.5,
-            "robotcode_loads": {
-              "on_should_not_trigger": 4,
-              "on_should_trigger": 0
-            },
-            "tn": 4,
-            "tp": 2
-          }
-        },
-        "rf-requests": {
-          "holdout3": {
-            "accuracy": 1.0,
-            "fn": 0,
-            "fp": 0,
-            "negative_loads": 0,
-            "negative_runs": 9,
-            "positive_loads": 0,
-            "positive_runs": 0,
-            "precision": null,
-            "queries": 3,
-            "recall": null,
-            "robotcode_loads": {
-              "on_should_not_trigger": 9,
-              "on_should_trigger": 0
-            },
-            "tn": 3,
-            "tp": 0
-          },
-          "train": {
-            "accuracy": 1.0,
-            "fn": 0,
-            "fp": 0,
-            "negative_loads": 0,
-            "negative_runs": 33,
-            "positive_loads": 36,
-            "positive_runs": 36,
-            "precision": 1.0,
-            "queries": 23,
-            "recall": 1.0,
-            "robotcode_loads": {
-              "on_should_not_trigger": 2,
-              "on_should_trigger": 0
-            },
-            "tn": 11,
-            "tp": 12
-          },
-          "validation": {
-            "accuracy": 1.0,
-            "fn": 0,
-            "fp": 0,
-            "negative_loads": 0,
-            "negative_runs": 12,
-            "positive_loads": 12,
-            "positive_runs": 12,
-            "precision": 1.0,
-            "queries": 8,
-            "recall": 1.0,
-            "robotcode_loads": {
-              "on_should_not_trigger": 0,
-              "on_should_trigger": 0
-            },
-            "tn": 4,
-            "tp": 4
-          }
-        },
-        "rf-restinstance": {
-          "train": {
-            "accuracy": 0.9565,
-            "fn": 0,
-            "fp": 1,
-            "negative_loads": 2,
-            "negative_runs": 33,
-            "positive_loads": 35,
-            "positive_runs": 36,
-            "precision": 0.9231,
-            "queries": 23,
-            "recall": 1.0,
-            "robotcode_loads": {
-              "on_should_not_trigger": 2,
-              "on_should_trigger": 1
-            },
-            "tn": 10,
-            "tp": 12
-          },
-          "validation": {
-            "accuracy": 1.0,
-            "fn": 0,
-            "fp": 0,
-            "negative_loads": 0,
-            "negative_runs": 12,
-            "positive_loads": 11,
-            "positive_runs": 12,
-            "precision": 1.0,
-            "queries": 8,
-            "recall": 1.0,
-            "robotcode_loads": {
-              "on_should_not_trigger": 3,
-              "on_should_trigger": 0
-            },
-            "tn": 4,
-            "tp": 4
-          }
-        },
-        "rf-selenium": {
-          "train": {
-            "accuracy": 1.0,
-            "fn": 0,
-            "fp": 0,
-            "negative_loads": 0,
-            "negative_runs": 33,
-            "positive_loads": 36,
-            "positive_runs": 36,
-            "precision": 1.0,
-            "queries": 23,
-            "recall": 1.0,
-            "robotcode_loads": {
-              "on_should_not_trigger": 0,
-              "on_should_trigger": 0
-            },
-            "tn": 11,
-            "tp": 12
-          },
-          "validation": {
-            "accuracy": 1.0,
-            "fn": 0,
-            "fp": 0,
-            "negative_loads": 0,
-            "negative_runs": 12,
-            "positive_loads": 11,
-            "positive_runs": 12,
-            "precision": 1.0,
-            "queries": 8,
-            "recall": 1.0,
-            "robotcode_loads": {
-              "on_should_not_trigger": 2,
-              "on_should_trigger": 0
-            },
-            "tn": 4,
-            "tp": 4
-          }
-        },
-        "rf-setup": {
-          "train": {
-            "accuracy": 1.0,
-            "fn": 0,
-            "fp": 0,
-            "negative_loads": 0,
-            "negative_runs": 33,
-            "positive_loads": 35,
-            "positive_runs": 36,
-            "precision": 1.0,
-            "queries": 23,
-            "recall": 1.0,
-            "robotcode_loads": {
-              "on_should_not_trigger": 9,
-              "on_should_trigger": 0
-            },
-            "tn": 11,
-            "tp": 12
-          },
-          "validation": {
-            "accuracy": 1.0,
-            "fn": 0,
-            "fp": 0,
-            "negative_loads": 0,
-            "negative_runs": 12,
-            "positive_loads": 12,
-            "positive_runs": 12,
-            "precision": 1.0,
-            "queries": 8,
-            "recall": 1.0,
-            "robotcode_loads": {
-              "on_should_not_trigger": 0,
-              "on_should_trigger": 0
-            },
-            "tn": 4,
-            "tp": 4
-          }
-        }
-      },
-      "splits": [
-        "train",
-        "validation",
-        "holdout3"
-      ],
-      "variant_id": "b2f8c14081a3"
-    },
-    "note": "SLASH_COMMAND_TOOL_CHAR_BUDGET=40000 (1M-context models). Reported, not gating.",
-    "solo": {
-      "robotcode_listing": {
-        "absent": 879
-      },
-      "runs_per_query": 3,
-      "skills": {
-        "rf-appium": {
-          "train": {
-            "accuracy": 1.0,
-            "fn": 0,
-            "fp": 0,
-            "negative_loads": 0,
-            "negative_runs": 33,
-            "positive_loads": 36,
-            "positive_runs": 36,
-            "precision": 1.0,
-            "queries": 23,
-            "recall": 1.0,
-            "tn": 11,
-            "tp": 12
-          },
-          "validation": {
-            "accuracy": 1.0,
-            "fn": 0,
-            "fp": 0,
-            "negative_loads": 0,
-            "negative_runs": 12,
-            "positive_loads": 12,
-            "positive_runs": 12,
-            "precision": 1.0,
-            "queries": 8,
-            "recall": 1.0,
-            "tn": 4,
-            "tp": 4
-          }
-        },
-        "rf-browser": {
-          "holdout3": {
-            "accuracy": 1.0,
-            "fn": 0,
-            "fp": 0,
-            "negative_loads": 1,
-            "negative_runs": 9,
-            "positive_loads": 0,
-            "positive_runs": 0,
-            "precision": null,
-            "queries": 3,
-            "recall": null,
-            "tn": 3,
-            "tp": 0
-          },
-          "train": {
-            "accuracy": 1.0,
-            "fn": 0,
-            "fp": 0,
-            "negative_loads": 0,
-            "negative_runs": 33,
-            "positive_loads": 36,
-            "positive_runs": 36,
-            "precision": 1.0,
-            "queries": 23,
-            "recall": 1.0,
-            "tn": 11,
-            "tp": 12
-          },
-          "validation": {
-            "accuracy": 1.0,
-            "fn": 0,
-            "fp": 0,
-            "negative_loads": 0,
-            "negative_runs": 12,
-            "positive_loads": 11,
-            "positive_runs": 12,
-            "precision": 1.0,
-            "queries": 8,
-            "recall": 1.0,
-            "tn": 4,
-            "tp": 4
-          }
-        },
-        "rf-language": {
-          "holdout3": {
-            "accuracy": 0.5,
-            "fn": 0,
-            "fp": 2,
-            "negative_loads": 6,
-            "negative_runs": 12,
-            "positive_loads": 0,
-            "positive_runs": 0,
-            "precision": 0.0,
-            "queries": 4,
-            "recall": null,
-            "tn": 2,
-            "tp": 0
-          },
-          "train": {
-            "accuracy": 0.84,
-            "fn": 3,
-            "fp": 1,
-            "negative_loads": 3,
-            "negative_runs": 36,
-            "positive_loads": 32,
-            "positive_runs": 39,
-            "precision": 0.9091,
-            "queries": 25,
-            "recall": 0.7692,
-            "tn": 11,
-            "tp": 10
-          },
-          "validation": {
-            "accuracy": 0.8182,
-            "fn": 2,
-            "fp": 0,
-            "negative_loads": 0,
-            "negative_runs": 15,
-            "positive_loads": 11,
-            "positive_runs": 18,
-            "precision": 1.0,
-            "queries": 11,
-            "recall": 0.6667,
-            "tn": 5,
-            "tp": 4
-          }
-        },
-        "rf-platynui": {
-          "train": {
-            "accuracy": 1.0,
-            "fn": 0,
-            "fp": 0,
-            "negative_loads": 0,
-            "negative_runs": 33,
-            "positive_loads": 36,
-            "positive_runs": 36,
-            "precision": 1.0,
-            "queries": 23,
-            "recall": 1.0,
-            "tn": 11,
-            "tp": 12
-          },
-          "validation": {
-            "accuracy": 1.0,
-            "fn": 0,
-            "fp": 0,
-            "negative_loads": 0,
-            "negative_runs": 12,
-            "positive_loads": 11,
-            "positive_runs": 12,
-            "precision": 1.0,
-            "queries": 8,
-            "recall": 1.0,
-            "tn": 4,
-            "tp": 4
-          }
-        },
-        "rf-python-library": {
-          "train": {
-            "accuracy": 1.0,
-            "fn": 0,
-            "fp": 0,
-            "negative_loads": 1,
-            "negative_runs": 33,
-            "positive_loads": 33,
-            "positive_runs": 33,
-            "precision": 1.0,
-            "queries": 22,
-            "recall": 1.0,
-            "tn": 11,
-            "tp": 11
-          },
-          "validation": {
-            "accuracy": 0.875,
-            "fn": 1,
-            "fp": 0,
-            "negative_loads": 0,
-            "negative_runs": 12,
-            "positive_loads": 9,
-            "positive_runs": 12,
-            "precision": 1.0,
-            "queries": 8,
-            "recall": 0.75,
-            "tn": 4,
-            "tp": 3
-          }
-        },
-        "rf-requests": {
-          "holdout3": {
-            "accuracy": 0.6667,
-            "fn": 0,
-            "fp": 1,
-            "negative_loads": 2,
-            "negative_runs": 9,
-            "positive_loads": 0,
-            "positive_runs": 0,
-            "precision": 0.0,
-            "queries": 3,
-            "recall": null,
-            "tn": 2,
-            "tp": 0
-          },
-          "train": {
-            "accuracy": 1.0,
-            "fn": 0,
-            "fp": 0,
-            "negative_loads": 0,
-            "negative_runs": 33,
-            "positive_loads": 36,
-            "positive_runs": 36,
-            "precision": 1.0,
-            "queries": 23,
-            "recall": 1.0,
-            "tn": 11,
-            "tp": 12
-          },
-          "validation": {
-            "accuracy": 1.0,
-            "fn": 0,
-            "fp": 0,
-            "negative_loads": 0,
-            "negative_runs": 12,
-            "positive_loads": 11,
-            "positive_runs": 12,
-            "precision": 1.0,
-            "queries": 8,
-            "recall": 1.0,
-            "tn": 4,
-            "tp": 4
-          }
-        },
-        "rf-restinstance": {
-          "train": {
-            "accuracy": 1.0,
-            "fn": 0,
-            "fp": 0,
-            "negative_loads": 1,
-            "negative_runs": 33,
-            "positive_loads": 35,
-            "positive_runs": 36,
-            "precision": 1.0,
-            "queries": 23,
-            "recall": 1.0,
-            "tn": 11,
-            "tp": 12
-          },
-          "validation": {
-            "accuracy": 0.875,
-            "fn": 1,
-            "fp": 0,
-            "negative_loads": 0,
-            "negative_runs": 12,
-            "positive_loads": 10,
-            "positive_runs": 12,
-            "precision": 1.0,
-            "queries": 8,
-            "recall": 0.75,
-            "tn": 4,
-            "tp": 3
-          }
-        },
-        "rf-selenium": {
-          "train": {
-            "accuracy": 0.9565,
-            "fn": 0,
-            "fp": 1,
-            "negative_loads": 3,
-            "negative_runs": 33,
-            "positive_loads": 36,
-            "positive_runs": 36,
-            "precision": 0.9231,
-            "queries": 23,
-            "recall": 1.0,
-            "tn": 10,
-            "tp": 12
-          },
-          "validation": {
-            "accuracy": 1.0,
-            "fn": 0,
-            "fp": 0,
-            "negative_loads": 0,
-            "negative_runs": 12,
-            "positive_loads": 12,
-            "positive_runs": 12,
-            "precision": 1.0,
-            "queries": 8,
-            "recall": 1.0,
-            "tn": 4,
-            "tp": 4
-          }
-        },
-        "rf-setup": {
-          "train": {
-            "accuracy": 1.0,
-            "fn": 0,
-            "fp": 0,
-            "negative_loads": 0,
-            "negative_runs": 33,
-            "positive_loads": 35,
-            "positive_runs": 36,
-            "precision": 1.0,
-            "queries": 23,
-            "recall": 1.0,
-            "tn": 11,
-            "tp": 12
-          },
-          "validation": {
-            "accuracy": 1.0,
-            "fn": 0,
-            "fp": 0,
-            "negative_loads": 0,
-            "negative_runs": 12,
-            "positive_loads": 12,
-            "positive_runs": 12,
-            "precision": 1.0,
-            "queries": 8,
-            "recall": 1.0,
-            "tn": 4,
-            "tp": 4
-          }
-        }
-      },
-      "splits": [
-        "train",
-        "validation",
-        "holdout3"
-      ],
-      "variant_id": "29d5af520fe6"
-    }
-  },
   "claude_code_version": "2.1.316",
   "co_installed": {
     "lang_r01_rf_language_loads": [
-      2,
+      0,
       3
     ],
-    "note": "robotcode skill from robotcodedev/robotframework-agent-plugins tag robotcode--v2.8.0 (86a8641) staged next to the 9 skills; default listing budget. Reported, not gating. Under the default budget the robotcode description is listed by name only.",
+    "note": "robotcode skill from robotcodedev/robotframework-agent-plugins tag robotcode--v2.8.0 (86a8641) staged next to the 9 skills; default listing budget. Reported, not gating.",
     "robotcode_listing": {
-      "name": 879
+      "desc": 879
     },
     "runs_per_query": 3,
     "skills": {
       "rf-appium": {
         "train": {
-          "accuracy": 0.9565,
+          "accuracy": 1.0,
           "fn": 0,
-          "fp": 1,
-          "negative_loads": 2,
+          "fp": 0,
+          "negative_loads": 0,
           "negative_runs": 33,
           "positive_loads": 36,
           "positive_runs": 36,
-          "precision": 0.9231,
+          "precision": 1.0,
           "queries": 23,
           "recall": 1.0,
           "robotcode_loads": {
             "on_should_not_trigger": 0,
             "on_should_trigger": 0
           },
-          "tn": 10,
+          "tn": 11,
           "tp": 12
         },
         "validation": {
@@ -795,37 +52,37 @@
       },
       "rf-browser": {
         "holdout3": {
-          "accuracy": 1.0,
+          "accuracy": 0.6667,
           "fn": 0,
-          "fp": 0,
-          "negative_loads": 1,
+          "fp": 1,
+          "negative_loads": 2,
           "negative_runs": 9,
           "positive_loads": 0,
           "positive_runs": 0,
-          "precision": null,
+          "precision": 0.0,
           "queries": 3,
           "recall": null,
           "robotcode_loads": {
-            "on_should_not_trigger": 0,
+            "on_should_not_trigger": 9,
             "on_should_trigger": 0
           },
-          "tn": 3,
+          "tn": 2,
           "tp": 0
         },
         "train": {
           "accuracy": 1.0,
           "fn": 0,
           "fp": 0,
-          "negative_loads": 2,
+          "negative_loads": 0,
           "negative_runs": 33,
-          "positive_loads": 35,
+          "positive_loads": 36,
           "positive_runs": 36,
           "precision": 1.0,
           "queries": 23,
           "recall": 1.0,
           "robotcode_loads": {
             "on_should_not_trigger": 0,
-            "on_should_trigger": 0
+            "on_should_trigger": 1
           },
           "tn": 11,
           "tp": 12
@@ -836,7 +93,7 @@
           "fp": 0,
           "negative_loads": 0,
           "negative_runs": 12,
-          "positive_loads": 11,
+          "positive_loads": 12,
           "positive_runs": 12,
           "precision": 1.0,
           "queries": 8,
@@ -851,58 +108,58 @@
       },
       "rf-language": {
         "holdout3": {
-          "accuracy": 0.25,
+          "accuracy": 1.0,
           "fn": 0,
-          "fp": 3,
-          "negative_loads": 8,
+          "fp": 0,
+          "negative_loads": 0,
           "negative_runs": 12,
           "positive_loads": 0,
           "positive_runs": 0,
-          "precision": 0.0,
+          "precision": null,
           "queries": 4,
           "recall": null,
           "robotcode_loads": {
-            "on_should_not_trigger": 0,
+            "on_should_not_trigger": 12,
             "on_should_trigger": 0
           },
-          "tn": 1,
+          "tn": 4,
           "tp": 0
         },
         "train": {
           "accuracy": 0.96,
-          "fn": 0,
-          "fp": 1,
-          "negative_loads": 3,
+          "fn": 1,
+          "fp": 0,
+          "negative_loads": 0,
           "negative_runs": 36,
-          "positive_loads": 35,
+          "positive_loads": 36,
           "positive_runs": 39,
-          "precision": 0.9286,
+          "precision": 1.0,
           "queries": 25,
-          "recall": 1.0,
+          "recall": 0.9231,
           "robotcode_loads": {
-            "on_should_not_trigger": 0,
-            "on_should_trigger": 0
+            "on_should_not_trigger": 9,
+            "on_should_trigger": 11
           },
-          "tn": 11,
-          "tp": 13
+          "tn": 12,
+          "tp": 12
         },
         "validation": {
-          "accuracy": 0.8182,
-          "fn": 2,
+          "accuracy": 0.9091,
+          "fn": 1,
           "fp": 0,
           "negative_loads": 0,
           "negative_runs": 15,
-          "positive_loads": 11,
+          "positive_loads": 16,
           "positive_runs": 18,
           "precision": 1.0,
           "queries": 11,
-          "recall": 0.6667,
+          "recall": 0.8333,
           "robotcode_loads": {
-            "on_should_not_trigger": 0,
-            "on_should_trigger": 0
+            "on_should_not_trigger": 3,
+            "on_should_trigger": 2
           },
           "tn": 5,
-          "tp": 4
+          "tp": 5
         }
       },
       "rf-platynui": {
@@ -910,7 +167,7 @@
           "accuracy": 1.0,
           "fn": 0,
           "fp": 0,
-          "negative_loads": 1,
+          "negative_loads": 0,
           "negative_runs": 33,
           "positive_loads": 36,
           "positive_runs": 36,
@@ -930,13 +187,13 @@
           "fp": 0,
           "negative_loads": 0,
           "negative_runs": 12,
-          "positive_loads": 11,
+          "positive_loads": 12,
           "positive_runs": 12,
           "precision": 1.0,
           "queries": 8,
           "recall": 1.0,
           "robotcode_loads": {
-            "on_should_not_trigger": 0,
+            "on_should_not_trigger": 3,
             "on_should_trigger": 0
           },
           "tn": 4,
@@ -956,66 +213,66 @@
           "queries": 22,
           "recall": 1.0,
           "robotcode_loads": {
-            "on_should_not_trigger": 0,
+            "on_should_not_trigger": 3,
             "on_should_trigger": 0
           },
           "tn": 11,
           "tp": 11
         },
         "validation": {
-          "accuracy": 0.875,
-          "fn": 1,
+          "accuracy": 1.0,
+          "fn": 0,
           "fp": 0,
           "negative_loads": 0,
           "negative_runs": 12,
-          "positive_loads": 9,
+          "positive_loads": 12,
           "positive_runs": 12,
           "precision": 1.0,
           "queries": 8,
-          "recall": 0.75,
+          "recall": 1.0,
           "robotcode_loads": {
-            "on_should_not_trigger": 0,
+            "on_should_not_trigger": 3,
             "on_should_trigger": 0
           },
           "tn": 4,
-          "tp": 3
+          "tp": 4
         }
       },
       "rf-requests": {
         "holdout3": {
-          "accuracy": 0.6667,
-          "fn": 0,
-          "fp": 1,
-          "negative_loads": 3,
-          "negative_runs": 9,
-          "positive_loads": 0,
-          "positive_runs": 0,
-          "precision": 0.0,
-          "queries": 3,
-          "recall": null,
-          "robotcode_loads": {
-            "on_should_not_trigger": 0,
-            "on_should_trigger": 0
-          },
-          "tn": 2,
-          "tp": 0
-        },
-        "train": {
           "accuracy": 1.0,
           "fn": 0,
           "fp": 0,
-          "negative_loads": 1,
+          "negative_loads": 0,
+          "negative_runs": 9,
+          "positive_loads": 0,
+          "positive_runs": 0,
+          "precision": null,
+          "queries": 3,
+          "recall": null,
+          "robotcode_loads": {
+            "on_should_not_trigger": 9,
+            "on_should_trigger": 0
+          },
+          "tn": 3,
+          "tp": 0
+        },
+        "train": {
+          "accuracy": 0.913,
+          "fn": 0,
+          "fp": 2,
+          "negative_loads": 4,
           "negative_runs": 33,
           "positive_loads": 36,
           "positive_runs": 36,
-          "precision": 1.0,
+          "precision": 0.8571,
           "queries": 23,
           "recall": 1.0,
           "robotcode_loads": {
-            "on_should_not_trigger": 0,
-            "on_should_trigger": 0
+            "on_should_not_trigger": 3,
+            "on_should_trigger": 1
           },
-          "tn": 11,
+          "tn": 9,
           "tp": 12
         },
         "validation": {
@@ -1040,21 +297,21 @@
       "rf-restinstance": {
         "train": {
           "accuracy": 0.9565,
-          "fn": 1,
-          "fp": 0,
-          "negative_loads": 0,
+          "fn": 0,
+          "fp": 1,
+          "negative_loads": 3,
           "negative_runs": 33,
-          "positive_loads": 33,
+          "positive_loads": 35,
           "positive_runs": 36,
-          "precision": 1.0,
+          "precision": 0.9231,
           "queries": 23,
-          "recall": 0.9167,
+          "recall": 1.0,
           "robotcode_loads": {
-            "on_should_not_trigger": 0,
+            "on_should_not_trigger": 3,
             "on_should_trigger": 0
           },
-          "tn": 11,
-          "tp": 11
+          "tn": 10,
+          "tp": 12
         },
         "validation": {
           "accuracy": 1.0,
@@ -1068,7 +325,7 @@
           "queries": 8,
           "recall": 1.0,
           "robotcode_loads": {
-            "on_should_not_trigger": 0,
+            "on_should_not_trigger": 2,
             "on_should_trigger": 0
           },
           "tn": 4,
@@ -1077,21 +334,21 @@
       },
       "rf-selenium": {
         "train": {
-          "accuracy": 0.9565,
+          "accuracy": 0.913,
           "fn": 0,
-          "fp": 1,
-          "negative_loads": 2,
+          "fp": 2,
+          "negative_loads": 5,
           "negative_runs": 33,
           "positive_loads": 36,
           "positive_runs": 36,
-          "precision": 0.9231,
+          "precision": 0.8571,
           "queries": 23,
           "recall": 1.0,
           "robotcode_loads": {
             "on_should_not_trigger": 0,
             "on_should_trigger": 0
           },
-          "tn": 10,
+          "tn": 9,
           "tp": 12
         },
         "validation": {
@@ -1100,13 +357,13 @@
           "fp": 0,
           "negative_loads": 0,
           "negative_runs": 12,
-          "positive_loads": 11,
+          "positive_loads": 12,
           "positive_runs": 12,
           "precision": 1.0,
           "queries": 8,
           "recall": 1.0,
           "robotcode_loads": {
-            "on_should_not_trigger": 0,
+            "on_should_not_trigger": 3,
             "on_should_trigger": 0
           },
           "tn": 4,
@@ -1118,15 +375,15 @@
           "accuracy": 1.0,
           "fn": 0,
           "fp": 0,
-          "negative_loads": 1,
+          "negative_loads": 0,
           "negative_runs": 33,
-          "positive_loads": 35,
+          "positive_loads": 36,
           "positive_runs": 36,
           "precision": 1.0,
           "queries": 23,
           "recall": 1.0,
           "robotcode_loads": {
-            "on_should_not_trigger": 4,
+            "on_should_not_trigger": 9,
             "on_should_trigger": 0
           },
           "tn": 11,
@@ -1138,7 +395,7 @@
           "fp": 0,
           "negative_loads": 0,
           "negative_runs": 12,
-          "positive_loads": 11,
+          "positive_loads": 12,
           "positive_runs": 12,
           "precision": 1.0,
           "queries": 8,
@@ -1162,8 +419,7 @@
   "harness_version": "0.1.0",
   "kind": "trigger-baseline",
   "listing_budget": null,
-  "listing_room": 121,
-  "model": "claude-haiku-4-5-20251001",
+  "model": "claude-haiku-5-5",
   "runs_per_query": 6,
   "schema_version": 1,
   "skills": {
@@ -1172,7 +428,7 @@
         "accuracy": 1.0,
         "fn": 0,
         "fp": 0,
-        "negative_loads": 1,
+        "negative_loads": 0,
         "negative_runs": 33,
         "positive_loads": 36,
         "positive_runs": 36,
@@ -1199,160 +455,6 @@
       }
     },
     "rf-browser": {
-      "holdout3": {
-        "accuracy": 1.0,
-        "fn": 0,
-        "fp": 0,
-        "negative_loads": 1,
-        "negative_runs": 9,
-        "positive_loads": 0,
-        "positive_runs": 0,
-        "precision": null,
-        "queries": 3,
-        "recall": null,
-        "runs_per_query": 3,
-        "tn": 3,
-        "tp": 0
-      },
-      "train": {
-        "accuracy": 1.0,
-        "fn": 0,
-        "fp": 0,
-        "negative_loads": 1,
-        "negative_runs": 33,
-        "positive_loads": 35,
-        "positive_runs": 36,
-        "precision": 1.0,
-        "queries": 23,
-        "recall": 1.0,
-        "runs_per_query": 3,
-        "tn": 11,
-        "tp": 12
-      },
-      "validation": {
-        "accuracy": 1.0,
-        "fn": 0,
-        "fp": 0,
-        "negative_loads": 0,
-        "negative_runs": 24,
-        "positive_loads": 21,
-        "positive_runs": 24,
-        "precision": 1.0,
-        "queries": 8,
-        "recall": 1.0,
-        "tn": 4,
-        "tp": 4
-      }
-    },
-    "rf-language": {
-      "holdout3": {
-        "accuracy": 0.5,
-        "fn": 0,
-        "fp": 2,
-        "negative_loads": 7,
-        "negative_runs": 12,
-        "positive_loads": 0,
-        "positive_runs": 0,
-        "precision": 0.0,
-        "queries": 4,
-        "recall": null,
-        "runs_per_query": 3,
-        "tn": 2,
-        "tp": 0
-      },
-      "train": {
-        "accuracy": 0.92,
-        "fn": 1,
-        "fp": 1,
-        "negative_loads": 3,
-        "negative_runs": 36,
-        "positive_loads": 36,
-        "positive_runs": 39,
-        "precision": 0.9231,
-        "queries": 25,
-        "recall": 0.9231,
-        "runs_per_query": 3,
-        "tn": 11,
-        "tp": 12
-      },
-      "validation": {
-        "accuracy": 0.8182,
-        "fn": 2,
-        "fp": 0,
-        "negative_loads": 0,
-        "negative_runs": 30,
-        "positive_loads": 23,
-        "positive_runs": 36,
-        "precision": 1.0,
-        "queries": 11,
-        "recall": 0.6667,
-        "tn": 5,
-        "tp": 4
-      }
-    },
-    "rf-platynui": {
-      "train": {
-        "accuracy": 0.9565,
-        "fn": 0,
-        "fp": 1,
-        "negative_loads": 2,
-        "negative_runs": 33,
-        "positive_loads": 36,
-        "positive_runs": 36,
-        "precision": 0.9231,
-        "queries": 23,
-        "recall": 1.0,
-        "runs_per_query": 3,
-        "tn": 10,
-        "tp": 12
-      },
-      "validation": {
-        "accuracy": 1.0,
-        "fn": 0,
-        "fp": 0,
-        "negative_loads": 0,
-        "negative_runs": 24,
-        "positive_loads": 22,
-        "positive_runs": 24,
-        "precision": 1.0,
-        "queries": 8,
-        "recall": 1.0,
-        "tn": 4,
-        "tp": 4
-      }
-    },
-    "rf-python-library": {
-      "train": {
-        "accuracy": 1.0,
-        "fn": 0,
-        "fp": 0,
-        "negative_loads": 0,
-        "negative_runs": 33,
-        "positive_loads": 33,
-        "positive_runs": 33,
-        "precision": 1.0,
-        "queries": 22,
-        "recall": 1.0,
-        "runs_per_query": 3,
-        "tn": 11,
-        "tp": 11
-      },
-      "validation": {
-        "accuracy": 1.0,
-        "fn": 0,
-        "fp": 0,
-        "negative_loads": 0,
-        "negative_runs": 24,
-        "positive_loads": 20,
-        "positive_runs": 24,
-        "precision": 1.0,
-        "queries": 8,
-        "recall": 1.0,
-        "tn": 4,
-        "tp": 4
-      }
-    },
-    "rf-requests": {
       "holdout3": {
         "accuracy": 0.6667,
         "fn": 0,
@@ -1398,14 +500,168 @@
         "tp": 4
       }
     },
+    "rf-language": {
+      "holdout3": {
+        "accuracy": 0.5,
+        "fn": 0,
+        "fp": 2,
+        "negative_loads": 5,
+        "negative_runs": 12,
+        "positive_loads": 0,
+        "positive_runs": 0,
+        "precision": 0.0,
+        "queries": 4,
+        "recall": null,
+        "runs_per_query": 3,
+        "tn": 2,
+        "tp": 0
+      },
+      "train": {
+        "accuracy": 0.96,
+        "fn": 1,
+        "fp": 0,
+        "negative_loads": 0,
+        "negative_runs": 36,
+        "positive_loads": 37,
+        "positive_runs": 39,
+        "precision": 1.0,
+        "queries": 25,
+        "recall": 0.9231,
+        "runs_per_query": 3,
+        "tn": 12,
+        "tp": 12
+      },
+      "validation": {
+        "accuracy": 0.9091,
+        "fn": 0,
+        "fp": 1,
+        "negative_loads": 3,
+        "negative_runs": 30,
+        "positive_loads": 34,
+        "positive_runs": 36,
+        "precision": 0.8571,
+        "queries": 11,
+        "recall": 1.0,
+        "tn": 4,
+        "tp": 6
+      }
+    },
+    "rf-platynui": {
+      "train": {
+        "accuracy": 1.0,
+        "fn": 0,
+        "fp": 0,
+        "negative_loads": 0,
+        "negative_runs": 33,
+        "positive_loads": 36,
+        "positive_runs": 36,
+        "precision": 1.0,
+        "queries": 23,
+        "recall": 1.0,
+        "runs_per_query": 3,
+        "tn": 11,
+        "tp": 12
+      },
+      "validation": {
+        "accuracy": 1.0,
+        "fn": 0,
+        "fp": 0,
+        "negative_loads": 2,
+        "negative_runs": 24,
+        "positive_loads": 24,
+        "positive_runs": 24,
+        "precision": 1.0,
+        "queries": 8,
+        "recall": 1.0,
+        "tn": 4,
+        "tp": 4
+      }
+    },
+    "rf-python-library": {
+      "train": {
+        "accuracy": 1.0,
+        "fn": 0,
+        "fp": 0,
+        "negative_loads": 0,
+        "negative_runs": 33,
+        "positive_loads": 33,
+        "positive_runs": 33,
+        "precision": 1.0,
+        "queries": 22,
+        "recall": 1.0,
+        "runs_per_query": 3,
+        "tn": 11,
+        "tp": 11
+      },
+      "validation": {
+        "accuracy": 1.0,
+        "fn": 0,
+        "fp": 0,
+        "negative_loads": 2,
+        "negative_runs": 24,
+        "positive_loads": 24,
+        "positive_runs": 24,
+        "precision": 1.0,
+        "queries": 8,
+        "recall": 1.0,
+        "tn": 4,
+        "tp": 4
+      }
+    },
+    "rf-requests": {
+      "holdout3": {
+        "accuracy": 1.0,
+        "fn": 0,
+        "fp": 0,
+        "negative_loads": 2,
+        "negative_runs": 9,
+        "positive_loads": 0,
+        "positive_runs": 0,
+        "precision": null,
+        "queries": 3,
+        "recall": null,
+        "runs_per_query": 3,
+        "tn": 3,
+        "tp": 0
+      },
+      "train": {
+        "accuracy": 0.913,
+        "fn": 0,
+        "fp": 2,
+        "negative_loads": 7,
+        "negative_runs": 33,
+        "positive_loads": 36,
+        "positive_runs": 36,
+        "precision": 0.8571,
+        "queries": 23,
+        "recall": 1.0,
+        "runs_per_query": 3,
+        "tn": 9,
+        "tp": 12
+      },
+      "validation": {
+        "accuracy": 1.0,
+        "fn": 0,
+        "fp": 0,
+        "negative_loads": 0,
+        "negative_runs": 24,
+        "positive_loads": 24,
+        "positive_runs": 24,
+        "precision": 1.0,
+        "queries": 8,
+        "recall": 1.0,
+        "tn": 4,
+        "tp": 4
+      }
+    },
     "rf-restinstance": {
       "train": {
         "accuracy": 0.9565,
         "fn": 0,
         "fp": 1,
-        "negative_loads": 2,
+        "negative_loads": 3,
         "negative_runs": 33,
-        "positive_loads": 35,
+        "positive_loads": 36,
         "positive_runs": 36,
         "precision": 0.9231,
         "queries": 23,
@@ -1431,10 +687,41 @@
     },
     "rf-selenium": {
       "train": {
+        "accuracy": 0.9565,
+        "fn": 0,
+        "fp": 1,
+        "negative_loads": 4,
+        "negative_runs": 33,
+        "positive_loads": 36,
+        "positive_runs": 36,
+        "precision": 0.9231,
+        "queries": 23,
+        "recall": 1.0,
+        "runs_per_query": 3,
+        "tn": 10,
+        "tp": 12
+      },
+      "validation": {
         "accuracy": 1.0,
         "fn": 0,
         "fp": 0,
-        "negative_loads": 2,
+        "negative_loads": 0,
+        "negative_runs": 24,
+        "positive_loads": 24,
+        "positive_runs": 24,
+        "precision": 1.0,
+        "queries": 8,
+        "recall": 1.0,
+        "tn": 4,
+        "tp": 4
+      }
+    },
+    "rf-setup": {
+      "train": {
+        "accuracy": 1.0,
+        "fn": 0,
+        "fp": 0,
+        "negative_loads": 1,
         "negative_runs": 33,
         "positive_loads": 36,
         "positive_runs": 36,
@@ -1459,40 +746,9 @@
         "tn": 4,
         "tp": 4
       }
-    },
-    "rf-setup": {
-      "train": {
-        "accuracy": 1.0,
-        "fn": 0,
-        "fp": 0,
-        "negative_loads": 2,
-        "negative_runs": 33,
-        "positive_loads": 35,
-        "positive_runs": 36,
-        "precision": 1.0,
-        "queries": 23,
-        "recall": 1.0,
-        "runs_per_query": 3,
-        "tn": 11,
-        "tp": 12
-      },
-      "validation": {
-        "accuracy": 1.0,
-        "fn": 0,
-        "fp": 0,
-        "negative_loads": 0,
-        "negative_runs": 24,
-        "positive_loads": 24,
-        "positive_runs": 24,
-        "precision": 1.0,
-        "queries": 8,
-        "recall": 1.0,
-        "tn": 4,
-        "tp": 4
-      }
     }
   },
-  "source": "delegate-robotcode-skills 10.2 (2026-11-04): 9 skills, shipped descriptions; validation re-measured with 6 runs, train/holdout3 from the 3-run co-installed matrix (solo arm). See design D8.",
+  "source": "Re-baseline on claude-haiku-5-5 (2026-11-05): 9 skills, shipped descriptions, default listing budget (1M context, about 40000 characters); validation 6 runs, train/holdout3 3 runs (solo arm). See design D8.",
   "split": "validation",
   "variant_id": "29d5af520fe6"
 }

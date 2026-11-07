@@ -30,7 +30,7 @@ prompt: |
 
   Use the libdoc tooling to verify the signature — don't guess from
   memory.
-model: claude-haiku-4-5-20251001
+model: claude-haiku-5-5
 # 16 turns absorb a long libdoc page (e.g. `robotcode doc lib
 # SeleniumLibrary`, ~60KB) that triggers Claude Code's persisted-output
 # workflow.

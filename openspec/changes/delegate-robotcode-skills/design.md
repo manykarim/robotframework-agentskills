@@ -170,10 +170,17 @@ Setup:
 
 Pre-existing shortfalls are unchanged: rf-language validation recall 0.67 (lang-t12, lang-t14).
 
+**Re-measured on `claude-haiku-5-5` (2026-11-05), which replaces the numbers above as the baseline:**
+- Same splits and variant; `solo` and `co` with 3 runs per query, 879 sessions each; validation 6 runs per query (432 sessions); no incomplete runs.
+- Haiku 5.5 has a 1M context, so the default listing budget is about 40000 characters. The robotcode description is shown in 879 of 879 `co` sessions, and no separate 40k arm is needed.
+- Validation recall is 1.00 for every skill in `solo` (6 runs). In `co`, rf-language is 5/6; everything else is unchanged.
+- robotcode wins its near-misses: rf-language holdout3 is 4/4 correct in `co` (2/4 in `solo`), and "list all tests tagged smoke" goes to robotcode (rf-language 0/3).
+- robotcode loads on 15 of 438 rf-* should-trigger runs, 13 of them rf-language.
+- The earlier rf-language shortfall (validation 0.67) is gone.
+
 The results are in `eval/baselines/triggers.json`:
 - `skills`: the gating `solo` baseline;
-- `co_installed`: the `co` results;
-- `budget_40000`: `solo40k` and `co40k`.
+- `co_installed`: the `co` results.
 
 ## Risks / Trade-offs
 

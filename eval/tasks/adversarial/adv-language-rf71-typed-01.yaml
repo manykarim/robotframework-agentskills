@@ -13,7 +13,7 @@ prompt: |
   product and the quantity, declare the quantity argument as an int, and use
   the keyword in all three tests. Run the tests with the project's Robot
   Framework and make sure they pass.
-model: claude-sonnet-5
+model: claude-sonnet-5-5
 max_turns: 14
 timeout_seconds: 480
 allowed_tools:

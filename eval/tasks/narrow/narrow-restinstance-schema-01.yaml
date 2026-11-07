@@ -19,7 +19,7 @@ prompt: |
     - `name` is "Alice".
 
   Run the suite and make sure it passes.
-model: claude-haiku-4-5-20251001
+model: claude-haiku-5-5
 max_turns: 14
 timeout_seconds: 300
 allowed_tools:

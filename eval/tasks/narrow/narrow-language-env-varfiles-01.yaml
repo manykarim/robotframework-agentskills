@@ -15,7 +15,7 @@ prompt: |
   tests/env.robot must not hard-code these values any more. Make sure the
   project can load YAML variable files, and run the suite against both
   environments.
-model: claude-haiku-4-5-20251001
+model: claude-haiku-5-5
 max_turns: 14
 timeout_seconds: 300
 allowed_tools:

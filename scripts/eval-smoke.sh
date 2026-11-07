@@ -25,7 +25,7 @@ _info "Output: ${RUN_DIR}"
 uv run rf-skill-eval run \
   --task "${TASK}" \
   --arm treatment \
-  --model claude-haiku-4-5-20251001 \
+  --model claude-haiku-5-5 \
   --max-cost-usd "${EVAL_SMOKE_MAX_COST_USD:-1}" \
   --output "${RUN_DIR}"
 

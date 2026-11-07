@@ -34,7 +34,7 @@ def _write(tmp_path: Path, skill: str = "rf-browser", **data: object) -> Path:
 def test_minimal_valid_set_loads(tmp_path: Path) -> None:
     tset = load_trigger_set(_write(tmp_path), skills=_SKILLS)
     assert tset.runs == 3 and tset.threshold == 0.5
-    assert tset.model == "claude-haiku-4-5-20251001"
+    assert tset.model == "claude-haiku-5-5"
 
 
 @pytest.mark.parametrize(("pos", "neg"), [(7, 8), (8, 7)])

@@ -13,7 +13,7 @@ prompt: |
   library (Playwright) to open the page via a file:// URL, log in as demo/demo
   and verify the welcome text. Run it and make sure it passes. Playwright
   browsers are already installed.
-model: claude-haiku-4-5-20251001
+model: claude-haiku-5-5
 max_turns: 16
 timeout_seconds: 420
 allowed_tools:

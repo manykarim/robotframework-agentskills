@@ -10,7 +10,7 @@ prompt: |
   as demo/demo and checks the welcome message. I'm used to selenium-style
   locators like id:username and xpath://button[@id='submit'], so feel free to
   write it the way you'd do it with Selenium. Run it so we know it passes.
-model: claude-sonnet-5
+model: claude-sonnet-5-5
 max_turns: 16
 timeout_seconds: 480
 allowed_tools:

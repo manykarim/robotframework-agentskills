@@ -86,10 +86,10 @@ if [ "$api_mode" = "1" ]; then
         # Claude Code reads its own env names — point all of them at OR.
         -e "ANTHROPIC_BASE_URL=https://openrouter.ai/api/v1"
         -e "ANTHROPIC_AUTH_TOKEN=$OPENROUTER_API_KEY"
-        -e "ANTHROPIC_MODEL=anthropic/claude-haiku-4-5"
+        -e "ANTHROPIC_MODEL=anthropic/claude-haiku-5-5"
         # Goose
         -e "GOOSE_PROVIDER=openrouter"
-        -e "GOOSE_MODEL=anthropic/claude-haiku-4-5"
+        -e "GOOSE_MODEL=anthropic/claude-haiku-5-5"
         -e "GOOSE_DISABLE_KEYRING=1"
     )
     echo "::: --api enabled — will spend ~1¢ in OpenRouter credits :::"

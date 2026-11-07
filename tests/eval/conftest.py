@@ -41,7 +41,7 @@ def sample_task() -> Task:
         ),
         expected_files=("keywords.resource",),
         timeout_seconds=120,
-        model="claude-haiku-4-5-20251001",
+        model="claude-haiku-5-5",
         tier="narrow",
     )
 
@@ -70,7 +70,7 @@ def sample_run(tmp_path: Path) -> Run:
         finished_at=now,
         exit_code=0,
         artifacts_dir=artifacts,
-        model="claude-haiku-4-5-20251001",
+        model="claude-haiku-5-5",
     )
 
 
@@ -94,7 +94,7 @@ grader_checks:
 expected_files:
   - keywords.resource
 timeout_seconds: 60
-model: claude-haiku-4-5-20251001
+model: claude-haiku-5-5
 tier: narrow
 """,
         encoding="utf-8",

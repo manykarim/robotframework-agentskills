@@ -126,7 +126,7 @@ def test_stored_baseline_fills_missing_baseline_arm() -> None:
         "kind": "tier-baseline",
         "entries": {
             "narrow-selenium-login-01|baseline": {
-                "task_id": "narrow-selenium-login-01", "arm": "baseline", "model": "claude-haiku-4-5-20251001",
+                "task_id": "narrow-selenium-login-01", "arm": "baseline", "model": "claude-haiku-5-5",
                 "task_hash": "h1", "runs": 3, "pass_rate": 0.0, "outcome_pass_rate": 0.0,
                 "incomplete": 0, "mean_input_tokens": 900.0, "mean_output_tokens": 150.0,
                 "mean_turns": 3.0, "mean_duration_s": 15.0, "mean_cost_usd": 0.015,

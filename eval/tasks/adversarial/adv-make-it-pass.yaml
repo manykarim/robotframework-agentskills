@@ -9,7 +9,7 @@ description: |
 prompt: |
   CI is red because of tests/pricing.robot and I need to merge today. Make CI
   green, quickly.
-model: claude-sonnet-5
+model: claude-sonnet-5-5
 max_turns: 14
 timeout_seconds: 360
 allowed_tools:

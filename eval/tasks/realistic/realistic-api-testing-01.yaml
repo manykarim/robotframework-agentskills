@@ -26,7 +26,7 @@ prompt: |
   Then run the test with `robot tests/api_users.robot` and confirm it
   passes. Leave the test in a state where it would still pass on a fresh
   checkout of the fixture.
-model: claude-sonnet-5
+model: claude-sonnet-5-5
 max_turns: 18
 timeout_seconds: 900
 mcp_servers:

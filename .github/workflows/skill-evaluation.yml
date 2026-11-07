@@ -44,8 +44,8 @@ on:
         type: choice
         options:
           - ""
-          - "claude-haiku-4-5-20251001"
-          - "claude-sonnet-5"
+          - "claude-haiku-5-5"
+          - "claude-sonnet-5-5"
           - "claude-opus-5-5"
       runs:
         description: "Replicates per task x arm"
@@ -83,7 +83,7 @@ permissions:
   issues: write
 
 env:
-  HAIKU_MODEL: claude-haiku-4-5-20251001
+  HAIKU_MODEL: claude-haiku-5-5
   # Initial caps (design D9 open question) - tune after the first weekly run.
   PR_NARROW_CAP_USD: "10"
   PR_TRIGGER_CAP_USD: "20"

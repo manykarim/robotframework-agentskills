@@ -90,7 +90,7 @@ def _trigger_task(tools: tuple[str, ...] = ("Skill", "Read", "Glob", "Grep")) ->
         allowed_tools=tools,
         max_turns=3,
         timeout_seconds=30,
-        model="claude-haiku-4-5-20251001",
+        model="claude-haiku-5-5",
         tier="narrow",
     )
 
@@ -408,7 +408,7 @@ def test_resume_is_keyed_by_variant_and_model(tmp_path: Path) -> None:
     kw = {"splits": ("validation",), "runs": 1, "name_to_dir": _NAMES, "store": store}
     evaluate_trigger_sets([tset], fn, variant_id="a", **kw)  # type: ignore[arg-type]
     evaluate_trigger_sets([tset], fn, variant_id="b", **kw)  # type: ignore[arg-type]
-    other_model = evaluate_trigger_sets([tset], fn, variant_id="a", model_override="claude-sonnet-5",
+    other_model = evaluate_trigger_sets([tset], fn, variant_id="a", model_override="claude-sonnet-5-5",
                                         **kw)  # type: ignore[arg-type]
     again = evaluate_trigger_sets([tset], fn, variant_id="a", **kw)  # type: ignore[arg-type]
     assert len(calls) == 6

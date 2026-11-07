@@ -1,6 +1,6 @@
 # rf-skill-eval trigger report
 
-Model `claude-haiku-4-5-20251001` · skill-listing budget default · a query is *triggered* when its trigger rate (loads / runs) is >= its set's threshold. TP/FP/TN/FN per split; train and validation are reported separately (tune on train only).
+Model `claude-haiku-5-5` · skill-listing budget default · a query is *triggered* when its trigger rate (loads / runs) is >= its set's threshold. TP/FP/TN/FN per split; train and validation are reported separately (tune on train only).
 
 | Skill | Train TP/FP/TN/FN | Train P | Train R | Train Acc | Val TP/FP/TN/FN | Val P | Val R | Val Acc | Stored Val Acc |
 |---|---|---|---|---|---|---|---|---|---|

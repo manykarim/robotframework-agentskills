@@ -26,7 +26,7 @@ prompt: |
 
   Playwright browsers are already initialized (`rfbrowser init` has been
   run for you) so `New Browser` / `New Page` should work out of the box.
-model: claude-sonnet-5
+model: claude-sonnet-5-5
 max_turns: 20
 timeout_seconds: 900
 mcp_servers:

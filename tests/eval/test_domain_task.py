@@ -26,14 +26,14 @@ def _make(**overrides: object) -> Task:
 
 
 def test_default_model_is_haiku() -> None:
-    assert DEFAULT_MODEL == "claude-haiku-4-5-20251001"
+    assert DEFAULT_MODEL == "claude-haiku-5-5"
     t = _make()
     assert t.model == DEFAULT_MODEL
 
 
 def test_model_allowlist_is_the_design_d7_set() -> None:
     assert frozenset(
-        {"claude-haiku-4-5-20251001", "claude-sonnet-5", "claude-opus-5-5"}
+        {"claude-haiku-5-5", "claude-sonnet-5-5", "claude-opus-5-5"}
     ) == ALLOWED_MODELS
 
 
@@ -55,12 +55,12 @@ def test_unknown_models_rejected(forbidden: str) -> None:
         _make(model=forbidden)
     msg = str(exc_info.value)
     assert "not allowed" in msg.lower()
-    assert "claude-haiku-4-5-20251001" in msg and "claude-sonnet-5" in msg
+    assert "claude-haiku-5-5" in msg and "claude-sonnet-5-5" in msg
 
 
 @pytest.mark.parametrize(
     ("old", "new"),
-    [("claude-haiku-4-5", "claude-haiku-4-5-20251001"), ("claude-sonnet-4-6", "claude-sonnet-5")],
+    [("claude-haiku-4-5", "claude-haiku-5-5"), ("claude-sonnet-4-6", "claude-sonnet-5-5")],
 )
 def test_retired_ids_get_a_migration_hint(old: str, new: str) -> None:
     with pytest.raises(ValidationError) as exc_info:
@@ -84,16 +84,16 @@ def test_model_validator_raises_model_not_allowed_directly() -> None:
 
 
 def test_haiku_and_sonnet_accepted() -> None:
-    _make(model="claude-haiku-4-5-20251001")
-    _make(model="claude-sonnet-5")
+    _make(model="claude-haiku-5-5")
+    _make(model="claude-sonnet-5-5")
 
 
 @pytest.mark.parametrize(
     ("tier", "model"),
     [
-        ("narrow", "claude-haiku-4-5-20251001"),
-        ("realistic", "claude-sonnet-5"),
-        ("adversarial", "claude-sonnet-5"),
+        ("narrow", "claude-haiku-5-5"),
+        ("realistic", "claude-sonnet-5-5"),
+        ("adversarial", "claude-sonnet-5-5"),
     ],
 )
 def test_tier_default_models(tier: str, model: str) -> None:

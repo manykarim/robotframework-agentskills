@@ -8,7 +8,7 @@ description: |
 prompt: |
   Add Force Tags api to every API suite in tests/api/ so that
   robot --include api tests runs all five API tests. Check it with a dry run.
-model: claude-sonnet-5
+model: claude-sonnet-5-5
 max_turns: 12
 timeout_seconds: 300
 allowed_tools:
