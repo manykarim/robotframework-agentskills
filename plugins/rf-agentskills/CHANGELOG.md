@@ -5,7 +5,7 @@ marketplace entry and the skills tarballs. The `rf-agentskills` Python
 installer is versioned independently; see `RELEASING.md` at the repo root
 for the policy. (Until 2.0.0 this file lived in `vscode-extension/`.)
 
-## 3.0.0 (unreleased)
+## 3.0.0 (2026-11-07)
 
 Breaking content release: robotcode is now a documented prerequisite, and the skills that overlapped with it are gone.
 
@@ -27,7 +27,7 @@ Breaking content release: robotcode is now a documented prerequisite, and the sk
 - **Unfixed validation errors are re-checked at Stop.** A new Stop hook, `report_pending_errors.mjs`, re-validates the `.robot`/`.resource` files whose validation failed in the session and are still broken, and hands the errors to the model for one more turn. This covers VS Code's Local agent harness, which sends the next model request without waiting for PostToolUse hooks. Each content version of a file is reported once, and the hook is silent on `stop_hook_active`.
 - **Generated per-agent variants** in `variants/` (from `scripts/build-agent-variants.py`, drift-checked in CI): Codex TOML subagents, OpenCode subagents (`mode: subagent`) and an OpenCode JS plugin that runs the same validation, error-hint and environment hooks.
 
-## 2.0.0 (unreleased)
+## 2.0.0 (never tagged; shipped in 3.0.0)
 
 - Skill descriptions trimmed to fit Claude Code 2.1.288's smaller skill listing (all 12 visible, 1210 characters) and sibling cues added (rf-appium/rf-selenium/rf-restinstance → rf-setup for installs and drivers, rf-libdoc/rf-results → rf-robotcode when robotcode is installed).
 

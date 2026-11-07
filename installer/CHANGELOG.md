@@ -3,7 +3,7 @@
 The `rf-agentskills` package is versioned independently from the
 content bundle (the marketplace plugin and skills tarballs). See `RELEASING.md` at the repo root for the policy.
 
-## Unreleased (0.8.0)
+## 0.8.0 — 2026-11-07
 
 ### Added
 - **`--mode plugin`** (`install`): instead of copying files, point the agent at the `robotframework-agentskills` plugin marketplace. Claude Code, Copilot and VS Code get `extraKnownMarketplaces` + `enabledPlugins` merged into `.claude/settings.json` (Copilot also into `.github/copilot/settings.json`, or `~/.copilot/settings.json` for user scope); the merge is recorded in the manifest and reverted by `uninstall`. Codex gets its TOML subagents installed and the `codex plugin marketplace add` / `codex plugin add` commands printed (run with `--yes`), plus the `/hooks` trust note. Cursor gets the marketplace steps printed. OpenCode, Goose and Claude Desktop fall back to files with a note. The default stays `--mode files`.
@@ -15,7 +15,7 @@ content bundle (the marketplace plugin and skills tarballs). See `RELEASING.md` 
 - **Upgrading removes the retired skills and subagent.** Re-installing removes the `rf-robotcode`, `rf-libdoc` and `rf-results` skills, the `rf-keyword-consultant` subagent (Claude, Codex and OpenCode files) and their Claude Desktop archives when this installer wrote them. A copy you made by hand is kept and reported (`install` and `doctor` print the replacement and an `rm -r` line).
 
 ### Bundled content
-- Content 3.0.0 (unreleased, breaking): requires `robotcode[all]>=2.8` in the project environment; `rf-robotcode`, `rf-libdoc`, `rf-results` and `rf-keyword-consultant` removed; read-only `rf-debug-expert`; validation hook checks errors with `robotcode analyze code`. Also: VS Code extension retired, default main agent removed, hook input for all agents, unfixed validation errors re-checked at Stop. See `plugins/rf-agentskills/CHANGELOG.md`.
+- Content 3.0.0 (breaking): requires `robotcode[all]>=2.8` in the project environment; `rf-robotcode`, `rf-libdoc`, `rf-results` and `rf-keyword-consultant` removed; read-only `rf-debug-expert`; validation hook checks errors with `robotcode analyze code`. Also: VS Code extension retired, default main agent removed, hook input for all agents, unfixed validation errors re-checked at Stop. See `plugins/rf-agentskills/CHANGELOG.md`.
 
 ## 0.7.0 — 2026-10-06
 

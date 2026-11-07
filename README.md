@@ -163,15 +163,15 @@ This works for any agent that reads SKILL.md files from a project-local director
 
 This repo ships two release scopes — see **[`RELEASING.md`](RELEASING.md)** for the policy:
 
-- **Content** (the marketplace plugin / skills tarballs) — currently `v2.0.0`, tagged `v*`; a tag is the ref you pin a marketplace to.
-- **Tooling** (`rf-agentskills` Python installer) — currently `0.7.0`, tagged `rf-agentskills-v*`.
+- **Content** (the marketplace plugin / skills tarballs) — currently `v3.0.0`, tagged `v*`; a tag is the ref you pin a marketplace to.
+- **Tooling** (`rf-agentskills` Python installer) — currently `0.8.0`, tagged `rf-agentskills-v*`.
 
 The two channels are versioned independently. `rf-agentskills version` prints both:
 
 ```console
 $ rf-agentskills version
-rf-agentskills 0.7.0
-bundled content: 2.0.0  (from rf-agentskills plugin manifest)
+rf-agentskills 0.8.0
+bundled content: 3.0.0  (from rf-agentskills plugin manifest)
 ```
 
 ## What You Get

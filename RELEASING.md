@@ -7,8 +7,8 @@ today. This document captures why and when that's expected to change.
 
 | Scope | Channel | Source of truth | Current version |
 |---|---|---|---|
-| **Content** | `rf-agentskills` plugin via the `robotframework-agentskills` marketplace · skills tarballs · Claude Desktop skill ZIPs | `VERSION`, kept equal in `plugins/rf-agentskills/.claude-plugin/plugin.json` and `.claude-plugin/marketplace.json` by `scripts/bump-version.sh` | **2.0.0** |
-| **Tooling** | `rf-agentskills` Python installer (PyPI / GitHub release) | `installer/pyproject.toml` | **0.7.0** |
+| **Content** | `rf-agentskills` plugin via the `robotframework-agentskills` marketplace · skills tarballs · Claude Desktop skill ZIPs | `VERSION`, kept equal in `plugins/rf-agentskills/.claude-plugin/plugin.json` and `.claude-plugin/marketplace.json` by `scripts/bump-version.sh` | **3.0.0** |
+| **Tooling** | `rf-agentskills` Python installer (PyPI / GitHub release) | `installer/pyproject.toml` | **0.8.0** |
 
 Internal-only:
 

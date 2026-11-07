@@ -5,7 +5,7 @@ license: Apache-2.0
 compatibility: Requires Python 3.12+, robotframework>=7, robotcode[all]>=2.8 in the project environment and the PlatynUI new_core pre-release (robotframework-PlatynUI 0.12.0.dev); Windows (UIA) or a Linux desktop with AT-SPI2. macOS is not supported.
 metadata:
   author: manykarim
-  version: "2.0.0"
+  version: "3.0.0"
 ---
 
 # PlatynUI Library Skill (new_core / BareMetal)

@@ -5,7 +5,7 @@ license: Apache-2.0
 compatibility: "Requires Python 3.10+ with robotframework>=7 in the project environment for the bundled check_library script, and robotcode[all]>=2.8 there for keyword listing and static checks; guidance is version-gated from RF 6.1 to 7.5 and the examples need RF 7.0+."
 metadata:
   author: manykarim
-  version: "2.0.0"
+  version: "3.0.0"
 ---
 
 # Robot Framework Python Library

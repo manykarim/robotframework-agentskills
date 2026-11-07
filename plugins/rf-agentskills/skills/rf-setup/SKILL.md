@@ -5,7 +5,7 @@ license: Apache-2.0
 compatibility: Requires one of uv (preferred), Python 3.10+ with venv and pip, or Poetry 1.8+; network access to PyPI. Installs robotcode[all]>=2.8 into the project environment, which the other rf-agentskills skills and hooks require.
 metadata:
   author: manykarim
-  version: "2.0.0"
+  version: "3.0.0"
 ---
 
 # Robot Framework Setup Skill

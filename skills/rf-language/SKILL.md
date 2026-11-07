@@ -5,7 +5,7 @@ license: Apache-2.0
 compatibility: "Requires Python 3.8+ with robotframework>=7 in the project environment for the bundled rf_conventions script; guidance is version-gated from RF 5.0 to 7.4 and the examples need RF 7.0+; robotcode[all]>=2.8 (which includes Robocop) is required in the project environment for keyword lookup, static checks and results."
 metadata:
   author: manykarim
-  version: "2.0.0"
+  version: "3.0.0"
 ---
 
 # Robot Framework Language

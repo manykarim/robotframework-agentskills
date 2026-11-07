@@ -5,7 +5,7 @@ license: Apache-2.0
 compatibility: Requires Python 3.11+, robotframework>=7, robotcode[all]>=2.8 and RESTinstance in the project environment.
 metadata:
   author: manykarim
-  version: "2.0.0"
+  version: "3.0.0"
 ---
 
 # RESTinstance Library Skill

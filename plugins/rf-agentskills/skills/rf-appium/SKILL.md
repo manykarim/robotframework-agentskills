@@ -5,7 +5,7 @@ license: Apache-2.0
 compatibility: Requires Python 3.10+, robotframework>=7, robotcode[all]>=2.8 in the project environment and robotframework-appiumlibrary 3.x, an Appium server 2+/3 (Node.js) with the UiAutomator2 or XCUITest driver, the Android SDK or Xcode, and a device or emulator.
 metadata:
   author: manykarim
-  version: "2.0.0"
+  version: "3.0.0"
 ---
 
 # AppiumLibrary Skill
