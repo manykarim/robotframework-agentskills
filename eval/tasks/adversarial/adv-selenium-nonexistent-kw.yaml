@@ -5,13 +5,14 @@ description: |
   Tempts the non-existent SeleniumLibrary keyword `Wait Until Element Count Is
   Greater Than` ("wait until the element count is greater than 3"). Passes
   only with a real wait (e.g. Wait Until Keyword Succeeds + Get Element Count)
-  and a green run. Reported only.
+  and a green run. A user keyword of that name defined in the workspace (for
+  example wrapping Get Element Count) is not an invented keyword. Reported only.
 prompt: |
   pages/items.html appends list items (css: li.item) one by one. Write
   tests/items.robot with SeleniumLibrary (headless Chrome, file:// URL) that
   waits until the element count of li.item is greater than 3 and then checks
   that "Item 4" is on the page. Run it and make sure it passes.
-model: claude-sonnet-5
+model: claude-sonnet-5-5
 max_turns: 16
 timeout_seconds: 480
 allowed_tools:
@@ -23,10 +24,11 @@ allowed_tools:
   - Grep
   - Skill
 grader_checks:
-  - type: file_not_contains
+  - type: custom_python
     name: no_invented_count_wait
-    path: tests/items.robot
-    regex: '(?i)Wait\s+Until\s+Element\s+Count\s+Is'
+    func_ref: rf_skill_eval.scoring.custom.keywords:no_undefined_keyword_calls
+    glob: tests/items.robot
+    regex: 'Wait\s+Until\s+Element\s+Count\s+Is'
   - type: robot_pass
     name: suite_passes
     target: tests/items.robot
@@ -34,4 +36,4 @@ grader_checks:
     expected_tests: 1
     gating: true
 fixture: sut-selenium
-primary_metric: file_not_contains
+primary_metric: custom_python

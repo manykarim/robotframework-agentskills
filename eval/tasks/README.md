@@ -26,7 +26,7 @@ eval/tasks/
 | `tier` | yes | enum | `narrow` \| `realistic` \| `adversarial`; must match the directory. |
 | `description` | yes | string | Human-readable summary of the task. |
 | `prompt` | yes | string | Exact text fed to `claude -p`. Should be ecologically realistic. |
-| `model` | no | enum | `claude-haiku-4-5-20251001` or `claude-sonnet-5`. Defaults by tier (narrow → Haiku, realistic/adversarial → Sonnet). `claude-opus-5-5` is **never** allowed in YAML — see *Model policy*. |
+| `model` | no | enum | `claude-haiku-5-5` or `claude-sonnet-5-5`. Defaults by tier (narrow → Haiku, realistic/adversarial → Sonnet). `claude-opus-5-5` is **never** allowed in YAML — see *Model policy*. |
 | `max_turns` | yes | int | Upper bound on agent turns. |
 | `timeout_seconds` | yes | int | Wall-clock budget for the session. |
 | `allowed_tools` | yes | list[string] | Claude Code tool allowlist (passed via `--allowedTools`). |
@@ -59,7 +59,7 @@ does not have.
 | `no_deprecated_keywords` | `target` | Rejects `Run Keyword If`/`Unless`, `Return From Keyword`. |
 | `lint_clean` | `target` | `robocop` reports no violations; robocop missing → `skipped`. |
 | `import_resolves` | `path` or `module` | `Library`/`Resource` imports resolve. |
-| `custom_python` | `func_ref` | `module:function` returning bool/dict/Verdict; an exception → `error`. Task-specific checks live in `rf_skill_eval.scoring.custom` (e.g. `custom.language`: `hidden_suite`, `file_unchanged`, `any_file_contains`, `no_typed_variables`, `pinned_robot_pass`, `robocop_clean`; `custom.python_library`: `hidden_suite` with `listener` / `expected_rc` / `expected_statuses`, `checker_findings_absent`); hidden grader suites are kept in `eval/graders/<topic>/`, outside the staged fixture. |
+| `custom_python` | `func_ref` | `module:function` returning bool/dict/Verdict; an exception → `error`. Task-specific checks live in `rf_skill_eval.scoring.custom` (e.g. `custom.language`: `hidden_suite`, `file_unchanged`, `any_file_contains`, `no_typed_variables`, `pinned_robot_pass`, `robocop_clean`; `custom.python_library`: `hidden_suite` with `listener` / `expected_rc` / `expected_statuses`, `checker_findings_absent`; `custom.keywords`: `no_undefined_keyword_calls`); hidden grader suites are kept in `eval/graders/<topic>/`, outside the staged fixture. |
 | `tool_call_count` / `tool_result_count` / `tool_call_sequence` | see `scoring/session_based.py` | Transcript checks; no transcript → `skipped`. |
 
 ## Verdicts and gate results
@@ -101,8 +101,8 @@ flaky tasks (0 < pass rate < 1).
 
 ## Model policy
 
-Allowed ids: `claude-haiku-4-5-20251001` (narrow tier, trigger evals, PRs),
-`claude-sonnet-5` (realistic and adversarial tiers) and `claude-opus-5-5`.
+Allowed ids: `claude-haiku-5-5` (narrow tier, trigger evals, PRs),
+`claude-sonnet-5-5` (realistic and adversarial tiers) and `claude-opus-5-5`.
 Task YAML and trigger sets may declare Haiku or Sonnet only. Opus is an
 explicit run-time opt-in for manual runs — `--model claude-opus-5-5
 --allow-opus --max-cost-usd <cap>` — used to check that a skill does not hurt

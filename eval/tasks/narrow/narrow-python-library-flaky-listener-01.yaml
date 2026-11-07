@@ -12,7 +12,7 @@ prompt: |
   reports a failing test that has the flaky tag as skipped instead of failed,
   keeping the original failure text in its message. Tests without the tag must
   keep their real status. Make sure it works before you finish.
-model: claude-haiku-4-5-20251001
+model: claude-haiku-5-5
 max_turns: 14
 timeout_seconds: 300
 allowed_tools:

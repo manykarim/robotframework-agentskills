@@ -26,7 +26,7 @@ def _make_task(fixture: str | None, tmp_path: Path) -> Task:
         skill="rf-results",
         description="smoke",
         prompt="Write a keyword.",
-        model="claude-haiku-4-5-20251001",
+        model="claude-haiku-5-5",
         max_turns=4,
         timeout_seconds=60,
         allowed_tools=("Read", "Write"),

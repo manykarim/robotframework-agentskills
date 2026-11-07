@@ -301,7 +301,7 @@ def _writer_claude(tmp_path: Path) -> Path:
 
 def _task(tools: tuple[str, ...]) -> Task:
     return Task(id="iso-1", skill="rf-requests", prompt="p", allowed_tools=tools, max_turns=2,
-                timeout_seconds=30, model="claude-haiku-4-5-20251001", tier="narrow")
+                timeout_seconds=30, model="claude-haiku-5-5", tier="narrow")
 
 
 def _iso_runner(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, rel: str) -> tuple[

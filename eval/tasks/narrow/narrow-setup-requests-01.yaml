@@ -9,7 +9,7 @@ prompt: |
   This Robot Framework project is managed with uv (see pyproject.toml). The
   team wants to start writing API tests with RequestsLibrary. Add the library
   to the project so it is installed and importable, and confirm it imports.
-model: claude-haiku-4-5-20251001
+model: claude-haiku-5-5
 max_turns: 12
 timeout_seconds: 420
 allowed_tools:

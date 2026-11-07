@@ -72,7 +72,7 @@ OpenRouter env wiring is set automatically:
 ```
 ANTHROPIC_BASE_URL=https://openrouter.ai/api/v1   (Claude Code → anthropic/* models on OR)
 ANTHROPIC_AUTH_TOKEN=$OPENROUTER_API_KEY
-GOOSE_PROVIDER=openrouter, GOOSE_MODEL=anthropic/claude-haiku-4-5
+GOOSE_PROVIDER=openrouter, GOOSE_MODEL=anthropic/claude-haiku-5-5
 GOOSE_DISABLE_KEYRING=1                           (no keyring in headless container)
 OPENROUTER_API_KEY                                (Codex / OpenCode read this directly)
 ```

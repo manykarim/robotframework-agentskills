@@ -26,7 +26,7 @@ from .fakes import FakeRunner
 from .results_factory import make_result
 
 runner = CliRunner()
-HAIKU = "claude-haiku-4-5-20251001"
+HAIKU = "claude-haiku-5-5"
 
 
 def _baseline(results: list, hashes: dict[str, str] | None = None) -> dict:
@@ -154,7 +154,7 @@ def test_gate_changed_task_needs_rebaseline_and_is_not_a_pass() -> None:
     report = gate_tasks(_current(["passed"] * 3), base, {"t": "h2"})
     assert report.status == "rebaseline-needed"
     assert report.exit_code == 3
-    model = gate_tasks(_current(["passed"] * 3, model="claude-sonnet-5"), base, {"t": "h1"})
+    model = gate_tasks(_current(["passed"] * 3, model="claude-sonnet-5-5"), base, {"t": "h1"})
     assert model.findings[0].kind == "rebaseline-needed"
     missing = gate_tasks(_current(["passed"] * 3), {"entries": {}}, {"t": "h1"})
     assert missing.exit_code == 3

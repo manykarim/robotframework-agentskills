@@ -134,7 +134,12 @@ def test_arms_differ_only_by_the_plugin(tmp_path: Path, fake_claude: Path) -> No
     # identical flags (model, turns, tools, permission mode); prompt differs only by the
     # per-run workspace path in the preamble
     def _flags(argv: list[str]) -> list[str]:
-        return [a for i, a in enumerate(argv) if i == 0 or argv[i - 1] != "-p"]
+        # The prompt and the per-run --mcp-config path are compared separately.
+        return [
+            "<mcp-config>" if i and argv[i - 1] == "--mcp-config" else a
+            for i, a in enumerate(argv)
+            if i == 0 or argv[i - 1] != "-p"
+        ]
 
     assert _flags(t_call["argv"]) == _flags(b_call["argv"])  # type: ignore[arg-type]
     t_prompt = t_call["argv"][1].replace(str(t_run.workspace_dir.resolve()), "<ws>")  # type: ignore[index,union-attr]

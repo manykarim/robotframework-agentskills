@@ -15,7 +15,7 @@ prompt: |
   shown, then closes the app. There is no emulator on this machine, so you
   cannot run it — make sure every keyword you use exists in AppiumLibrary 3.x
   (a libdoc spec is in specs/) and is not deprecated.
-model: claude-sonnet-5
+model: claude-sonnet-5-5
 max_turns: 16
 timeout_seconds: 480
 allowed_tools:

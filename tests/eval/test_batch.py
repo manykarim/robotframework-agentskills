@@ -90,7 +90,7 @@ def test_runner_error_is_recorded_as_incomplete(tmp_path: Path) -> None:
 
 
 def test_runtime_model_policy() -> None:
-    check_runtime_model("claude-sonnet-5", allow_opus=False, max_cost_usd=None)
+    check_runtime_model("claude-sonnet-5-5", allow_opus=False, max_cost_usd=None)
     with pytest.raises(ModelNotAllowedError, match="--allow-opus and --max-cost-usd"):
         check_runtime_model("claude-opus-5-5", allow_opus=False, max_cost_usd=None)
     with pytest.raises(ModelNotAllowedError, match="--max-cost-usd"):

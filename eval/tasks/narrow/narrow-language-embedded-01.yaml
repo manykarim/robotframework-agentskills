@@ -15,7 +15,7 @@ prompt: |
   city can have several words) by calling the Record Selection keyword of
   libraries/Selections.py. Do not change tests/teams.robot. Run the suite and
   make sure it passes.
-model: claude-haiku-4-5-20251001
+model: claude-haiku-5-5
 max_turns: 25
 timeout_seconds: 600
 allowed_tools:

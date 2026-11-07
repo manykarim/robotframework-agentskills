@@ -8,6 +8,7 @@ treatment arm only. Nothing is registered by default.
 from __future__ import annotations
 
 import json
+import sys
 from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
@@ -17,11 +18,12 @@ from typing import Any
 #: The package is ``rf-mcp`` on PyPI but installs an executable named
 #: ``robotmcp`` (console_scripts entry: ``robotmcp = robotmcp.server:main``,
 #: verified via ``importlib.metadata.distribution('rf-mcp').entry_points``).
-#: The ``[all]`` extra registers the full library set. We launch via
-#: ``uv run`` so the right virtualenv is used without pre-activation.
+#: The ``[all]`` extra registers the full library set. It is a harness
+#: dependency, so the server runs from the harness interpreter: ``uv run`` in
+#: the agent's CWD would resolve the fixture project, which lacks rf-mcp.
 DEFAULT_RF_MCP_SERVER: dict[str, Any] = {
-    "command": "uv",
-    "args": ["run", "robotmcp"],
+    "command": sys.executable,
+    "args": ["-m", "robotmcp.server"],
     "env": {},
 }
 

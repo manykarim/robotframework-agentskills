@@ -10,7 +10,7 @@ prompt: |
   via a file:// URL, wait until the network is idle, log in as demo/demo and
   check that the welcome message "Welcome, demo" appears. Run it and make sure
   it passes. Playwright browsers are already installed.
-model: claude-sonnet-5
+model: claude-sonnet-5-5
 max_turns: 16
 timeout_seconds: 480
 allowed_tools:

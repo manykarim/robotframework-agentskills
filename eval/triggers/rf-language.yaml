@@ -6,7 +6,7 @@
 # library, so it is neither a positive nor a negative):
 #   "Should this be a Python keyword or a user keyword?"
 skill: rf-language
-model: claude-haiku-4-5-20251001
+model: claude-haiku-5-5
 runs: 3
 threshold: 0.5
 queries:

@@ -17,7 +17,7 @@ prompt: |
   cases of the same suite, so the counts must carry over between the tests of
   a suite. Suites import it as `Library    Inventory` with libraries/ on the
   python-path. Make sure it works before you finish.
-model: claude-haiku-4-5-20251001
+model: claude-haiku-5-5
 max_turns: 14
 timeout_seconds: 300
 allowed_tools:

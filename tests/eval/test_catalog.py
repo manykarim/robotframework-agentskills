@@ -33,7 +33,7 @@ def _task(**overrides: object) -> dict[str, object]:
         "skill": "rf-requests",
         "tier": "narrow",
         "prompt": "x",
-        "model": "claude-haiku-4-5-20251001",
+        "model": "claude-haiku-5-5",
         "primary_metric": "file_exists",
         "grader_checks": [{"type": "file_exists", "path": "a"}],
     }
@@ -79,7 +79,7 @@ def test_plugin_pseudo_skill_accepted(tmp_path: Path) -> None:
 def test_old_model_id_rejected_with_permitted_list(tmp_path: Path) -> None:
     _write(tmp_path / "narrow", "t", _task(model="claude-sonnet-4-6"))
     report = validate_tasks(tmp_path, skills=shipped_skills(_REPO))
-    assert any("claude-sonnet-5" in p and "Permitted" in p for p in report.problems)
+    assert any("claude-sonnet-5-5" in p and "Permitted" in p for p in report.problems)
 
 
 def test_opus_in_yaml_rejected(tmp_path: Path) -> None:

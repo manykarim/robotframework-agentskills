@@ -112,7 +112,7 @@ Edit `.env` and paste your OAuth token:
 
 ```dotenv
 CLAUDE_CODE_OAUTH_TOKEN=sk-ant-oat01-your-token-here
-CLAUDE_MODEL_DEFAULT=claude-haiku-4-5-20251001
+CLAUDE_MODEL_DEFAULT=claude-haiku-5-5
 RF_SKILL_EVAL_LOG_LEVEL=INFO
 ```
 
@@ -189,7 +189,7 @@ scripts/eval-smoke.sh
 ```
 
 Runs `eval/tasks/narrow/narrow-libdoc-search-01.yaml` once with
-`claude-haiku-4-5-20251001` in the `treatment` arm, grades it and prints the
+`claude-haiku-5-5` in the `treatment` arm, grades it and prints the
 report.
 
 ### Local narrow run (pre-push check)
@@ -406,7 +406,7 @@ amendment).
 
 | Trigger | Jobs | Scope | Arms | N | Model | Cap |
 |---|---|---|---|---|---|---|
-| `pull_request` | `preflight` → `pr-eval` | narrow tasks of changed skills + `plugin` canaries (all narrow tasks when the harness changed); validation-split trigger evals when a SKILL.md `description` changed | treatment | 3 | `claude-haiku-4-5-20251001` | `PR_NARROW_CAP_USD`=10, `PR_TRIGGER_CAP_USD`=20 |
+| `pull_request` | `preflight` → `pr-eval` | narrow tasks of changed skills + `plugin` canaries (all narrow tasks when the harness changed); validation-split trigger evals when a SKILL.md `description` changed | treatment | 3 | `claude-haiku-5-5` | `PR_NARROW_CAP_USD`=10, `PR_TRIGGER_CAP_USD`=20 |
 | `schedule` (Sun 04:00 UTC) | `preflight` → `full-eval` | all tiers + all trigger sets | treatment, baseline | 3 | tier defaults | 12 + 12 + 8 + 8 = $40 |
 | `workflow_dispatch` | `preflight` → `full-eval` | inputs `tiers`, `arms`, `runs`, `model`, `allow_opus`, `max_cost_usd`, `triggers` | input | input | input | `max_cost_usd` per invocation |
 | all | `harness-tests` | ruff, mypy, `pytest tests/eval` (no API calls) | – | – | – | – |
@@ -439,8 +439,8 @@ gh workflow run skill-evaluation.yml -f use_api_key=true
 
 | Model | Default use | Why |
 | --- | --- | --- |
-| `claude-haiku-4-5-20251001` | narrow tier, trigger evals, PRs, smoke, local | Cheap, fast, low variance |
-| `claude-sonnet-5` | realistic and adversarial tiers | Higher fidelity for multi-step tasks |
+| `claude-haiku-5-5` | narrow tier, trigger evals, PRs, smoke, local | Cheap, fast, low variance |
+| `claude-sonnet-5-5` | realistic and adversarial tiers | Higher fidelity for multi-step tasks |
 | `claude-opus-5-5` | manual runs only, explicit opt-in | Checks a skill does not *hurt* the strongest model |
 
 - Task YAML and trigger sets may declare Haiku or Sonnet only.

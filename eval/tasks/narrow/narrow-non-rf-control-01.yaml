@@ -34,7 +34,7 @@ prompt: |
   Framework, libdoc, test automation, or any other RF concern. Do not
   search libdoc, do not initialize an rf-mcp session, do not consult any
   skill — just create the file and stop.
-model: claude-haiku-4-5-20251001
+model: claude-haiku-5-5
 max_turns: 4
 timeout_seconds: 60
 mcp_servers:
