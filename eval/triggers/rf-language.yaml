@@ -29,14 +29,14 @@ queries:
   # should NOT trigger (train): sibling skills, a Python library near miss, non-RF look-alikes
   - {id: lang-n01, split: train, should_trigger: false, note: "sibling rf-python-library", query: "Write a Python keyword library for our SOAP API"}
   - {id: lang-n02, split: train, should_trigger: false, note: "sibling rf-browser", query: "Which Browser library keyword waits for network idle?"}
-  - {id: lang-n03, split: train, should_trigger: false, note: "sibling rf-results", query: "Summarize the failures in results/output.xml"}
-  - {id: lang-n04, split: train, should_trigger: false, note: "sibling rf-libdoc", query: "What arguments does Browser's Click keyword take?"}
+  - {id: lang-n03, split: train, should_trigger: false, note: "sibling robotcode-plugin", query: "Summarize the failures in results/output.xml"}
+  - {id: lang-n04, split: train, should_trigger: false, note: "sibling robotcode-plugin", query: "What arguments does Browser's Click keyword take?"}
   - {id: lang-n05, split: train, should_trigger: false, note: "non-RF look-alike", query: "Write pytest parametrized tests for the login function"}
   - {id: lang-n06, split: train, should_trigger: false, note: "non-RF look-alike", query: "Write Cucumber step definitions in Java for these Gherkin steps"}
   - {id: lang-n07, split: train, should_trigger: false, note: "non-RF look-alike", query: "Add type hints to this Python function"}
   # should NOT trigger (validation)
   - {id: lang-n08, split: validation, should_trigger: false, note: "sibling rf-setup", query: "Install Robot Framework and robocop with uv"}
-  - {id: lang-n09, split: validation, should_trigger: false, note: "sibling rf-robotcode", query: "Set up robot.toml profiles for dev and ci"}
+  - {id: lang-n09, split: validation, should_trigger: false, note: "sibling robotcode-plugin", query: "Set up robot.toml profiles for dev and ci"}
   - {id: lang-n10, split: validation, should_trigger: false, note: "sibling rf-selenium", query: "My SeleniumLibrary locator isn't found after the page reloads"}
   - {id: lang-n11, split: validation, should_trigger: false, note: "non-RF look-alike", query: "Write Cucumber feature files with Given/When/Then for checkout in Java"}
   - {id: lang-n12, split: validation, should_trigger: false, note: "non-RF look-alike", query: "How does Ansible variable precedence work between group_vars and extra vars?"}
@@ -48,7 +48,12 @@ queries:
   - {id: lang-h04, split: train, should_trigger: true, note: "retired holdout (2026-09-30 evidence)", query: "Write a user keyword that takes any number of product names and adds each one to the cart"}
   - {id: lang-h05, split: train, should_trigger: true, note: "intent only; retired holdout (2026-09-30 evidence)", query: "Our robot tests all need ${BASE_URL}; where should that variable live so every suite can use it?"}
   - {id: lang-h06, split: train, should_trigger: false, note: "sibling rf-python-library; retired holdout (2026-09-30 evidence)", query: "Our robot keyword has to parse a PDF invoice; write it as a Python library function the tests can call"}
-  - {id: lang-h07, split: train, should_trigger: false, note: "sibling rf-libdoc; retired holdout (2026-09-30 evidence)", query: "What are the arguments of Should Be Equal As Numbers in BuiltIn?"}
-  - {id: lang-h08, split: train, should_trigger: false, note: "sibling rf-results; retired holdout (2026-09-30 evidence)", query: "Which suites were skipped in yesterday's output.xml?"}
+  - {id: lang-h07, split: train, should_trigger: false, note: "sibling robotcode-plugin; retired holdout (2026-09-30 evidence)", query: "What are the arguments of Should Be Equal As Numbers in BuiltIn?"}
+  - {id: lang-h08, split: train, should_trigger: false, note: "sibling robotcode-plugin; retired holdout (2026-09-30 evidence)", query: "Which suites were skipped in yesterday's output.xml?"}
   - {id: lang-h09, split: train, should_trigger: false, note: "non-RF look-alike; retired holdout (2026-09-30 evidence)", query: "Write Behave step implementations in Python for this Gherkin feature"}
   - {id: lang-h10, split: train, should_trigger: false, note: "non-RF look-alike; retired holdout (2026-09-30 evidence)", query: "Refactor this Jest test file to use describe.each for the table of inputs"}
+  # Co-installed robotcode-plugin near-misses (delegate-robotcode-skills): CLI work the robotcode skill owns.
+  - {id: lang-r01, split: holdout3, should_trigger: false, note: "sibling robotcode-plugin (co-installed near-miss)", query: "List all tests tagged smoke in this project"}
+  - {id: lang-r02, split: holdout3, should_trigger: false, note: "sibling robotcode-plugin (co-installed near-miss)", query: "Run only the checkout suite with the ci profile from robot.toml"}
+  - {id: lang-r03, split: holdout3, should_trigger: false, note: "sibling robotcode-plugin (co-installed near-miss)", query: "Summarise which tests failed in last night's robot run"}
+  - {id: lang-r04, split: holdout3, should_trigger: false, note: "sibling robotcode-plugin (co-installed near-miss)", query: "What arguments does Should Contain take in BuiltIn?"}

@@ -14,6 +14,7 @@ import uuid
 from pathlib import Path
 
 import pytest
+import yaml
 
 try:
     import tomllib
@@ -54,11 +55,27 @@ def test_opencode_subagent(agent: Path) -> None:
     variant = (VARIANTS / "opencode" / "agents" / agent.name).read_text(encoding="utf-8")
     assert variant.startswith("---\n")
     front, rest = variant[4:].split("\n---\n", 1)
-    meta = dict(line.split(": ", 1) for line in front.splitlines())
+    meta = yaml.safe_load(front)
     assert meta["mode"] == "subagent"
-    assert json.loads(meta["description"]) == _description(agent.read_text(encoding="utf-8"))
+    assert meta["description"] == _description(agent.read_text(encoding="utf-8"))
     body = rest.split("-->\n", 1)[1].lstrip("\n")  # after the generated-file note
     assert body == _body(agent.read_text(encoding="utf-8"))
+
+
+def test_variant_sets_hold_the_three_subagents() -> None:
+    expected = ["rf-debug-expert", "rf-migration-guide", "rf-test-architect"]
+    assert sorted(p.stem for p in AGENTS) == expected
+    assert sorted(p.stem for p in (VARIANTS / "codex" / "agents").glob("*.toml")) == expected
+    assert sorted(p.stem for p in (VARIANTS / "opencode" / "agents").glob("*.md")) == expected
+
+
+def test_opencode_permission_follows_claude_tools() -> None:
+    def meta(name: str) -> dict:
+        text = (VARIANTS / "opencode" / "agents" / f"{name}.md").read_text(encoding="utf-8")
+        return yaml.safe_load(text[4:].split("\n---\n", 1)[0])
+
+    assert meta("rf-debug-expert")["permission"] == {"edit": "deny", "bash": "allow"}
+    assert "permission" not in meta("rf-test-architect")  # unrestricted agents keep OpenCode's defaults
 
 
 def test_committed_variants_match_the_generator() -> None:
@@ -123,7 +140,7 @@ process.stdout.write(JSON.stringify(outputs));
 
 
 @pytest.mark.skipif(NODE is None, reason="node not on PATH")
-@pytest.mark.skipif(not _module_importable("robocop"), reason="Robocop not installed")
+@pytest.mark.skipif(shutil.which("robotcode") is None, reason="robotcode not installed")
 def test_opencode_plugin_appends_validation_errors(tmp_path: Path) -> None:
     plugin_js = _install_layout(tmp_path)
     broken = tmp_path / "tests" / "broken.robot"
@@ -132,7 +149,7 @@ def test_opencode_plugin_appends_validation_errors(tmp_path: Path) -> None:
     [out] = _drive(plugin_js, tmp_path, [
         {"tool": "write", "callID": "c1", "args": {"filePath": str(broken), "content": "..."}, "output": "Wrote file"},
     ])
-    assert out.startswith("Wrote file") and "broken.robot" in out and "ERR" in out
+    assert out.startswith("Wrote file") and "broken.robot" in out and "FOR loop must have closing END." in out
 
 
 @pytest.mark.skipif(NODE is None, reason="node not on PATH")

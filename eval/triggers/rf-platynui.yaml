@@ -28,7 +28,7 @@ queries:
   - {id: pu-n06, split: train, should_trigger: false, note: "non-RF look-alike", query: "WinAppDriver test in C# that clicks a WPF button"}
   # should NOT trigger (validation)
   - {id: pu-n07, split: validation, should_trigger: false, note: "sibling rf-appium", query: "Test the iOS version of our app on the simulator with Robot Framework"}
-  - {id: pu-n08, split: validation, should_trigger: false, note: "sibling rf-results", query: "Summarise which desktop tests failed in results/output.xml"}
+  - {id: pu-n08, split: validation, should_trigger: false, note: "sibling robotcode-plugin", query: "Summarise which desktop tests failed in results/output.xml"}
   - {id: pu-n09, split: validation, should_trigger: false, note: "non-RF look-alike", query: "Write an AutoIt script that fills a Windows installer dialog"}
   - {id: pu-n10, split: validation, should_trigger: false, note: "non-RF look-alike", query: "Use xdotool in bash to click a window on Linux"}
   # retired holdout (tune-skill-descriptions task 7.1): its results were inspected in the

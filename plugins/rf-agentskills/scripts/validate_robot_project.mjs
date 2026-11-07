@@ -5,38 +5,33 @@
 // This tier performs CROSS-FILE / semantic checks that only make sense
 // once the whole project is on disk — running them per-save would
 // false-alarm constantly (a keyword you just wrote looks "unused" until
-// something calls it; a call into a not-yet-written resource looks
-// "undefined"). Two checks:
+// something calls it). One tool, one run:
 //
-//   1. `robot --dryrun` over the project — resolves imports and keyword
-//      references without executing keyword bodies. Catches undefined
-//      keywords, argument errors, and broken imports. IMPORTANT: dryrun's
-//      exit code does NOT reflect import errors when the broken import is
-//      never used by an executed keyword — those surface only as
-//      `[ ERROR ]` console lines. So we inspect BOTH the exit code and
-//      the output for `[ ERROR ]`.
-//
-//   2. `robotframework-find-unused` — dead-code analysis (unused
-//      keywords) across the project.
+//   `robotcode --format json analyze code --collect-unused` from the project
+//   root. It reads robot.toml (paths, python-path, variables) and reports
+//     - every error-severity diagnostic (unresolved keywords and variables,
+//       failed imports, argument errors, model errors), and
+//     - unused keywords and variables (KeywordNotUsed / VariableNotUsed).
+//   The JSON is parsed; robotcode's bitmask exit code is not used.
 //
 // OPT-IN: the entire tier is gated behind the RF_AGENTSKILLS_PROJECT_VALIDATION
-// env var (truthy = 1/true/yes). It is OFF by default because `--dryrun`
-// imports libraries (runs their import-time code — could open a browser,
-// connect to a DB) and both checks scale with project size. When enabled
-// and findings exist, the hook exits 2 with the diagnostic on stderr so
-// the agent gets one more turn to fix before the turn ends.
+// env var (truthy = 1/true/yes/on). It is OFF by default because the analysis
+// loads the project's libraries (to read their keywords) and scales with
+// project size. When enabled and findings exist, the hook exits 2 with the
+// diagnostic on stderr so the agent gets one more turn to fix before the turn
+// ends.
 //
-// Graceful degradation: silent no-op (exit 0) when the flag is unset, no
-// interpreter is available, or the required tool isn't installed.
-import { readFileSync, mkdtempSync } from "node:fs";
+// Graceful degradation: silent no-op (exit 0) when the flag is unset, robotcode
+// isn't installed, the run times out (120 s) or its output is unparsable.
+import { readFileSync } from "node:fs";
 import { spawnSync } from "node:child_process";
-import { join } from "node:path";
-import { tmpdir } from "node:os";
-import { findInterpreterWith, projectRoot as projectRootOf, spawnOptions } from "./_python_env.mjs";
+import { findRobotcode, projectRoot as projectRootOf, spawnOptions } from "./_python_env.mjs";
 
 // Project-wide checks scale with project size: bounded, but more generous than
-// the per-file 20 s dry run. A timeout skips the check silently.
+// the per-file check. A timeout skips the check silently.
 const PROJECT_TIMEOUT_MS = 120000;
+const MAX_LISTED = 20;
+const UNUSED_CODES = new Set(["KeywordNotUsed", "VariableNotUsed"]);
 
 // ── Gate: opt-in only ───────────────────────────────────────────────────────
 function isTruthy(v) {
@@ -62,76 +57,37 @@ const projectRoot = projectRootOf(stopEvent);
 
 const findings = [];
 
-// ── Check 1: robot --dryrun ─────────────────────────────────────────────────
-// Interpreter: _python_env.mjs (VIRTUAL_ENV -> <cwd>/.venv -> python_runtime.json -> PATH).
-const robotPy = findInterpreterWith("robot", projectRoot);
-if (robotPy) {
-  let outDir;
-  try {
-    outDir = mkdtempSync(join(tmpdir(), "rf-dryrun-"));
-  } catch {
-    outDir = tmpdir();
-  }
-  const dry = spawnSync(
-    robotPy,
-    [
-      "-m",
-      "robot",
-      "--dryrun",
-      "--output",
-      "NONE",
-      "--report",
-      "NONE",
-      "--log",
-      "NONE",
-      "-d",
-      outDir,
-      projectRoot,
-    ],
+const rc = findRobotcode(projectRoot);
+if (rc) {
+  const r = spawnSync(
+    rc.exe,
+    ["--format", "json", "--no-color", "analyze", "code", "--collect-unused"],
     spawnOptions(PROJECT_TIMEOUT_MS, { encoding: "utf-8", cwd: projectRoot }),
   );
-  // Timeout / crash: skip the check silently (never report partial output).
-  const combined = dry.error || dry.status === null
-    ? ""
-    : `${dry.stdout ?? ""}\n${dry.stderr ?? ""}`;
-  // Import/parse problems surface as [ ERROR ] lines regardless of exit code.
-  const errorLines = combined
-    .split(/\r?\n/)
-    .filter((l) => l.includes("[ ERROR ]"))
-    // Ignore the "no tests" case — an empty/utility project isn't a failure.
-    .filter((l) => !/contains no tests/i.test(l));
-  if (errorLines.length) {
-    findings.push("Dry-run import/parse errors:\n  " + errorLines.join("\n  "));
-  }
-  // A non-zero exit with no [ ERROR ] line means keyword-resolution failures
-  // (undefined keyword, argument errors). Surface the FAIL summary lines.
-  if (combined && dry.status !== 0 && !errorLines.length) {
-    const failLines = combined
-      .split(/\r?\n/)
-      .filter((l) => /no keyword with name|FAIL|multiple errors/i.test(l))
-      .slice(0, 20);
-    if (failLines.length) {
-      findings.push(
-        "Dry-run keyword/argument errors:\n  " + failLines.join("\n  "),
-      );
+  let data = null;
+  if (!r.error && r.status !== null) {
+    try {
+      data = JSON.parse(r.stdout || "");
+    } catch {
+      data = null; // unparsable: tool failure, not a finding
     }
   }
-}
-
-// ── Check 2: find-unused (unused keywords) ──────────────────────────────────
-const unusedPy = findInterpreterWith("robotframework_find_unused", projectRoot);
-if (unusedPy) {
-  const unused = spawnSync(
-    unusedPy,
-    ["-m", "robotframework_find_unused", "keywords", projectRoot],
-    spawnOptions(PROJECT_TIMEOUT_MS, { encoding: "utf-8", cwd: projectRoot }),
-  );
-  const out = unused.error ? "" : `${unused.stdout ?? ""}\n${unused.stderr ?? ""}`;
-  // The tool prints "Found N unused keywords:" followed by one per line.
-  if (/found\s+\d+\s+unused keyword/i.test(out)) {
-    const idx = out.toLowerCase().indexOf("found");
-    findings.push("Unused keywords:\n  " + out.slice(idx).trim());
+  const errors = [];
+  const unused = [];
+  for (const [file, list] of Object.entries(data?.diagnostics ?? {})) {
+    for (const d of Array.isArray(list) ? list : []) {
+      const code = String(d?.code ?? "");
+      const line = `${file}:${Number(d?.range?.start?.line ?? 0) + 1}:${Number(d?.range?.start?.character ?? 0) + 1}: ` +
+        `${code}: ${String(d?.message ?? "").trim()}`;
+      if (UNUSED_CODES.has(code)) unused.push(line);
+      else if (d?.severity === 1) errors.push(line);
+    }
   }
+  const listed = (items) =>
+    items.slice(0, MAX_LISTED).join("\n  ") +
+    (items.length > MAX_LISTED ? `\n  … ${items.length - MAX_LISTED} more omitted.` : "");
+  if (errors.length) findings.push("Errors (robotcode analyze code):\n  " + listed(errors));
+  if (unused.length) findings.push("Unused keywords and variables:\n  " + listed(unused));
 }
 
 // ── Report ──────────────────────────────────────────────────────────────────

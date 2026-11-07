@@ -319,8 +319,8 @@ uv run rf-skill-eval trigger --split validation --listing-budget 40000 \
   listed *with* their description), and the results carry a `visibility` map
   per skill: `own_visible/own_listed` (sessions of the skill's own queries)
   and `all_visible/all_listed` (every session). The report adds a
-  "Description visibility" table, e.g. `| rf-results | 0/24 | 0/288 |` means
-  the model saw only the name `rf-results`.
+  "Description visibility" table, e.g. `| rf-requests | 0/24 | 0/288 |` means
+  the model saw only the name `rf-requests`.
 
 **Run isolation.** Task runs (profiles with write-capable tools) snapshot the
 repository before and after the session. Files that appear outside the run's
@@ -335,11 +335,11 @@ write-capable tool and skip the snapshot.
 
 ```bash
 uv run python scripts/build-description-variant.py \
-  --candidates openspec/changes/tune-skill-descriptions/candidates/rf-results.yaml \
-  --out /tmp/variants/rf-results-it1          # prints the variant id
-uv run rf-skill-eval trigger --skills rf-results --split train \
-  --variant-root /tmp/variants/rf-results-it1 --concurrency 2 --max-cost-usd 2 \
-  --output /tmp/evalruns/rf-results-it1
+  --candidates openspec/changes/tune-skill-descriptions/candidates/rf-requests.yaml \
+  --out /tmp/variants/rf-requests-it1          # prints the variant id
+uv run rf-skill-eval trigger --skills rf-requests --split train \
+  --variant-root /tmp/variants/rf-requests-it1 --concurrency 2 --max-cost-usd 2 \
+  --output /tmp/evalruns/rf-requests-it1
 ```
 
 The variant id is a hash of every staged description (an empty candidates

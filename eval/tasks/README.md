@@ -22,7 +22,7 @@ eval/tasks/
 | Field | Required | Type | Description |
 |---|---|---|---|
 | `id` | yes | string | Unique task id. Convention: `<tier>-<skill>-<nn>` (adversarial: `adv-<topic>`). |
-| `skill` | yes | string | The `name` of a shipped skill under `skills/*/SKILL.md` (e.g. `rf-libdoc`), or `plugin` for bundle-level canaries (hooks, "don't cheat" behaviour). Retired skills are rejected. |
+| `skill` | yes | string | The `name` of a shipped skill under `skills/*/SKILL.md` (e.g. `rf-browser`), or `plugin` for bundle-level canaries (hooks, "don't cheat" behaviour). Retired skills are rejected. |
 | `tier` | yes | enum | `narrow` \| `realistic` \| `adversarial`; must match the directory. |
 | `description` | yes | string | Human-readable summary of the task. |
 | `prompt` | yes | string | Exact text fed to `claude -p`. Should be ecologically realistic. |

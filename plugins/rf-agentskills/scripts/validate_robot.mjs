@@ -4,14 +4,26 @@
 //
 // Runs from the PostToolUse hook after Write or Edit. Tiers:
 //
-//   Tier 1 (one Robocop pass, classified by rule ID): `robocop check --no-cache`
-//     with the project's configured rule set and a pipe-separated issue format.
-//     Every parsed finding is sorted into one class:
-//       - error severity (E), not a DEPR rule -> real error. The hook exits 2
-//         and writes the diagnostic to stderr (Claude Code and Codex feed it
-//         back to the agent) and also prints {"decision":"block","reason":…}
-//         on stdout, the only channel Copilot CLI passes to its model.
-//         Same set as the former `--threshold E` run.
+//   Tier 0 (errors): `robotcode --format json analyze code <file>` from the
+//     project root, so robot.toml, profiles, python-path and the installed
+//     libraries apply. Error-severity diagnostics are classified by code:
+//       - KeywordNotFound / VariableNotFound -> unresolved name: advisory on
+//         edit (the agent may be about to write it in another file); the file
+//         is recorded as pending and blocks at Stop if still unresolved.
+//       - any other error (ModelError, argument DataError, failed import, …)
+//         -> blocking error. The hook exits 2 and writes the diagnostic to
+//         stderr (Claude Code and Codex feed it back to the agent) and also
+//         prints {"decision":"block","reason":…} on stdout, the only channel
+//         Copilot CLI passes to its model.
+//     Warnings, infos and hints are dropped; each list shows at most 5
+//     diagnostics. With RF_AGENTSKILLS_STOP_RECHECK=1 (set by
+//     report_pending_errors.mjs) unresolved names block too and the advisory
+//     tiers are skipped. No robotcode, a timeout (20 s) or unparsable output =
+//     silence: a tool failure is never a finding.
+//
+//   Tier 1 (deprecations, one Robocop pass classified by rule ID):
+//     `robocop check --no-cache` with the project's configured rule set and a
+//     pipe-separated issue format. Error findings are left to tier 0:
 //       - DEPR03/04/07/08/09/10/11 -> hard deprecation (advisory warning)
 //       - any other DEPR rule (DEPR05/06 …) -> modernization hint (advisory)
 //       - everything else (style rules) -> dropped
@@ -29,34 +41,43 @@
 //   Tier 3 (opt-in, RF_AGENTSKILLS_FILE_DRYRUN=1): `robot --dryrun` on the
 //     edited suite (.robot only, not __init__.robot). Advisory context only.
 //
-// Advisory output (tiers 1-3) is written only when no exit-2 diagnostic is.
-// A file with real errors is also recorded per session (_pending_errors.mjs) and
-// cleared by its next passing run; report_pending_errors.mjs re-checks the
-// recorded files at Stop, for agents that don't wait for this hook (VS Code Local).
-// Every spawned process has a timeout (Robocop 10 s, dry run 20 s, probes
-// 5 s); a timeout skips that tier silently. `--no-cache` keeps Robocop from
-// leaving a .robocop_cache/ directory in the user's project.
+// Advisory output (tiers 0-3) is written only when no exit-2 diagnostic is.
+// A file with blocking errors or unresolved names is also recorded per session
+// (_pending_errors.mjs) and cleared by its next clean run; report_pending_errors.mjs
+// re-checks the recorded files at Stop. Every spawned process has a timeout
+// (robotcode 20 s, Robocop 10 s, dry run 20 s, probes 5 s); a timeout skips
+// that tier silently. `--no-cache` keeps Robocop from leaving a .robocop_cache/
+// directory; robotcode keeps its normal .robotcode_cache/ (the warm cache makes
+// the check take about a second).
 //
 // Input: the PostToolUse event JSON on stdin (legacy `TOOL_INPUT` env var as a
 // fallback), in any agent's shape — see _hook_input.mjs (Claude Code, Copilot
 // CLI, Cursor, VS Code, Codex). Non-edit tools exit silently; a patch that
-// touches several .robot/.resource files is validated file by file. Interpreter: see _python_env.mjs (VIRTUAL_ENV -> <cwd>/.venv ->
-// python_runtime.json -> python3/python); Robocop and Robot Framework are
-// optional — without them the tier is a silent no-op.
+// touches several .robot/.resource files is validated file by file. Tools: see
+// _python_env.mjs (VIRTUAL_ENV -> <cwd>/.venv -> python_runtime.json -> PATH);
+// robotcode, Robocop and Robot Framework are each optional — a missing tool
+// makes its tier a silent no-op.
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
-import { spawnSync } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { tmpdir } from "node:os";
-import { basename, join } from "node:path";
+import { basename, dirname, join, relative, isAbsolute } from "node:path";
 import { fileURLToPath } from "node:url";
 import { readHookInput } from "./_hook_input.mjs";
 import { recordResult } from "./_pending_errors.mjs";
-import { findInterpreterWith, projectRoot, spawnOptions } from "./_python_env.mjs";
+import { findInterpreterWith, findRobotcode, projectRoot, spawnOptions } from "./_python_env.mjs";
 
+// Child processes still running; killed when the hook exits early.
+const running = new Set();
+const ANALYZE_TIMEOUT_MS = 20000;
 const ROBOCOP_TIMEOUT_MS = 10000;
 const DRYRUN_TIMEOUT_MS = 20000;
 const MAX_LISTED = 10;
+const MAX_DIAGNOSTICS = 5;
 const MAX_CHARS = 2000;
+// Diagnostics that may resolve once the agent writes the next file.
+const UNRESOLVED_CODES = new Set(["KeywordNotFound", "VariableNotFound"]);
+const STOP_RECHECK = /^(1|true|yes|on)$/i.test((process.env.RF_AGENTSKILLS_STOP_RECHECK ?? "").trim());
 
 // Hard deprecations: listed first, with the modern replacement.
 const HARD_DEPRECATIONS = {
@@ -95,6 +116,7 @@ function reportErrors(text) {
     "The edit was applied, but Robot Framework validation found errors. Fix them:\n" + text.trim();
   process.stdout.write(JSON.stringify({ decision: "block", reason }) + "\n");
   process.stderr.write(text.endsWith("\n") ? text : text + "\n");
+  for (const child of running) child.kill("SIGKILL");
   process.exit(2);
 }
 
@@ -111,7 +133,7 @@ function validateEach(files) {
     const r = spawnSync(
       process.execPath,
       [self],
-      spawnOptions(ROBOCOP_TIMEOUT_MS * 2 + DRYRUN_TIMEOUT_MS, {
+      spawnOptions(ANALYZE_TIMEOUT_MS + ROBOCOP_TIMEOUT_MS * 2 + DRYRUN_TIMEOUT_MS, {
         input: JSON.stringify(child), encoding: "utf-8", env: { ...process.env, TOOL_INPUT: "" },
       }),
     );
@@ -217,9 +239,100 @@ function findingKey(f) {
   return createHash("sha1").update(`${filePath}\0${f.rule}\0${text}`).digest("hex");
 }
 
+// The robotcode and Robocop runs are independent, so they run in parallel; the
+// hook then takes about as long as the slowest of them.
+function spawnAsync(cmd, args, defaultTimeoutMs, runDir = cwd) {
+  const opts = spawnOptions(defaultTimeoutMs);
+  return new Promise((resolve) => {
+    let child;
+    try {
+      child = spawn(cmd, args, { cwd: runDir, windowsHide: true, stdio: ["ignore", "pipe", "pipe"] });
+    } catch (error) {
+      resolve({ error, status: null, stdout: "" });
+      return;
+    }
+    running.add(child);
+    let stdout = "";
+    let done = false;
+    const finish = (res) => {
+      if (done) return;
+      done = true;
+      clearTimeout(timer);
+      running.delete(child);
+      resolve(res);
+    };
+    const timer = setTimeout(() => {
+      child.kill(opts.killSignal);
+      finish({ error: new Error("timeout"), status: null, stdout });
+    }, opts.timeout);
+    child.stdout.setEncoding("utf-8");
+    child.stdout.on("data", (chunk) => {
+      if (stdout.length < opts.maxBuffer) stdout += chunk;
+    });
+    child.stderr.resume();
+    child.on("error", (error) => finish({ error, status: null, stdout }));
+    child.on("close", (status) => finish({ error: null, status, stdout }));
+  });
+}
+
+function exitNow(code) {
+  for (const child of running) child.kill("SIGKILL");
+  process.exit(code);
+}
+
+// ── Tier 0: robotcode analyze code ──────────────────────────────────────────
+// Returns {blocking, unresolved} (lists of {line, col, code, message}) or null
+// when robotcode is missing, timed out or printed nothing parsable.
+function startAnalyze() {
+  const rc = findRobotcode(cwd);
+  if (!rc) return Promise.resolve(null);
+  // robotcode only analyzes files under the root it finds from its working
+  // directory; a file outside the event's project is analyzed from its folder.
+  const rel = relative(cwd, filePath);
+  const runDir = rel && !rel.startsWith("..") && !isAbsolute(rel) ? cwd : dirname(filePath);
+  return spawnAsync(rc.exe, ["--format", "json", "--no-color", "analyze", "code", filePath], ANALYZE_TIMEOUT_MS, runDir);
+}
+
+function parseAnalyze(r) {
+  if (!r || r.error || r.status === null) return null;
+  let data;
+  try {
+    data = JSON.parse(r.stdout || "");
+  } catch {
+    return null;
+  }
+  const byFile = data && typeof data.diagnostics === "object" && data.diagnostics ? data.diagnostics : null;
+  if (!byFile) return null;
+  if (data.summary && data.summary.files === 0) return null; // nothing analyzed: no result
+  const blocking = [];
+  const unresolved = [];
+  for (const list of Object.values(byFile)) {
+    for (const d of Array.isArray(list) ? list : []) {
+      if (d?.severity !== 1) continue; // LSP severity 1 = error
+      const item = {
+        line: Number(d.range?.start?.line ?? 0) + 1,
+        col: Number(d.range?.start?.character ?? 0) + 1,
+        code: String(d.code ?? "Error"),
+        message: String(d.message ?? "").trim(),
+      };
+      (UNRESOLVED_CODES.has(item.code) ? unresolved : blocking).push(item);
+    }
+  }
+  const order = (a, b) => a.line - b.line || a.col - b.col;
+  return { blocking: blocking.sort(order), unresolved: unresolved.sort(order) };
+}
+
+function diagnosticLines(items) {
+  const lines = items
+    .slice(0, MAX_DIAGNOSTICS)
+    .map((d) => `${filePath}:${d.line}:${d.col}: [ERROR] ${d.code}: ${d.message}`);
+  if (items.length > MAX_DIAGNOSTICS) lines.push(`… ${items.length - MAX_DIAGNOSTICS} more omitted.`);
+  return lines.join("\n");
+}
+
 // ── Tier 1: one Robocop pass ────────────────────────────────────────────────
-function runRobocop(py) {
-  const r = spawnSync(
+function startRobocop(py) {
+  return spawnAsync(
     py,
     [
       "-m", "robocop", "check", "--no-cache",
@@ -227,9 +340,12 @@ function runRobocop(py) {
       "--issue-format", "{severity}|{rule_id}|{source}:{line}:{col}|{desc}",
       filePath,
     ],
-    spawnOptions(ROBOCOP_TIMEOUT_MS, { encoding: "utf-8", cwd }),
+    ROBOCOP_TIMEOUT_MS,
   );
-  if (r.error || r.status === null) return null; // timeout, overflow, crash
+}
+
+function parseRobocop(r) {
+  if (!r || r.error || r.status === null) return null; // timeout, overflow, crash
   const findings = [];
   for (const line of (r.stdout ?? "").split(/\r?\n/)) {
     const m = ISSUE_RE.exec(line.trim());
@@ -332,19 +448,34 @@ function dryRunText() {
 
 // ── Main ────────────────────────────────────────────────────────────────────
 const advisory = [];
-const robocopPy = findInterpreterWith("robocop", cwd);
+const robocopPy = STOP_RECHECK ? null : findInterpreterWith("robocop", cwd);
+const analyzeRun = startAnalyze();
+const robocopRun = robocopPy ? startRobocop(robocopPy) : Promise.resolve(null);
+const formatRun = robocopPy
+  ? spawnAsync(robocopPy, ["-m", "robocop", "format", "--no-cache", "--check", "--diff", "--no-overwrite", filePath],
+    ROBOCOP_TIMEOUT_MS)
+  : Promise.resolve(null);
+const analysis = parseAnalyze(await analyzeRun);
+if (analysis) {
+  const { blocking, unresolved } = analysis;
+  // Remember the result for the Stop-time re-check (report_pending_errors.mjs).
+  recordResult(sessionId, filePath, blocking.length + unresolved.length > 0);
+  const blockingNow = STOP_RECHECK ? [...blocking, ...unresolved] : blocking;
+  if (blockingNow.length) {
+    reportErrors(`Robot Framework validation found errors in ${filePath}:\n` + diagnosticLines(blockingNow));
+  }
+  if (unresolved.length) {
+    advisory.push(
+      `robotcode cannot resolve these names in ${filePath} yet (advisory; define or import them before you ` +
+        "finish, the check blocks at the end of the turn otherwise):\n" + diagnosticLines(unresolved),
+    );
+  }
+}
+if (STOP_RECHECK) exitNow(0);
+
 if (robocopPy) {
-  const findings = runRobocop(robocopPy);
+  const findings = parseRobocop(await robocopRun);
   if (findings) {
-    const errors = findings.filter((f) => f.severity === "E" && !f.rule.startsWith("DEPR"));
-    // Remember the result for the Stop-time re-check (report_pending_errors.mjs).
-    recordResult(sessionId, filePath, errors.length > 0);
-    if (errors.length) {
-      reportErrors(
-        `Robot Framework validation found errors in ${filePath}:\n` +
-          errors.map((f) => `${filePath}:${f.line}:${f.col} [E] ${f.rule} ${f.desc}`).join("\n"),
-      );
-    }
     const mode = (process.env.RF_AGENTSKILLS_DEPRECATION_CHECK ?? "").trim().toLowerCase();
     if (mode !== "off") {
       const text = deprecationText(findings.filter((f) => f.rule.startsWith("DEPR")));
@@ -352,12 +483,8 @@ if (robocopPy) {
     }
 
     // ── Tier 2: formatting drift (informational only) ──
-    const fmt = spawnSync(
-      robocopPy,
-      ["-m", "robocop", "format", "--no-cache", "--check", "--diff", "--no-overwrite", filePath],
-      spawnOptions(ROBOCOP_TIMEOUT_MS, { encoding: "utf-8", cwd }),
-    );
-    if (!fmt.error && fmt.status !== 0 && fmt.status !== null && (fmt.stdout ?? "").trim()) {
+    const fmt = await formatRun;
+    if (fmt && !fmt.error && fmt.status !== 0 && fmt.status !== null && (fmt.stdout ?? "").trim()) {
       let diff = fmt.stdout.trim();
       if (diff.length > MAX_CHARS) diff = diff.slice(0, MAX_CHARS - 1) + "…";
       advisory.push(

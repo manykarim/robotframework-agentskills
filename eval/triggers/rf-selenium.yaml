@@ -28,7 +28,7 @@ queries:
   - {id: se-n06, split: train, should_trigger: false, note: "non-RF look-alike", query: "Convert this Selenium Java TestNG test to Selenide"}
   # should NOT trigger (validation)
   - {id: se-n07, split: validation, should_trigger: false, note: "sibling rf-browser", query: "Browser library Get Text assertion fails with a strict mode violation in my Robot test"}
-  - {id: se-n08, split: validation, should_trigger: false, note: "sibling rf-results", query: "Summarise which tests failed in results/output.xml from last night's UI run"}
+  - {id: se-n08, split: validation, should_trigger: false, note: "sibling robotcode-plugin", query: "Summarise which tests failed in results/output.xml from last night's UI run"}
   - {id: se-n09, split: validation, should_trigger: false, note: "non-RF look-alike", query: "Set up a Selenium Grid 4 hub with Docker compose for our Java team"}
   - {id: se-n10, split: validation, should_trigger: false, note: "non-RF look-alike", query: "Write a pytest fixture that yields a headless Firefox selenium driver"}
   # retired holdout (tune-skill-descriptions task 7.1): its results were inspected in the
@@ -53,5 +53,5 @@ queries:
   - {id: se-k06, split: holdout2, should_trigger: false, note: "sibling rf-setup (driver near-miss)", query: "geckodriver is not on PATH when our robot suite starts Firefox on the Jenkins agent; how do I install it there?"}
   - {id: se-k07, split: holdout2, should_trigger: false, note: "sibling rf-setup (install near-miss)", query: "Add robotframework-seleniumlibrary and a pinned Selenium 4 to our requirements, then create the venv for the web tests"}
   - {id: se-k08, split: holdout2, should_trigger: false, note: "sibling rf-setup (driver near-miss)", query: "Our Docker image for the robot web tests has no browser; write the Dockerfile lines that install Chrome and a matching chromedriver"}
-  - {id: se-k09, split: holdout2, should_trigger: false, note: "sibling rf-robotcode (robotcode near-miss)", query: "Using robotcode, run only the web UI suites with the 'firefox' profile from robot.toml"}
+  - {id: se-k09, split: holdout2, should_trigger: false, note: "sibling robotcode-plugin (robotcode near-miss)", query: "Using robotcode, run only the web UI suites with the 'firefox' profile from robot.toml"}
   - {id: se-k10, split: holdout2, should_trigger: false, note: "non-RF look-alike", query: "In Selenium IDE, export my recorded login flow as a Java JUnit test"}

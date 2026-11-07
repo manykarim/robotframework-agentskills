@@ -10,15 +10,15 @@ description: |
   This task's prompt explicitly mentions Robot Framework and
   SeleniumLibrary, so `maybe_inject_rf_context.sh` should fire its
   additionalContext payload describing the available rf-agentskills.
-  The agent should then leverage that context — invoke the Skill tool
-  for the rf-libdoc skill, run rf_libdoc.py via Bash, or call
-  an rf-mcp lookup tool — rather than guessing the keyword signature
-  from memory.
+  The agent should then leverage that context — run
+  `robotcode doc keyword SeleniumLibrary "Click Element"` (or another
+  libdoc lookup) via Bash, or call an rf-mcp lookup tool — rather than
+  guessing the keyword signature from memory.
 
   Pass criteria:
     - The expected file is produced and contains the keyword info.
     - At least one rf-agentskills lookup path was taken (Skill /
-      rf_libdoc.py / mcp__rf-mcp__find_keywords / get_keyword_info).
+      robotcode doc / libdoc / mcp__rf-mcp__find_keywords / get_keyword_info).
 prompt: |
   I'm working on a Robot Framework test suite that uses SeleniumLibrary.
   I need a brief reference for the `Click Element` keyword. Write a
@@ -31,12 +31,9 @@ prompt: |
   Use the libdoc tooling to verify the signature — don't guess from
   memory.
 model: claude-haiku-4-5-20251001
-# Same budget as narrow-libdoc-search-01: with the full plugin loaded
-# Haiku may pick the rf-libdoc skill's explain mode (a valid choice) whose
-# SeleniumLibrary keyword output is ~60KB and triggers Claude Code's
-# persisted-output workflow. 16 turns absorb the recovery without
-# papering over the underlying explain output-size issue, which
-# is tracked separately.
+# 16 turns absorb a long libdoc page (e.g. `robotcode doc lib
+# SeleniumLibrary`, ~60KB) that triggers Claude Code's persisted-output
+# workflow.
 max_turns: 16
 timeout_seconds: 240
 mcp_servers:
@@ -70,7 +67,7 @@ grader_checks:
   - type: tool_call_count
     name: leveraged_rf_lookup
     tool_pattern: "(Bash|Skill|mcp__rf-mcp__.*)"
-    input_pattern: '(rf_libdoc|\blibdoc\b|find_keywords|get_keyword_info)'
+    input_pattern: '(robotcode +(--\S+ +)*doc\b|\blibdoc\b|find_keywords|get_keyword_info)'
     min: 1
 fixture: sut-minimal
 primary_metric: file_contains

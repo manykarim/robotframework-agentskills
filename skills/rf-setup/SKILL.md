@@ -2,7 +2,7 @@
 name: rf-setup
 description: "Use first, before reading pyproject.toml, to install or fix Robot Framework and libraries (uv, pip, venv)."
 license: Apache-2.0
-compatibility: Requires one of uv (preferred), Python 3.10+ with venv and pip, or Poetry 1.8+; network access to PyPI.
+compatibility: Requires one of uv (preferred), Python 3.10+ with venv and pip, or Poetry 1.8+; network access to PyPI. Installs robotcode[all]>=2.8 into the project environment, which the other rf-agentskills skills and hooks require.
 metadata:
   author: manykarim
   version: "2.0.0"
@@ -47,7 +47,7 @@ Don't switch a project to another tool unless the user asks. Converting `require
 | Package | Python |
 |---|---|
 | robotframework 7.5 | ≥ 3.8 |
-| robotframework-browser 20.x, robotframework-seleniumlibrary 6.9, robotcode 2.7, robotframework-robocop 9.x | ≥ 3.10 |
+| robotframework-browser 20.x, robotframework-seleniumlibrary 6.9, robotcode 2.8, robotframework-robocop 9.x | ≥ 3.10 |
 | RESTinstance 1.8 | ≥ 3.11 |
 | robotframework-PlatynUI (new_core pre-release) | ≥ 3.12 |
 
@@ -59,13 +59,30 @@ On Debian/Ubuntu, `python3.12 -m venv` needs the `python3.12-venv` package. uv a
 uv init --bare --python 3.12          # pyproject.toml only; --python avoids requires-python >= newest
 uv python pin 3.12                    # writes .python-version; without it uv may pick a newer Python
 uv add robotframework robotframework-requests          # test libraries
-uv add --dev "robotcode[all]" robotframework-robocop   # developer tools
+uv add --dev "robotcode[all]>=2.8"    # required: robotcode CLI (+ Robocop), see below
 uv run robot --version                # "Robot Framework 7.5 (Python 3.12…)"; exit code 251 is normal here
+uv run robotcode --version            # "robotcode, version 2.8.…"
 ```
 
 Commit `pyproject.toml`, `uv.lock` and `.python-version`. On another machine or in CI: `uv sync --locked`.
 
 venv + pip and Poetry equivalents: `references/venv-pip.md`, `references/poetry.md`.
+
+## Required: robotcode in the project environment
+
+The other rf-agentskills skills and the validation hooks run the robotcode CLI (`robotcode doc`, `robotcode analyze code`, `robotcode results`, `robotcode robot-debug`). Install it in every new or repaired setup, right after Robot Framework, with the tool the project uses:
+
+| Tool | Command |
+|---|---|
+| uv | `uv add --dev "robotcode[all]>=2.8"` |
+| Poetry | `poetry add --group dev "robotcode[all]>=2.8"` |
+| venv + pip | `pip install "robotcode[all]>=2.8"` (venv active; also add it to `requirements-dev.txt`) |
+
+- **Why `[all]`:** the base `robotcode` package only has `config` and `profiles`. The skills need the `runner` extra (`robot`, `discover`, `results`, `libdoc`), `analyze` (`analyze code`) and `repl` (`doc`, `repl`, `robot-debug`), and the hooks need Robocop. Only `[all]` brings all of them.
+- **Why ≥ 2.8:** `robotcode doc` (keyword lookup) first ships in 2.8. For an older install, run the same command again: it raises the lower bound and upgrades robotcode.
+- **CI that only runs tests** can install `robotcode[runner]` instead.
+- Verify with `uv run robotcode --version` and `uv run robotcode discover info` (the Python and Robot Framework it reports must be the project's).
+- For how to drive robotcode (running, discovery, keyword docs, results, debugging), install the robotcode plugin from `robotcodedev/robotframework-agent-plugins` next to rf-agentskills.
 
 ## Step 4: Add libraries and their post-install steps
 
@@ -78,27 +95,25 @@ venv + pip and Poetry equivalents: `references/venv-pip.md`, `references/poetry.
 | RequestsLibrary | `uv add robotframework-requests` | — | `rf-requests` |
 | RESTinstance | `uv add RESTinstance` | Python ≥ 3.11 | `rf-restinstance` |
 | PlatynUI (preview) | `uv add --prerelease allow robotframework-PlatynUI` | Python ≥ 3.12; a plain install gets the old 0.9.2 | `rf-platynui` |
-| robotcode CLI | `uv add --dev "robotcode[all]"` | Must be in the project env | `rf-robotcode` |
-| Robocop (lint/format) | `uv add --dev robotframework-robocop` | — | — |
 
 Details, pip/Poetry forms and verification per library: `references/libraries.md`.
 
 ## ⚠️ Never install test libraries globally
 
 - No `sudo pip install`, no `pip install --break-system-packages`, no `pip install --user` for project dependencies.
-- **Don't use `pipx` or `uv tool` for test libraries or robotcode.** Those create isolated environments that `robot` in the project can't import from. They are only for standalone CLIs such as `rf-agentskills` (see `references/cli-tools.md`).
+- **Don't use `pipx`, `uvx` or `uv tool` for test libraries or robotcode.** Those create isolated environments that `robot` in the project can't import from. They are only for standalone CLIs such as `rf-agentskills` (see `references/cli-tools.md`).
 - Run tools through the project environment: `uv run …`, `poetry run …`, or `.venv/bin/python -m …` / an activated venv.
 
 ## Step 5: Verify before handing over
 
 ```bash
 uv run robot --version                           # right interpreter? (poetry run … / .venv/bin/python -m robot …)
-uv run robotcode discover info                   # when robotcode is installed: Python, RF, executable
+uv run robotcode discover info                   # Python, RF and robotcode actually used
 uv run robot --outputdir results tests/smoke.robot           # smoke test (assets/examples/smoke.robot)
-uv run robot --dryrun --outputdir results/dryrun tests       # all suites parse, imports and keywords resolve
+uv run robotcode analyze code tests                          # all suites parse, imports and keywords resolve
 ```
 
-`robot --dryrun` catches missing libraries and misspelled keywords without running anything. Report the versions from `robot --version` to the user.
+`robotcode analyze code` catches missing libraries, misspelled keywords and wrong arguments without running anything, and it reads `robot.toml`. Report the versions from `robotcode discover info` to the user.
 
 ## Project layout
 
@@ -131,7 +146,6 @@ Examples in `assets/examples/`: `pyproject.uv.toml`, `pyproject.poetry.toml`, `r
 
 | Need | Skill |
 |------|-------|
-| Discover, run, debug and statically check with the robotcode CLI | `rf-robotcode` |
 | Web UI tests with Browser Library (Playwright) | `rf-browser` |
 | Web UI tests with SeleniumLibrary (WebDriver) | `rf-selenium` |
 | Mobile app tests with AppiumLibrary | `rf-appium` |
@@ -140,3 +154,5 @@ Examples in `assets/examples/`: `pyproject.uv.toml`, `pyproject.poetry.toml`, `r
 | Native desktop tests with PlatynUI | `rf-platynui` |
 | Write tests, suites, user keywords, resources and variables in Robot Framework syntax | `rf-language` |
 | Write or fix a Python keyword library or listener | `rf-python-library` |
+
+For running, discovering, keyword documentation, result analysis and debugging with the robotcode CLI, use the `robotcode` skill of the robotcode plugin (`robotcode@robotframework-agent-plugins`).

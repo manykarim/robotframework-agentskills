@@ -30,7 +30,7 @@ runner = CliRunner()
 def _task(**overrides: object) -> dict[str, object]:
     data: dict[str, object] = {
         "id": "narrow-x-01",
-        "skill": "rf-results",
+        "skill": "rf-requests",
         "tier": "narrow",
         "prompt": "x",
         "model": "claude-haiku-4-5-20251001",
@@ -117,13 +117,12 @@ def test_duplicate_ids_rejected(tmp_path: Path) -> None:
     assert any("duplicate task id" in p for p in validate_tasks(tmp_path, skills=shipped_skills(_REPO)).problems)
 
 
-def test_canary_tasks_are_plugin_and_libdoc_tasks_use_merged_name() -> None:
+def test_canary_tasks_are_plugin_tasks_and_no_task_targets_a_retired_skill() -> None:
     report = validate_tasks(_REPO / "eval" / "tasks", skills=shipped_skills(_REPO))
     skills = {tid: t.skill for tid, (_p, t) in report.tasks.items()}
     assert skills["narrow-non-rf-control-01"] == "plugin"
     assert skills["narrow-rf-injection-positive-01"] == "plugin"
-    assert skills["narrow-libdoc-search-01"] == "rf-libdoc"
-    assert skills["narrow-libdoc-search-02-no-mcp"] == "rf-libdoc"
+    assert not {"rf-libdoc", "rf-results", "rf-robotcode"} & set(skills.values())
 
 
 def test_coverage_passes_on_repo() -> None:

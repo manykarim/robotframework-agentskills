@@ -7,7 +7,8 @@ Two need their own formats, generated from the canonical sources in
 
 * Codex:    ``variants/codex/agents/<name>.toml`` (name, description,
             developer_instructions) - Codex plugins cannot ship subagents.
-* OpenCode: ``variants/opencode/agents/<name>.md`` (``mode: subagent``) and
+* OpenCode: ``variants/opencode/agents/<name>.md`` (``mode: subagent``, and a
+            ``permission`` block mapped from the Claude ``tools`` list) and
             ``variants/opencode/plugins/rf-agentskills.js``, a JS plugin that
             runs the same hook scripts on OpenCode events.
 
@@ -74,12 +75,29 @@ def codex_agent(md: Path) -> str:
     )
 
 
+EDIT_TOOLS = {"Write", "Edit", "MultiEdit", "NotebookEdit"}
+
+
+def opencode_permission(tools: str | None) -> str:
+    """OpenCode ``permission`` block for a Claude ``tools`` restriction ("" when unrestricted).
+
+    A subagent without any edit tool gets ``edit: deny``; ``bash`` follows the Bash tool.
+    """
+    if not tools:
+        return ""
+    names = {t.strip() for t in tools.split(",") if t.strip()}
+    edit = "allow" if names & EDIT_TOOLS else "deny"
+    bash = "allow" if "Bash" in names else "deny"
+    return f"permission:\n  edit: {edit}\n  bash: {bash}\n"
+
+
 def opencode_agent(md: Path) -> str:
     meta, body = _frontmatter(md.read_text(encoding="utf-8"))
     return (
         "---\n"
         f"description: {json.dumps(meta['description'], ensure_ascii=False)}\n"
         "mode: subagent\n"
+        f"{opencode_permission(meta.get('tools'))}"
         "---\n"
         f"<!-- {GENERATED_NOTE.format(src='agents/' + md.name)} -->\n\n"
         f"{body}"

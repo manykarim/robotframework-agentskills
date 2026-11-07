@@ -97,6 +97,9 @@ RETIRED = (
     "rf-resource-architect",
     "rf-libdoc-search",
     "rf-libdoc-explain",
+    "rf-libdoc",
+    "rf-results",
+    "rf-robotcode",
 )
 
 # The library, tool or file each compact description must name (any one of them).
@@ -107,17 +110,13 @@ SUBJECT_TERMS: dict[str, tuple[str, ...]] = {
     "rf-requests": ("RequestsLibrary",),
     "rf-restinstance": ("RESTinstance", "`REST`"),
     "rf-platynui": ("PlatynUI",),
-    "rf-robotcode": ("robotcode",),
     "rf-setup": ("install", "pip", "uv", "venv", "environment"),
-    "rf-libdoc": ("libdoc", "keyword doc", "keyword argument", "keyword name"),
-    "rf-results": ("output.xml",),
     "rf-language": (".robot", ".resource", "test case", "suite", "keyword"),
     "rf-python-library": ("Python",),
 }
 
 # Trigger terms each skill's "## When to use" block must carry (they no longer
-# fit in the description; the rf-robotcode / rf-setup / rf-libdoc words are
-# also required by their own specs).
+# fit in the description; the rf-setup words are also required by its own spec).
 REQUIRED_TERMS: dict[str, tuple[str, ...]] = {
     "rf-browser": ("`Library    Browser`", "Playwright", "rfbrowser"),
     "rf-selenium": ("`Library    SeleniumLibrary`", "WebDriver", "Selenium Grid"),
@@ -125,10 +124,7 @@ REQUIRED_TERMS: dict[str, tuple[str, ...]] = {
     "rf-requests": ("`Library    RequestsLibrary`",),
     "rf-restinstance": ("`Library    REST`", "JSON Schema", "OpenAPI"),
     "rf-platynui": ("PlatynUI", "AT-SPI2"),
-    "rf-robotcode": ("robotcode", "robot.toml", "robot-debug", "discover", "debug", "result"),
     "rf-setup": ("install", "uv", "venv", "Poetry", "ModuleNotFoundError", "No module named"),
-    "rf-libdoc": ("libdoc", "keyword", "argument", "signature", "No keyword with name"),
-    "rf-results": ("output.xml", "rebot"),
     "rf-language": (
         "Test Template",
         "Given/When/Then",
@@ -155,13 +151,11 @@ SIBLINGS: dict[str, tuple[str, ...]] = {
     "rf-selenium": ("rf-browser", "Browser Library"),
     "rf-requests": ("rf-restinstance", "`REST`"),
     "rf-restinstance": ("rf-requests", "RequestsLibrary"),
-    "rf-results": ("rf-robotcode", "robotcode CLI is installed"),
-    "rf-libdoc": ("rf-robotcode", "robotcode CLI is installed"),
-    "rf-robotcode": ("rf-results", "rf-libdoc"),
     "rf-setup": ("library skills",),
     "rf-appium": ("rf-platynui", "rf-browser", "rf-selenium"),
     "rf-platynui": ("rf-appium", "rf-browser", "rf-selenium"),
-    "rf-language": ("Python keyword libraries", "rf-python-library", "rf-browser", "rf-requests"),
+    "rf-language": ("Python keyword libraries", "rf-python-library", "rf-browser", "rf-requests",
+                    "robotcode plugin"),
     "rf-python-library": ("rf-language", ".resource", "library skill"),
 }
 
@@ -174,18 +168,6 @@ DEFAULTS: dict[str, str] = {
 # Companion Skills catalogue (design D4): key -> (Need, Skill cell), verbatim.
 CATALOGUE: dict[str, tuple[str, str]] = {
     "setup": ("Install Robot Framework or a library, fix the environment", "`rf-setup`"),
-    "libdoc": (
-        "Look up keyword names, arguments and docs",
-        "`rf-libdoc` (or `rf-robotcode`: `robotcode libdoc`)",
-    ),
-    "results": (
-        "Analyze output.xml results",
-        "`rf-results` (or `rf-robotcode`: `robotcode results`)",
-    ),
-    "robotcode": (
-        "Discover, run, debug and statically check with the robotcode CLI",
-        "`rf-robotcode`",
-    ),
     "browser": ("Web UI tests with Browser Library (Playwright)", "`rf-browser`"),
     "selenium": ("Web UI tests with SeleniumLibrary (WebDriver)", "`rf-selenium`"),
     "requests": ("API tests with RequestsLibrary", "`rf-requests`"),
@@ -200,33 +182,18 @@ CATALOGUE: dict[str, tuple[str, str]] = {
 }
 
 REQUIRED_ROWS: dict[str, tuple[str, ...]] = {
-    "rf-browser": ("selenium", "setup", "libdoc", "results", "robotcode", "language"),
-    "rf-selenium": ("browser", "setup", "libdoc", "results", "robotcode", "language"),
-    "rf-appium": ("setup", "libdoc", "results", "robotcode", "language"),
-    "rf-requests": ("restinstance", "setup", "libdoc", "results", "robotcode", "language"),
-    "rf-restinstance": ("requests", "setup", "libdoc", "results", "robotcode", "language"),
-    "rf-platynui": ("setup", "libdoc", "results", "robotcode", "language"),
-    "rf-robotcode": ("setup", "libdoc", "results", "browser", "requests", "language"),
-    "rf-setup": (
-        "robotcode",
-        "browser",
-        "selenium",
-        "appium",
-        "requests",
-        "restinstance",
-        "platynui",
-        "language",
-    ),
-    "rf-libdoc": ("robotcode", "setup", "results"),
-    "rf-results": ("robotcode", "libdoc", "setup"),
-    "rf-language": ("browser", "requests", "setup", "libdoc", "results", "robotcode", "python-library"),
-    "rf-python-library": ("language", "setup", "libdoc", "results", "robotcode"),
+    "rf-browser": ("selenium", "setup", "language"),
+    "rf-selenium": ("browser", "setup", "language"),
+    "rf-appium": ("setup", "language"),
+    "rf-requests": ("restinstance", "setup", "language"),
+    "rf-restinstance": ("requests", "setup", "language"),
+    "rf-platynui": ("setup", "language"),
+    "rf-setup": ("browser", "selenium", "appium", "requests", "restinstance", "platynui", "language"),
+    "rf-language": ("browser", "requests", "setup", "python-library"),
+    "rf-python-library": ("language", "setup"),
 }
 
-# rf-robotcode keeps its "With robotcode / Without robotcode" form (design D4).
-THREE_COLUMN_HEADERS: dict[str, tuple[str, ...]] = {
-    "rf-robotcode": ("Need", "With robotcode", "Without robotcode"),
-}
+THREE_COLUMN_HEADERS: dict[str, tuple[str, ...]] = {}
 
 
 # ── helpers ─────────────────────────────────────────────────────────────────
@@ -379,8 +346,6 @@ SIBLING_CUES: dict[str, str] = {
     "rf-appium": "rf-setup",
     "rf-selenium": "rf-setup",
     "rf-restinstance": "rf-setup",
-    "rf-libdoc": "rf-robotcode",
-    "rf-results": "rf-robotcode",
 }
 
 
@@ -668,8 +633,8 @@ def test_contract_constants() -> None:
 
 def test_compact_description_accepted() -> None:
     assert compact_problems("rf-browser", _GOOD, set()) == []
-    rf = "Parses RF output.xml into JSON. Load first when a run's results are asked about."
-    assert compact_problems("rf-results", rf, set()) == []
+    rf = "Writes RF API tests with RequestsLibrary. Load first when a suite calls a REST API."
+    assert compact_problems("rf-requests", rf, set()) == []
 
 
 def test_compact_length_enforced() -> None:
@@ -710,9 +675,9 @@ def test_listing_counts_description_text_not_name_prefixes() -> None:
 
 
 def test_sibling_cue_rule() -> None:
-    assert sibling_cue_problems("rf-results", "Use first … rebot. With robotcode: rf-robotcode.") == []
-    assert sibling_cue_problems("rf-results", "Use first … rebot.") == [
-        "rf-results: description has no sibling cue naming rf-robotcode"]
+    assert sibling_cue_problems("rf-appium", "Use first … AppiumLibrary. Not installs/drivers: rf-setup.") == []
+    assert sibling_cue_problems("rf-appium", "Use first … AppiumLibrary.") == [
+        "rf-appium: description has no sibling cue naming rf-setup"]
     assert sibling_cue_problems("rf-browser", "anything") == []  # no recorded near-miss
 
 
@@ -810,12 +775,15 @@ def test_when_to_use_block_names_siblings_and_terms() -> None:
                for p in when_to_use_problems("rf-browser", _skill_md(retired)))
 
 
-def test_script_skills_defer_to_robotcode_in_block() -> None:
-    block = ("## When to use\n\n- The user pastes output.xml or asks to merge runs with rebot.\n"
-             "- Prefer rf-robotcode when the robotcode CLI is installed.\n")
-    assert when_to_use_problems("rf-results", _skill_md(block)) == []
-    assert any("robotcode CLI is installed" in p for p in when_to_use_problems(
-        "rf-results", _skill_md(block.replace("when the robotcode CLI is installed", ""))))
+def test_language_block_defers_cli_work_to_robotcode_plugin() -> None:
+    block = ("## When to use\n\n- Test Template, Given/When/Then, __init__.robot, [Arguments], embedded, "
+             "Force Tags, Multiple keywords with name.\n\nNot this skill: Python keyword libraries use "
+             "rf-python-library; library keywords use rf-browser or rf-requests. CLI work: the robotcode plugin.\n")
+    assert when_to_use_problems("rf-language", _skill_md(block)) == []
+    assert any("robotcode plugin" in p for p in when_to_use_problems(
+        "rf-language", _skill_md(block.replace("the robotcode plugin", "elsewhere"))))
+    assert any("rf-robotcode" in p for p in when_to_use_problems(
+        "rf-language", _skill_md(block + "- or rf-robotcode\n")))
 
 
 def test_stale_companion_rows_rejected() -> None:
@@ -831,3 +799,14 @@ def test_stale_companion_rows_rejected() -> None:
     assert companion_problems("rf-selenium", "# X\n\nno table\n") == [
         "rf-selenium: no '## Companion Skills' section with a table"
     ]
+
+
+def test_robotcode_is_not_a_companion_row() -> None:
+    """The robotcode plugin's skill is named in prose, never as a table row (robotcode-prerequisite)."""
+    head = "# X\n\n## Companion Skills\n\n| Need | Skill |\n|---|---|\n"
+    rows = ("| Install Robot Framework or a library, fix the environment | `rf-setup` |\n"
+            "| Write tests, suites, user keywords, resources and variables in Robot Framework syntax | `rf-language` |\n")
+    prose = "\nFor robotcode CLI work, use the `robotcode` skill of the robotcode plugin.\n"
+    assert companion_problems("rf-appium", head + rows + prose) == []
+    bad = head + rows + "| Discover, run, debug and statically check with the robotcode CLI | `robotcode` |\n"
+    assert any("not in the companion catalogue" in p for p in companion_problems("rf-appium", bad))

@@ -23,7 +23,7 @@ queries:
   - {id: rq-n01, split: train, should_trigger: false, note: "sibling rf-restinstance", query: "My suite imports REST (RESTinstance); validate the response body against schemas/user.json"}
   - {id: rq-n02, split: train, should_trigger: false, note: "sibling rf-restinstance", query: "Use RESTinstance to assert that response body id is an Integer and name a String"}
   - {id: rq-n03, split: train, should_trigger: false, note: "sibling rf-browser", query: "Write a Robot Framework Browser test for the web login page"}
-  - {id: rq-n04, split: train, should_trigger: false, note: "sibling rf-results", query: "Which API tests failed in output.xml of the nightly run?"}
+  - {id: rq-n04, split: train, should_trigger: false, note: "sibling robotcode-plugin", query: "Which API tests failed in output.xml of the nightly run?"}
   - {id: rq-n05, split: train, should_trigger: false, note: "non-RF look-alike", query: "Write a Python script with requests that downloads all users from our API into a CSV"}
   - {id: rq-n06, split: train, should_trigger: false, note: "non-RF look-alike", query: "Convert this Postman collection to a Newman CI job"}
   # should NOT trigger (validation)
@@ -43,3 +43,7 @@ queries:
   - {id: rq-h08, split: train, should_trigger: false, note: "sibling rf-setup; retired holdout (2026-09-30 evidence)", query: "Importing RequestsLibrary fails with No module named 'requests' in our CI job"}
   - {id: rq-h09, split: train, should_trigger: false, note: "non-RF look-alike; retired holdout (2026-09-30 evidence)", query: "Write a k6 load test for GET /products"}
   - {id: rq-h10, split: train, should_trigger: false, note: "non-RF look-alike; retired holdout (2026-09-30 evidence)", query: "Use httpx in async Python to call three APIs in parallel"}
+  # Co-installed robotcode-plugin near-misses (delegate-robotcode-skills): CLI work the robotcode skill owns.
+  - {id: rq-r01, split: holdout3, should_trigger: false, note: "sibling robotcode-plugin (co-installed near-miss)", query: "Run the API suite against staging with the staging profile in robot.toml"}
+  - {id: rq-r02, split: holdout3, should_trigger: false, note: "sibling robotcode-plugin (co-installed near-miss)", query: "List the API tests tagged contract without running them"}
+  - {id: rq-r03, split: holdout3, should_trigger: false, note: "sibling robotcode-plugin (co-installed near-miss)", query: "Show me the log of the failed API test from the last run"}

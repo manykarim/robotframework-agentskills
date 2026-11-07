@@ -22,9 +22,8 @@ def _root_scripts() -> list[Path]:
 
 def test_script_map_is_derived_from_root():
     names = {p.name for p in _root_scripts()}
-    assert {"rf_libdoc.py", "rf_results.py"} <= names
-    # The merged libdoc skill owns the single regular-file copy.
-    assert ROOT / "skills" / "rf-libdoc" / "scripts" / "rf_libdoc.py" in _root_scripts()
+    assert {"rf_conventions.py", "check_library.py"} <= names
+    assert ROOT / "skills" / "rf-python-library" / "scripts" / "check_library.py" in _root_scripts()
 
 
 def test_root_and_plugin_scripts_in_sync():
@@ -92,13 +91,13 @@ def test_drift_check_names_orphan(scratch_repo: Path, orphan: str):
 
 @requires_posix_bash
 def test_sync_prunes_removed_root_skill(scratch_repo: Path):
-    shutil.rmtree(scratch_repo / "skills" / "rf-results")
+    shutil.rmtree(scratch_repo / "skills" / "rf-language")
     subprocess.run(
         [BASH, str(scratch_repo / "scripts" / "sync-skills.sh")],
         check=True, capture_output=True, text=True,
     )
-    assert not (scratch_repo / "plugins/rf-agentskills/skills/rf-results").exists()
-    assert not (scratch_repo / "plugins/rf-agentskills/skills/rf-results/scripts/rf_results.py").exists()
+    assert not (scratch_repo / "plugins/rf-agentskills/skills/rf-language").exists()
+    assert not (scratch_repo / "plugins/rf-agentskills/skills/rf-language/scripts/rf_conventions.py").exists()
     # Plugin-owned hook scripts are never pruned.
     assert (scratch_repo / "plugins/rf-agentskills/scripts/validate_robot.mjs").exists()
     assert _drift(scratch_repo).returncode == 0
@@ -108,15 +107,15 @@ def test_sync_prunes_removed_root_skill(scratch_repo: Path):
 @pytest.mark.parametrize(
     "tree",
     [
-        "skills/rf-libdoc/scripts",
-        "plugins/rf-agentskills/skills/rf-libdoc",
-        "plugins/rf-agentskills/skills/rf-libdoc/scripts",
+        "skills/rf-python-library/scripts",
+        "plugins/rf-agentskills/skills/rf-python-library",
+        "plugins/rf-agentskills/skills/rf-python-library/scripts",
         "plugins/rf-agentskills/scripts",
     ],
 )
 def test_drift_check_rejects_symlinks(scratch_repo: Path, tree: str):
     link = scratch_repo / tree / "linked.md"
-    link.symlink_to(scratch_repo / "skills" / "rf-libdoc" / "SKILL.md")
+    link.symlink_to(scratch_repo / "skills" / "rf-python-library" / "SKILL.md")
     res = _drift(scratch_repo)
     assert res.returncode == 1, res.stdout
     assert f"SYMLINK: {tree}/linked.md" in res.stdout
@@ -138,36 +137,36 @@ def test_channels_use_root_dir_names():
 
 @requires_posix_bash
 def test_sync_renamed_root_skill_leaves_no_stale_copy(scratch_repo: Path):
-    old, new = scratch_repo / "skills" / "rf-results", scratch_repo / "skills" / "rf-run-results"
+    old, new = scratch_repo / "skills" / "rf-language", scratch_repo / "skills" / "rf-lang-renamed"
     old.rename(new)
     md = new / "SKILL.md"
-    md.write_text(md.read_text().replace("name: rf-results", "name: rf-run-results", 1))
+    md.write_text(md.read_text().replace("name: rf-language", "name: rf-lang-renamed", 1))
     res = _sync(scratch_repo)
     assert res.returncode == 0, res.stdout + res.stderr
     for channel in ("plugins/rf-agentskills/skills",):
-        assert not (scratch_repo / channel / "rf-results").exists()
-        assert "name: rf-run-results" in (scratch_repo / channel / "rf-run-results" / "SKILL.md").read_text()
+        assert not (scratch_repo / channel / "rf-language").exists()
+        assert "name: rf-lang-renamed" in (scratch_repo / channel / "rf-lang-renamed" / "SKILL.md").read_text()
     assert _drift(scratch_repo).returncode == 0
 
 
 @requires_posix_bash
 def test_sync_rejects_name_dir_mismatch(scratch_repo: Path):
-    md = scratch_repo / "skills" / "rf-results" / "SKILL.md"
-    md.write_text(md.read_text().replace("name: rf-results", "name: results", 1))
+    md = scratch_repo / "skills" / "rf-language" / "SKILL.md"
+    md.write_text(md.read_text().replace("name: rf-language", "name: language", 1))
     res = _sync(scratch_repo)
     assert res.returncode == 1
-    assert "skills/rf-results/SKILL.md has name: 'results'" in res.stderr
+    assert "skills/rf-language/SKILL.md has name: 'language'" in res.stderr
     drift = _drift(scratch_repo)
     assert drift.returncode == 1
-    assert "NAME MISMATCH: skills/rf-results/SKILL.md" in drift.stdout
+    assert "NAME MISMATCH: skills/rf-language/SKILL.md" in drift.stdout
 
 
 @requires_posix_bash
 @pytest.mark.parametrize(
     ("path", "expected"),
     [
-        ("plugins/rf-agentskills/skills/rf-results/SKILL.md",
-         "DRIFT: skills/rf-results/SKILL.md != plugins/rf-agentskills/skills/rf-results/SKILL.md"),
+        ("plugins/rf-agentskills/skills/rf-language/SKILL.md",
+         "DRIFT: skills/rf-language/SKILL.md != plugins/rf-agentskills/skills/rf-language/SKILL.md"),
         ("plugins/rf-agentskills/skills/rf-setup/references/new.md",
          "DRIFT: skills/rf-setup/references/ != plugins/rf-agentskills/skills/rf-setup/references/"),
     ],
@@ -190,25 +189,25 @@ def test_drift_check_reports_missing_channel_copy(scratch_repo: Path):
 
 @requires_posix_bash
 def test_drift_check_compares_plugin_script_copy(scratch_repo: Path):
-    copy = scratch_repo / "plugins/rf-agentskills/skills/rf-results/scripts/rf_results.py"
+    copy = scratch_repo / "plugins/rf-agentskills/skills/rf-language/scripts/rf_conventions.py"
     copy.write_text(copy.read_text() + "# drift\n")
     res = _drift(scratch_repo)
     assert res.returncode == 1, res.stdout
-    assert ("DRIFT: skills/rf-results/scripts/rf_results.py != "
-            "plugins/rf-agentskills/skills/rf-results/scripts/rf_results.py") in res.stdout
+    assert ("DRIFT: skills/rf-language/scripts/rf_conventions.py != "
+            "plugins/rf-agentskills/skills/rf-language/scripts/rf_conventions.py") in res.stdout
 
 
 @requires_posix_bash
 def test_sync_copies_scripts_per_skill_and_rewrites_commands(scratch_repo: Path):
-    flat = scratch_repo / "plugins/rf-agentskills/scripts/rf_libdoc.py"
+    flat = scratch_repo / "plugins/rf-agentskills/scripts/check_library.py"
     flat.write_text("# stale flat copy\n")
     res = _sync(scratch_repo)
     assert res.returncode == 0, res.stdout + res.stderr
     assert not flat.exists()
-    plugin_skill = scratch_repo / "plugins/rf-agentskills/skills/rf-libdoc"
-    assert (plugin_skill / "scripts" / "rf_libdoc.py").is_file()
+    plugin_skill = scratch_repo / "plugins/rf-agentskills/skills/rf-python-library"
+    assert (plugin_skill / "scripts" / "check_library.py").is_file()
     text = (plugin_skill / "SKILL.md").read_text()
-    assert 'uv run python "${CLAUDE_SKILL_DIR}/scripts/rf_libdoc.py"' in text
+    assert 'uv run python "${CLAUDE_SKILL_DIR}/scripts/check_library.py"' in text
     assert "${CLAUDE_PLUGIN_ROOT}" not in text
     assert _drift(scratch_repo).returncode == 0
 
@@ -222,16 +221,16 @@ def _append_line(repo: Path, rel: str, line: str) -> None:
 @pytest.mark.parametrize(
     ("rel", "line", "expected"),
     [
-        ("skills/rf-results/SKILL.md", "python scripts/rf_results.py --output output.xml",
-         "BARE PYTHON: skills/rf-results/SKILL.md"),
-        ("skills/rf-libdoc/SKILL.md", "`python3 scripts/rf_libdoc.py --library X`",
-         "BARE PYTHON: skills/rf-libdoc/SKILL.md"),
-        ("plugins/rf-agentskills/skills/rf-libdoc/SKILL.md",
-         'python "${CLAUDE_SKILL_DIR}/scripts/rf_libdoc.py" --library X',
-         "BARE PYTHON: plugins/rf-agentskills/skills/rf-libdoc/SKILL.md"),
-        ("plugins/rf-agentskills/skills/rf-results/SKILL.md",
-         'python3 "${CLAUDE_PLUGIN_ROOT}/scripts/rf_results.py" --output output.xml',
-         "PLUGIN_ROOT IN SKILL.md: plugins/rf-agentskills/skills/rf-results/SKILL.md"),
+        ("skills/rf-language/SKILL.md", "python scripts/rf_conventions.py --output output.xml",
+         "BARE PYTHON: skills/rf-language/SKILL.md"),
+        ("skills/rf-python-library/SKILL.md", "`python3 scripts/check_library.py --library X`",
+         "BARE PYTHON: skills/rf-python-library/SKILL.md"),
+        ("plugins/rf-agentskills/skills/rf-python-library/SKILL.md",
+         'python "${CLAUDE_SKILL_DIR}/scripts/check_library.py" --library X',
+         "BARE PYTHON: plugins/rf-agentskills/skills/rf-python-library/SKILL.md"),
+        ("plugins/rf-agentskills/skills/rf-language/SKILL.md",
+         'python3 "${CLAUDE_PLUGIN_ROOT}/scripts/rf_conventions.py" --output output.xml',
+         "PLUGIN_ROOT IN SKILL.md: plugins/rf-agentskills/skills/rf-language/SKILL.md"),
         ("skills/rf-setup/SKILL.md", "See ${CLAUDE_PLUGIN_ROOT}/scripts.",
          "PLUGIN_ROOT IN SKILL.md: skills/rf-setup/SKILL.md"),
     ],
@@ -246,10 +245,10 @@ def test_drift_check_rejects_wrong_command_form(scratch_repo: Path, rel: str, li
 @requires_posix_bash
 def test_drift_check_accepts_project_env_command_forms(scratch_repo: Path):
     for line in (
-        "uv run python scripts/rf_results.py --output output.xml",
-        "`.venv/bin/python scripts/rf_results.py …` or `poetry run python scripts/rf_results.py …`",
+        "uv run python scripts/rf_conventions.py --output output.xml",
+        "`.venv/bin/python scripts/rf_conventions.py …` or `poetry run python scripts/rf_conventions.py …`",
     ):
-        _append_line(scratch_repo, "skills/rf-results/SKILL.md", line)
+        _append_line(scratch_repo, "skills/rf-language/SKILL.md", line)
     assert _sync(scratch_repo).returncode == 0
     res = _drift(scratch_repo)
     assert res.returncode == 0, res.stdout

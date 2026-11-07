@@ -8,10 +8,10 @@ candidates file(s). Prints the variant id (a hash of every staged description).
 Usage::
 
     uv run python scripts/build-description-variant.py \\
-        --candidates openspec/changes/tune-skill-descriptions/candidates/rf-results.yaml \\
-        --out /tmp/variants/rf-results-it1
+        --candidates openspec/changes/tune-skill-descriptions/candidates/rf-requests.yaml \\
+        --out /tmp/variants/rf-requests-it1
 
-    uv run rf-skill-eval trigger --variant-root /tmp/variants/rf-results-it1 ...
+    uv run rf-skill-eval trigger --variant-root /tmp/variants/rf-requests-it1 ...
 
 A candidates file is either a plain ``{rf-skill: "text"}`` mapping (an empty
 file gives an identical copy) or a per-skill audit file with ``iterations``

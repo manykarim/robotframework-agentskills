@@ -2,7 +2,7 @@
 name: rf-language
 description: "Use first, before reading .robot/.resource files: Robot Framework tests, keywords, templates, imports."
 license: Apache-2.0
-compatibility: "Requires Python 3.8+ with robotframework>=7 in the project environment for the bundled rf_conventions script; guidance is version-gated from RF 5.0 to 7.4 and the examples need RF 7.0+; robocop 9.x is optional for lint checks."
+compatibility: "Requires Python 3.8+ with robotframework>=7 in the project environment for the bundled rf_conventions script; guidance is version-gated from RF 5.0 to 7.4 and the examples need RF 7.0+; robotcode[all]>=2.8 (which includes Robocop) is required in the project environment for keyword lookup, static checks and results."
 metadata:
   author: manykarim
   version: "2.0.0"
@@ -24,7 +24,7 @@ Load this skill first, before opening the .robot and .resource files or answerin
 - selecting tests by tag on the robot command line;
 - `Multiple keywords with name '...'` and import scope between `__init__.robot` and child suites.
 
-Not this skill: Python keyword libraries or listeners use `rf-python-library`; library keywords use `rf-browser`, `rf-requests` or another library skill.
+Not this skill: Python keyword libraries or listeners use `rf-python-library`; library keywords use `rf-browser`, `rf-requests` or another library skill. Running, discovering, keyword lookup, result reading and debugging with the robotcode CLI are covered by the `robotcode` skill of the robotcode plugin.
 
 ## Version gate
 
@@ -81,7 +81,7 @@ grep -rhE '^(Test Tags|Force Tags|Default Tags)|^\s+\[Tags\]' --include='*.robot
 | `calls.bdd_steps`, `tests.template_suites`, `tests.top_tags` | Keep BDD, template and tag vocabulary consistent |
 | `keywords.duplicate_names`, `legacy` | Fix or avoid them; `advice` names the robocop rules |
 
-Search for an existing keyword before creating one: `robotcode libdoc resources/<file>.resource list`, the rf-libdoc skill with `--resource`, or `grep -rn "^<Keyword Name>" resources`.
+Search for an existing keyword before creating one: `robotcode doc keywords resources/<file>.resource "<text>"` lists what a resource file exports (`robotcode discover tests --search "<text>"` finds similar tests).
 
 ## Choose a style
 
@@ -240,7 +240,7 @@ The full table with minimum versions and robocop rule IDs is `references/migrati
 ## Agent workflow
 
 1. Run the version gate and Step 0.
-2. Look up the signatures of the library keywords and existing user keywords you plan to call (`robotcode libdoc <Lib> show "<Keyword>"`, or the rf-libdoc skill).
+2. Look up the signatures of the library keywords and existing user keywords you plan to call: `robotcode doc keyword <Library or resources/file.resource> "<Keyword>"`.
 3. Write or restructure the code. Every new file starts with its section header.
 4. Dry run the changed suites from the project environment: `uv run robot --dryrun --outputdir results tests`. The dry run does not catch:
    - undefined or misspelled variables;
@@ -248,11 +248,13 @@ The full table with minimum versions and robocop rule IDs is `references/migrati
    - wrong embedded-argument binding, including BDD steps matching an unintended keyword;
    - union-with-`str` conversion surprises (`${v: int | str}` keeps `"10"` a string), and typed arguments on RF < 7.3.
    These need a real run of at least one affected test before you report success.
-5. When robocop is installed, lint with `--target-version` set to the project's RF major version: `uv run robocop check --no-cache --target-version 7 -s "DEPR*" -s "ERR*" -s ORD02 -s "NAME*" -s VAR07 -s ARG03 tests resources` (repeat `-s`; a comma list is rejected), plus `-s KW06` for keyword name conflicts. Fix what it reports in the code you wrote. Without robocop, report the lint step as skipped and point to rf-setup.
-6. When robotcode is installed: `uv run robotcode analyze code`.
-7. Run the affected tests for real, from the root suite with `--test`, `--suite` or `--include` so that `__init__.robot` files apply.
-8. Read the results with `robotcode results` or the rf-results skill.
+5. Lint with `--target-version` set to the project's RF major version: `uv run robocop check --no-cache --target-version 7 -s "DEPR*" -s "ERR*" -s ORD02 -s "NAME*" -s VAR07 -s ARG03 tests resources` (repeat `-s`; a comma list is rejected), plus `-s KW06` for keyword name conflicts. Fix what it reports in the code you wrote.
+6. Check the changed files statically: `uv run robotcode analyze code <changed files>`, and fix every error.
+7. Run the affected tests for real by longname, `uv run robotcode robot -bl "<Suite.Sub.Test>"` (longnames from `robotcode discover tests`), or a whole directory, so that `__init__.robot` files apply. Don't pass a single `.robot` file.
+8. Read the results: `uv run robotcode results show --failed`, then `uv run robotcode results log -bl "<longname>"`.
 9. Fix and repeat from step 4.
+
+If robotcode or Robocop is missing from the project environment, report steps 5–8 as skipped instead of passed, and point to rf-setup for `robotcode[all]`.
 
 ## Gotchas
 
@@ -306,7 +308,6 @@ Examples in `assets/examples/` (run `robot --dryrun tests` from that folder):
 | Web UI tests with Browser Library (Playwright) | `rf-browser` |
 | API tests with RequestsLibrary | `rf-requests` |
 | Install Robot Framework or a library, fix the environment | `rf-setup` |
-| Look up keyword names, arguments and docs | `rf-libdoc` (or `rf-robotcode`: `robotcode libdoc`) |
-| Analyze output.xml results | `rf-results` (or `rf-robotcode`: `robotcode results`) |
-| Discover, run, debug and statically check with the robotcode CLI | `rf-robotcode` |
 | Write or fix a Python keyword library or listener | `rf-python-library` |
+
+For running, discovering, keyword documentation, result analysis and debugging with the robotcode CLI, use the `robotcode` skill of the robotcode plugin (`robotcode@robotframework-agent-plugins`); the commands above work without it.

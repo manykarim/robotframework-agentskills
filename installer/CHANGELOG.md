@@ -12,9 +12,10 @@ content bundle (the marketplace plugin and skills tarballs). See `RELEASING.md` 
 
 ### Changed
 - **Codex subagents** come from the generated `variants/codex/agents/*.toml` in the bundle rather than a conversion at install time (same content).
+- **Upgrading removes the retired skills and subagent.** Re-installing removes the `rf-robotcode`, `rf-libdoc` and `rf-results` skills, the `rf-keyword-consultant` subagent (Claude, Codex and OpenCode files) and their Claude Desktop archives when this installer wrote them. A copy you made by hand is kept and reported (`install` and `doctor` print the replacement and an `rm -r` line).
 
 ### Bundled content
-- Content 2.1.0 (unreleased): VS Code extension retired, default main agent removed, hook input for all agents, unfixed validation errors re-checked at Stop. See `plugins/rf-agentskills/CHANGELOG.md`.
+- Content 3.0.0 (unreleased, breaking): requires `robotcode[all]>=2.8` in the project environment; `rf-robotcode`, `rf-libdoc`, `rf-results` and `rf-keyword-consultant` removed; read-only `rf-debug-expert`; validation hook checks errors with `robotcode analyze code`. Also: VS Code extension retired, default main agent removed, hook input for all agents, unfixed validation errors re-checked at Stop. See `plugins/rf-agentskills/CHANGELOG.md`.
 
 ## 0.7.0 — 2026-10-06
 

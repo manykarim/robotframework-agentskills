@@ -210,7 +210,7 @@ def resolve_name(name: str, pythonpath: List[str], root: Path) -> Tuple[Path, st
         raise InputError(
             f"'{name}' resolves to {elsewhere}, outside the project root {root}; "
             "only project libraries are checked",
-            "for installed third-party libraries use the rf-libdoc skill (or robotcode libdoc) instead",
+            "for installed third-party libraries use `robotcode doc keywords <Library>` instead",
         )
     raise InputError(
         f"cannot find module '{name}' on the python-path {pythonpath or '[]'}",
@@ -232,7 +232,7 @@ def resolve_inputs(inputs: List[str], pythonpath: List[str], root: Path) -> List
                     f"{value} is outside the project root {root}; only project libraries are checked "
                     "(loading a library runs its code)",
                     "run the checker from the project root or pass --project-root; for installed "
-                    "libraries use the rf-libdoc skill",
+                    "libraries use `robotcode doc keywords <Library>`",
                 )
             if path.is_dir():
                 init = path / "__init__.py"

@@ -190,14 +190,15 @@ def test_workflow_order_and_safety_line() -> None:
     steps = re.findall(r"^(\d+)\. ", workflow, re.M)
     assert steps == [str(i) for i in range(1, 9)]
     pos = {key: workflow.index(key) for key in (
-        "robot.__version__", "scripts/check_library.py", "libdoc", "pytest", "--dryrun",
-        "--loglevel DEBUG")}
+        "robot.__version__", "scripts/check_library.py", "robotcode doc keywords", "pytest",
+        "robotcode analyze code", "--loglevel DEBUG", "robotcode results show --failed")}
     assert list(pos) == sorted(pos, key=pos.get)
     assert "uv run python scripts/check_library.py libraries/<Name>.py" in workflow
     assert "import and `__init__` code" in workflow and "own project libraries only" in workflow
     for blind in ("variables", "named-argument typos", "embedded-argument mismatches", "`str` in unions"):
         assert blind in workflow
-    assert "rf-results" in workflow and "rf-robotcode" in workflow
+    for retired in ("rf-libdoc", "rf-results", "rf-robotcode"):
+        assert retired not in workflow, retired
 
 
 GOTCHA_TRAPS = {
@@ -259,7 +260,8 @@ def test_long_references_have_a_toc(name: str) -> None:
 def test_companion_skills_resolve() -> None:
     names = set(re.findall(r"`(rf-[a-z-]+)`", _section("Companion Skills")))
     shipped = {p.name for p in (ROOT / "skills").iterdir() if (p / "SKILL.md").is_file()}
-    assert {"rf-language", "rf-setup", "rf-libdoc", "rf-results", "rf-robotcode"} <= names
+    assert {"rf-language", "rf-setup"} <= names
+    assert not {"rf-libdoc", "rf-results", "rf-robotcode"} & names
     assert names <= shipped
     assert "rf-python-library" not in names
 

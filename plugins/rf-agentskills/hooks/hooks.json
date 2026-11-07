@@ -7,7 +7,7 @@
           {
             "type": "command",
             "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/validate_robot.mjs\"",
-            "timeout": 45
+            "timeout": 60
           }
         ]
       },

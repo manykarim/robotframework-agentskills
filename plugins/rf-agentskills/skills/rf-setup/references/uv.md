@@ -11,7 +11,7 @@ mkdir my-tests && cd my-tests
 uv init --bare --python 3.12
 uv python pin 3.12
 uv add robotframework robotframework-requests
-uv add --dev "robotcode[all]" robotframework-robocop
+uv add --dev "robotcode[all]>=2.8"   # robotcode CLI + Robocop, required by rf-agentskills
 mkdir -p tests resources results
 uv run robot --version
 ```
@@ -44,8 +44,7 @@ dependencies = [
 
 [dependency-groups]
 dev = [
-    "robotcode[all]>=2.7.0",
-    "robotframework-robocop>=9.1.0",
+    "robotcode[all]>=2.8.0",  # includes Robocop
 ]
 ```
 
@@ -54,7 +53,7 @@ dev = [
 ```bash
 uv run robot --outputdir results tests
 uv run robot -i smoke tests
-uv run robotcode robot                # with robot.toml (see rf-robotcode)
+uv run robotcode robot                # with robot.toml profiles
 uv run rfbrowser install chromium     # any console script from an installed package
 ```
 
@@ -94,7 +93,7 @@ uv python pin 3.12
 uv add -r requirements.txt
 ```
 
-`uv add -r` puts everything in the main dependencies. Move developer tools to the dev group afterwards: `uv remove robotframework-robocop && uv add --dev robotframework-robocop`.
+`uv add -r` puts everything in the main dependencies. Move developer tools to the dev group afterwards: `uv remove robotcode && uv add --dev "robotcode[all]>=2.8"`.
 
 ## pip-compatible mode (no lockfile)
 

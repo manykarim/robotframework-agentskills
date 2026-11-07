@@ -5,7 +5,7 @@ Each entry lists the symptom, the cause and the fix. Start with the interpreter 
 ```bash
 uv run python -c "import sys; print(sys.executable)"    # poetry run … / .venv/bin/python …
 uv run robot --version
-uv run robotcode discover info                          # if robotcode is installed
+uv run robotcode discover info                          # Python, RF and robotcode in use
 ```
 
 ## Wrong interpreter or environment
