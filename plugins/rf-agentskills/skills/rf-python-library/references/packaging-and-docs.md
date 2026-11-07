@@ -26,8 +26,9 @@ uv run libdoc --pythonpath libraries Inventory show "Add Item"
 
 The output format follows the file extension (`.html`, `.xml`, `.json`,
 `.libspec`); `list` and `show` print to the console. With robotcode installed,
-`robotcode libdoc` does the same (see rf-robotcode); the rf-libdoc skill
-searches keyword docs. Commit generated HTML only when the project publishes
+`robotcode doc keywords libraries/Inventory.py` and `robotcode doc keyword
+libraries/Inventory.py "Add Item"` print the same data as Markdown, using the
+project's `robot.toml`. Commit generated HTML only when the project publishes
 it; editors and language servers read the library directly.
 
 ## Writing docstrings

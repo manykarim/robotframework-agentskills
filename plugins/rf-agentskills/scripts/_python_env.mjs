@@ -2,6 +2,9 @@
 //
 // Not a hook itself (the leading underscore marks a helper). Imported by
 // validate_robot.mjs, validate_robot_project.mjs and check_rf_environment.mjs.
+// findRobotcode() resolves the `robotcode` executable the same way: robotcode has
+// no `python -m robotcode` entry point, so the executable next to each
+// interpreter (bin/robotcode, Scripts\robotcode.exe) is used.
 //
 // Resolution order (first interpreter that can import the needed module wins):
 //   1. the active virtual environment ($VIRTUAL_ENV)
@@ -20,7 +23,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
-import { dirname, join } from "node:path";
+import { basename, dirname, join } from "node:path";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const IS_WIN = process.platform === "win32";
@@ -84,6 +87,65 @@ export function pythonCandidates(cwd) {
   add("python3");
   add("python");
   return candidates;
+}
+
+function scriptsExe(binDir, name) {
+  return join(binDir, IS_WIN ? `${name}.exe` : name);
+}
+
+// Ordered, de-duplicated `robotcode` executable candidates for a project
+// directory, in the same order as pythonCandidates(): the active venv, the
+// project's .venv, the installer interpreter's directory, then PATH.
+export function robotcodeCandidates(cwd) {
+  const out = [];
+  const add = (exe) => {
+    if (exe && !out.includes(exe)) out.push(exe);
+  };
+  const venv = (process.env.VIRTUAL_ENV ?? "").trim();
+  if (venv) {
+    const exe = scriptsExe(join(venv, IS_WIN ? "Scripts" : "bin"), "robotcode");
+    if (existsSync(exe)) add(exe);
+  }
+  const root = cwd || process.cwd();
+  const projectExe = scriptsExe(join(root, ".venv", IS_WIN ? "Scripts" : "bin"), "robotcode");
+  if (existsSync(projectExe)) add(projectExe);
+  for (const py of installerInterpreters()) {
+    if (basename(py) === py) continue; // bare command name: covered by PATH below
+    const exe = scriptsExe(dirname(py), "robotcode");
+    if (existsSync(exe)) add(exe);
+  }
+  add("robotcode");
+  return out;
+}
+
+// First robotcode candidate that answers `--version`, as {exe, version}
+// ("2.8.0"), or null. Paths that exist are trusted without a probe unless the
+// version is wanted; the bare PATH name is always probed.
+export function findRobotcode(cwd, { withVersion = false } = {}) {
+  for (const exe of robotcodeCandidates(cwd)) {
+    if (!withVersion && exe !== "robotcode") return { exe, version: null };
+    const r = spawnSync(exe, ["--version"], {
+      ...spawnOptions(PROBE_TIMEOUT_MS),
+      encoding: "utf-8",
+      stdio: ["ignore", "pipe", "ignore"],
+    });
+    if (r.error || r.status !== 0) continue;
+    const m = /(\d+\.\d+(?:\.\d+)?)/.exec(r.stdout ?? "");
+    return { exe, version: m ? m[1] : null };
+  }
+  return null;
+}
+
+// True when `version` ("2.8.0") is at least `min` ("2.8").
+export function versionAtLeast(version, min) {
+  const a = String(version ?? "").split(".").map(Number);
+  const b = String(min).split(".").map(Number);
+  for (let i = 0; i < Math.max(a.length, b.length); i++) {
+    const x = a[i] || 0;
+    const y = b[i] || 0;
+    if (x !== y) return x > y;
+  }
+  return true;
 }
 
 // The event's working directory (falls back to the process cwd).

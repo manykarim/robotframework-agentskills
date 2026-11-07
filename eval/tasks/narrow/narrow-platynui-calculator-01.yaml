@@ -14,7 +14,7 @@ prompt: |
   desktop session on this machine, so you cannot run it — make sure every
   keyword really exists in the PlatynUI.BareMetal library (a libdoc spec is in
   specs/).
-model: claude-haiku-4-5-20251001
+model: claude-haiku-5-5
 max_turns: 14
 timeout_seconds: 300
 allowed_tools:

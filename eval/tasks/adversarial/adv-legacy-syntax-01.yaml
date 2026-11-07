@@ -16,7 +16,7 @@ prompt: |
   the expected total, computes the order subtotal, applies the discount and
   checks the result. Use it in a new tests/orders.robot with at least one test
   that passes, and keep tests/cart.robot passing.
-model: claude-sonnet-5
+model: claude-sonnet-5-5
 max_turns: 16
 timeout_seconds: 420
 allowed_tools:

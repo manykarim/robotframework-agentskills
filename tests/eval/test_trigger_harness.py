@@ -84,13 +84,13 @@ def _transcript(path: Path, skills: list[str]) -> Path:
 
 def _trigger_task(tools: tuple[str, ...] = ("Skill", "Read", "Glob", "Grep")) -> Task:
     return Task(
-        id="trigger-rf-results-v01",
-        skill="rf-results",
+        id="trigger-rf-requests-v01",
+        skill="rf-requests",
         prompt="Summarise results/output.xml",
         allowed_tools=tools,
         max_turns=3,
         timeout_seconds=30,
-        model="claude-haiku-4-5-20251001",
+        model="claude-haiku-5-5",
         tier="narrow",
     )
 
@@ -111,10 +111,10 @@ def _fake_claude(tmp_path: Path) -> Path:
 
 
 def _plugin(root: Path, description: str = "Parses output.xml.") -> Path:
-    skill = root / "skills" / "rf-results"
+    skill = root / "skills" / "rf-requests"
     skill.mkdir(parents=True)
     (skill / "SKILL.md").write_text(
-        f"---\nname: rf-results\ndescription: {json.dumps(description)}\n---\n\n# Results\n"
+        f"---\nname: rf-requests\ndescription: {json.dumps(description)}\n---\n\n# Results\n"
     )
     return root
 
@@ -145,7 +145,7 @@ def test_trigger_profile_requests_restriction_and_fixture(
             raise cli.RfSkillEvalError("stop")
 
     fn = cli._runner_trigger_fn(Capture(), tmp_path, None, workspace_fixture=_FIXTURE)  # type: ignore[arg-type]
-    tset = load_trigger_set(_REPO / "eval" / "triggers" / "rf-results.yaml", skills=_SKILLS)
+    tset = load_trigger_set(_REPO / "eval" / "triggers" / "rf-requests.yaml", skills=_SKILLS)
     run = fn(tset, tset.queries[0], 0)
     assert run.error == "stop"
     assert seen[0].restrict_tools is True
@@ -181,7 +181,7 @@ def test_trigger_session_workspace_contains_fixture(
     # no workspace preamble: the query is sent verbatim
     assert rec["argv"][rec["argv"].index("-p") + 1] == "Summarise results/output.xml"
     # 1.6: the variant plugin (not the runner default) is what got staged
-    staged = run.artifacts_dir / "claude_config" / "skills" / "rf-results" / "SKILL.md"
+    staged = run.artifacts_dir / "claude_config" / "skills" / "rf-requests" / "SKILL.md"
     assert "Variant text" in staged.read_text()
     # a second session gets its own fresh copy
     run2 = runner.execute(_trigger_task(), profile, tmp_path / "out")
@@ -408,7 +408,7 @@ def test_resume_is_keyed_by_variant_and_model(tmp_path: Path) -> None:
     kw = {"splits": ("validation",), "runs": 1, "name_to_dir": _NAMES, "store": store}
     evaluate_trigger_sets([tset], fn, variant_id="a", **kw)  # type: ignore[arg-type]
     evaluate_trigger_sets([tset], fn, variant_id="b", **kw)  # type: ignore[arg-type]
-    other_model = evaluate_trigger_sets([tset], fn, variant_id="a", model_override="claude-sonnet-5",
+    other_model = evaluate_trigger_sets([tset], fn, variant_id="a", model_override="claude-sonnet-5-5",
                                         **kw)  # type: ignore[arg-type]
     again = evaluate_trigger_sets([tset], fn, variant_id="a", **kw)  # type: ignore[arg-type]
     assert len(calls) == 6
@@ -540,19 +540,19 @@ def _tree_bytes(root: Path) -> dict[str, bytes]:
 
 def test_builder_replaces_only_listed_descriptions(tmp_path: Path) -> None:
     text = "Use this skill whenever a Robot Framework run left an output.xml behind."
-    variant = build_variant(_REPO, {"rf-results": text}, tmp_path / "v")
+    variant = build_variant(_REPO, {"rf-requests": text}, tmp_path / "v")
     for rel in ("plugins/rf-agentskills", "skills"):
         before = _tree_bytes(_REPO / rel)
         after = _tree_bytes(tmp_path / "v" / rel)
         assert set(before) == set(after)
         changed = sorted(k for k in before if before[k] != after[k])
-        assert changed == ["rf-results/SKILL.md"] if rel == "skills" else \
-            changed == ["skills/rf-results/SKILL.md"]
-    md = (tmp_path / "v" / "skills" / "rf-results" / "SKILL.md").read_text().splitlines()
+        assert changed == ["rf-requests/SKILL.md"] if rel == "skills" else \
+            changed == ["skills/rf-requests/SKILL.md"]
+    md = (tmp_path / "v" / "skills" / "rf-requests" / "SKILL.md").read_text().splitlines()
     assert md[2] == "description: " + json.dumps(text)
     assert skill_descriptions(tmp_path / "v" / "plugins" / "rf-agentskills" / "skills")[
-        "rf-results"] == text
-    assert variant.replaced == ("rf-results",)
+        "rf-requests"] == text
+    assert variant.replaced == ("rf-requests",)
     assert shipped_skills(tmp_path / "v") == _SKILLS
 
 
@@ -580,9 +580,9 @@ def test_builder_rejects_unknown_skill_and_nonempty_out(tmp_path: Path) -> None:
 def test_candidates_file_shapes(tmp_path: Path) -> None:
     plain = tmp_path / "plain.yaml"
     plain.write_text(yaml.safe_dump({"rf-browser": "Writes  web\n tests."}))
-    audit = tmp_path / "rf-results.yaml"
+    audit = tmp_path / "rf-requests.yaml"
     audit.write_text(yaml.safe_dump({
-        "skill": "rf-results",
+        "skill": "rf-requests",
         "selected": 1,
         "iterations": [
             {"iteration": 0, "text": "old", "train_loads": "0/24"},
@@ -594,7 +594,7 @@ def test_candidates_file_shapes(tmp_path: Path) -> None:
     empty.write_text("")
     # byte-exact (design D14): inner whitespace is not collapsed
     assert load_candidates([plain, audit, empty]) == {"rf-browser": "Writes  web\n tests.",
-                                                     "rf-results": "best"}
+                                                     "rf-requests": "best"}
 
 
 def test_builder_script_prints_variant_id(tmp_path: Path) -> None:

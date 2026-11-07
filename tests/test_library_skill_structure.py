@@ -49,9 +49,8 @@ def _param(key: str, *values: object, id: str | None = None):
 
 KEY_PARAMS = [_param(k) for k in KEYS]
 
-# Script-based fallback skills named next to the robotcode commands (design D3).
-LIBDOC_FALLBACK = "rf-libdoc"
-RESULTS_FALLBACK = "rf-results"
+# Retired skills that the workflows must no longer name (delegate-robotcode-skills).
+RETIRED = ("rf-libdoc", "rf-results", "rf-robotcode")
 
 REQUIRED_SECTIONS = [
     "Installation",
@@ -355,14 +354,17 @@ def test_agent_workflow_loop(key):
     items = re.findall(r"^\d+\.\s+(.*(?:\n(?!\d+\.).*)*)", body, re.M)
     assert len(items) >= 5, f"rf-{key}: workflow has {len(items)} numbered steps"
     flat = body.replace("\n", " ")
-    for token in (f"robotcode libdoc {LIBRARIES[key]}", LIBDOC_FALLBACK, "--dryrun", "robotcode results",
-                  RESULTS_FALLBACK):
+    steps = (f'robotcode doc keyword {LIBRARIES[key]} "', "robotcode analyze code", "robotcode robot -bl",
+             "robotcode results show --failed", "robotcode results log -bl")
+    for token in steps:
         assert token in flat, f"rf-{key}: workflow lacks {token!r}"
-    order = [flat.index("robotcode libdoc"), flat.index("--dryrun"), flat.index("robotcode results")]
+    order = [flat.index(token) for token in steps]
     assert order == sorted(order), f"rf-{key}: workflow steps out of order"
+    for name in RETIRED:
+        assert name not in flat, f"rf-{key}: workflow names retired {name}"
     last = items[-1].lower()
-    assert "fix" in last and ("dry run" in last or "--dryrun" in last or "step 3" in last), (
-        f"rf-{key}: last workflow step does not loop back to the dry run: {items[-1]!r}"
+    assert "fix" in last and ("static check" in last or "step 3" in last), (
+        f"rf-{key}: last workflow step does not loop back to the static check: {items[-1]!r}"
     )
 
 
@@ -378,10 +380,10 @@ def test_gotchas(key):
 @pytest.mark.parametrize("key", KEY_PARAMS)
 def test_libdoc_instruction_instead_of_catalog(key):
     text = skill_md(key)
-    assert f"robotcode libdoc {LIBRARIES[key]} " in text
-    assert re.search(rf"robotcode libdoc {re.escape(LIBRARIES[key])} list ", text), f"rf-{key}: no libdoc list example"
-    assert re.search(rf"robotcode libdoc {re.escape(LIBRARIES[key])} show ", text), f"rf-{key}: no libdoc show example"
-    assert LIBDOC_FALLBACK in text
+    lib = re.escape(LIBRARIES[key])
+    assert re.search(rf"robotcode doc keywords {lib} ", text), f"rf-{key}: no robotcode doc keywords example"
+    assert re.search(rf"robotcode doc keyword {lib} ", text), f"rf-{key}: no robotcode doc keyword example"
+    assert "robotcode libdoc" not in text and "rf-libdoc" not in text, f"rf-{key}: names the retired lookup"
 
 
 CHANNEL_PARAMS = [

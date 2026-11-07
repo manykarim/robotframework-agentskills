@@ -1,4 +1,4 @@
-{"type":"system","subtype":"init","session_id":"s-1","model":"claude-haiku-4-5-20251001","tools":["Skill","Read","Glob","Grep"]}
+{"type":"system","subtype":"init","session_id":"s-1","model":"claude-haiku-5-5","tools":["Skill","Read","Glob","Grep"]}
 {"type":"assistant","message":{"role":"assistant","content":[{"type":"text","text":"I'll load the Browser skill."},{"type":"tool_use","id":"toolu_01","name":"Skill","input":{"skill":"rf-agentskills:rf-browser"}}]}}
 {"type":"user","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"toolu_01","content":"Launching skill: rf-browser"}]}}
 {"type":"assistant","message":{"role":"assistant","content":[{"type":"tool_use","id":"toolu_02","name":"Skill","input":{"skill":"rf-setup"}}]}}

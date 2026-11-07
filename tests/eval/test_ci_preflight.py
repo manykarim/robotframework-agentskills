@@ -135,7 +135,7 @@ def test_pr_job_is_treatment_only_haiku_runs_3_and_gated() -> None:
     assert "--arms treatment" in text
     assert "--runs 3" in text
     assert '--model "${HAIKU_MODEL}"' in text
-    assert wf["env"]["HAIKU_MODEL"] == "claude-haiku-4-5-20251001"
+    assert wf["env"]["HAIKU_MODEL"] == "claude-haiku-5-5"
     assert "rf-skill-eval gate" in text
     assert "--split validation" in text
 

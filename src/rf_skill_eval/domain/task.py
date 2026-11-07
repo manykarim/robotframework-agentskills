@@ -14,8 +14,8 @@ TaskTier = Literal["narrow", "realistic", "adversarial"]
 #: Model allow-list (design D7). Opus is allowed only as an explicit run-time
 #: opt-in (``--model claude-opus-5-5 --allow-opus --max-cost-usd <cap>``);
 #: task YAML and trigger sets may declare Haiku or Sonnet only.
-HAIKU_MODEL: str = "claude-haiku-4-5-20251001"
-SONNET_MODEL: str = "claude-sonnet-5"
+HAIKU_MODEL: str = "claude-haiku-5-5"
+SONNET_MODEL: str = "claude-sonnet-5-5"
 OPUS_MODEL: str = "claude-opus-5-5"
 
 #: The default model for evaluation runs (narrow tier and trigger evals).
@@ -28,6 +28,8 @@ YAML_ALLOWED_MODELS: frozenset[str] = frozenset({HAIKU_MODEL, SONNET_MODEL})
 
 #: Retired ids -> replacement, used for targeted migration messages.
 LEGACY_MODEL_IDS: dict[str, str] = {
+    "claude-haiku-4-5-20251001": HAIKU_MODEL,
+    "claude-sonnet-5": SONNET_MODEL,
     "claude-haiku-4-5": HAIKU_MODEL,
     "claude-sonnet-4-6": SONNET_MODEL,
     "claude-sonnet-4-5": SONNET_MODEL,

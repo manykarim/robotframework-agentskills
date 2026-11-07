@@ -129,7 +129,12 @@ class ClaudeCodeRunner:
             return leaked
 
         env = self._build_env(config_dir, listing_budget=profile.listing_budget)
-        cmd = self._build_cmd(task, workspace_dir, restrict_tools=profile.restrict_tools)
+        cmd = self._build_cmd(
+            task,
+            workspace_dir,
+            restrict_tools=profile.restrict_tools,
+            mcp_config=config_dir / ".mcp.json",
+        )
 
         stdout_path = artifacts_dir / "stdout.stream.jsonl"
         stderr_path = artifacts_dir / "stderr.log"
@@ -525,6 +530,7 @@ class ClaudeCodeRunner:
         workspace_dir: Path | None = None,
         *,
         restrict_tools: bool = False,
+        mcp_config: Path | None = None,
     ) -> list[str]:
         if task.fixture and workspace_dir is not None:
             preamble = self._WORKSPACE_PREAMBLE_TEMPLATE.format(
@@ -559,6 +565,10 @@ class ClaudeCodeRunner:
                 # --tools makes these the only built-in tools that exist in
                 # the session (Skill must be listed or skills are not offered).
                 args += ["--tools", ",".join(task.allowed_tools)]
+        if mcp_config is not None and _server_names(mcp_config):
+            # Claude Code does not read .mcp.json from CLAUDE_CONFIG_DIR; pass
+            # it explicitly and ignore every other MCP source (isolation).
+            args += ["--mcp-config", str(mcp_config), "--strict-mcp-config"]
         return args
 
     def _capture_session_jsonl(

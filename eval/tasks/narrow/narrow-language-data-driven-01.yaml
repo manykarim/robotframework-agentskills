@@ -12,7 +12,7 @@ prompt: |
   tests with the same names, one per credential pair, and move the repeated
   steps into one keyword in resources/login.resource. Run the suite and make
   sure all six tests pass.
-model: claude-haiku-4-5-20251001
+model: claude-haiku-5-5
 max_turns: 14
 timeout_seconds: 300
 allowed_tools:

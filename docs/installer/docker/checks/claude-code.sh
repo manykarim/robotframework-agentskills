@@ -17,12 +17,12 @@ PLUGIN_FILES="$ROOT/rf-agentskills-files"
 case "${1:-}" in
 --post-install)
     # Skills (verbatim copy)
-    need_file "$ROOT/skills/rf-libdoc/SKILL.md" "^name: rf-libdoc$" "^description:"
+    need_file "$ROOT/skills/rf-python-library/SKILL.md" "^name: rf-python-library$" "^description:"
     # Merged into libdoc (content 2.0.0): the old libdoc skills are not shipped
     need_no_file "$ROOT/skills/libdoc-search/SKILL.md"
     need_no_file "$ROOT/skills/libdoc-explain/SKILL.md"
-    need_no_file "$ROOT/skills/libdoc/SKILL.md"   # renamed to rf-libdoc in content 2.0.0
-    need_file "$ROOT/skills/rf-results/SKILL.md"
+    need_no_file "$ROOT/skills/libdoc/SKILL.md"   # pre-2.0 name; libdoc skills retired in content 3.0.0
+    need_no_file "$ROOT/skills/rf-results/SKILL.md"   # retired in content 3.0.0
     need_file "$ROOT/skills/rf-language/SKILL.md" "^name: rf-language$"
     need_file "$ROOT/skills/rf-language/scripts/rf_conventions.py"
     need_file "$ROOT/skills/rf-python-library/SKILL.md" "^name: rf-python-library$"
@@ -97,7 +97,7 @@ PY
     ;;
 
 --post-uninstall)
-    need_no_file "$ROOT/skills/rf-libdoc/SKILL.md"
+    need_no_file "$ROOT/skills/rf-python-library/SKILL.md"
     need_no_file "$ROOT/agents/rf-test-architect.md"
     # settings.json may persist if it had pre-existing keys, but the hooks
     # block we added must be gone:
@@ -122,7 +122,7 @@ PY
     # Re-install (uninstall happened before this in the entrypoint flow,
     # so we need files in place again). Caller of --api-smoke can either
     # run before --post-uninstall (preferred) or re-install here.
-    if [ ! -f "$ROOT/skills/rf-libdoc/SKILL.md" ]; then
+    if [ ! -f "$ROOT/skills/rf-python-library/SKILL.md" ]; then
         skip "no install present (--api-smoke must run before --post-uninstall)"
     fi
 

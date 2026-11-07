@@ -5,6 +5,5 @@ robotframework-requests>=0.9.7
 # robotframework-browser[bb]>=20.0   # web UI testing (then: rfbrowser install chromium)
 # robotframework-seleniumlibrary>=6.7
 
-# Developer tools (optional)
-robotcode[all]>=2.7
-robotframework-robocop>=9.0
+# Developer tools (required by rf-agentskills; [all] includes Robocop)
+robotcode[all]>=2.8

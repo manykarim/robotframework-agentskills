@@ -54,7 +54,7 @@ HEADLESS = "true"
 variables = { HEADLESS = "false" }
 ```
 
-- Plain `robot` does **not** read `robot.toml`; only robotcode does. Use `robotcode robot` (see `rf-robotcode`), or pass the same options on the `robot` command line.
+- Plain `robot` does **not** read `robot.toml`; only robotcode does. Use `robotcode robot`, or pass the same options on the `robot` command line.
 - Without robotcode: `uv run robot --outputdir results --pythonpath resources --pythonpath libraries tests`.
 
 ## .gitignore

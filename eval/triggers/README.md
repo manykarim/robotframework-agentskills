@@ -9,7 +9,7 @@ for the right requests — and only for those. Task outcomes (does the skill
 
 ```yaml
 skill: rf-browser                    # a shipped skill name (skills/*/SKILL.md `name`)
-model: claude-haiku-4-5-20251001     # Haiku or Sonnet only (Opus: run-time opt-in)
+model: claude-haiku-5-5     # Haiku or Sonnet only (Opus: run-time opt-in)
 runs: 3                              # sessions per query
 threshold: 0.5                       # triggered when loads / runs >= threshold
 queries:

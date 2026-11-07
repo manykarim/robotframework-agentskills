@@ -1,6 +1,6 @@
 """Lint test for the plugin subagents (openspec change modernize-plugin-agents-and-hooks).
 
-The four subagents in ``plugins/rf-agentskills/agents/`` are thin routers: they
+The three subagents in ``plugins/rf-agentskills/agents/`` are thin routers: they
 keep only content no skill owns (marked "agent-owned"), route everything else to
 the skills by identifier, share one verification loop and stay portable across
 the agents the installer copies them to (Claude Code, OpenCode, Cursor).
@@ -20,7 +20,12 @@ import pytest
 ROOT = Path(__file__).resolve().parent.parent
 PLUGIN = ROOT / "plugins" / "rf-agentskills"
 AGENTS_DIR = PLUGIN / "agents"
-AGENT_NAMES = ("rf-test-architect", "rf-keyword-consultant", "rf-migration-guide", "rf-debug-expert")
+AGENT_NAMES = ("rf-test-architect", "rf-migration-guide", "rf-debug-expert")
+#: Agents that write or change RF files and so carry the shared verification loop.
+WRITERS = ("rf-test-architect", "rf-migration-guide")
+#: Claude `tools` restriction per agent (plugin-subagents "Debug expert is a read-only diagnostician").
+TOOLS = {"rf-debug-expert": "Read, Grep, Glob, Bash"}
+MAX_DESCRIPTION = 300
 LEGACY_FIXTURE = ROOT / "eval" / "fixtures" / "sut-legacy-style"
 MAX_BODY_LINES = 120
 
@@ -31,11 +36,11 @@ VERIFICATION_LOOP = """\
 For every `.robot`, `.resource` or Python library file you write or change:
 
 1. Write the change.
-2. Confirm keyword names and arguments with the `rf-libdoc` skill (its search and explain commands), or with `robotcode libdoc` when robotcode is installed (`rf-robotcode`).
-3. Run `robot --dryrun` on the affected suites. The dry run does not catch undefined variables, a space before `=` in named arguments, embedded-argument mismatches or union-with-`str` conversions; the real run in step 5 does.
-4. Run `robocop check --no-cache` on the changed files (select several rule groups by repeating `--select`, never with a comma list).
-5. Run the affected tests (`robot -t "<test name>"` or `--suite`).
-6. Read failures with the `rf-results` skill (its summary of `output.xml`), or with `robotcode results`.
+2. Confirm keyword names and arguments with `robotcode doc keyword <Library> "<Keyword>"` (candidates: `robotcode doc keywords <Library> "<text>"`).
+3. Run `robotcode analyze code <changed files>` and fix every error. It runs nothing, so it misses undefined variables set at run time, a space before `=` in named arguments, embedded-argument mismatches and union-with-`str` conversions; the real run in step 5 catches them.
+4. Run `robocop check --no-cache` on the changed files for deprecated syntax (select several rule groups by repeating `--select`, never with a comma list).
+5. Run the affected tests by longname, `robotcode robot -bl "<Suite.Sub.Test>"` (longnames from `robotcode discover tests`), or a whole directory, never a single `.robot` file.
+6. Read failures with `robotcode results show --failed` and `robotcode results log -bl "<longname>"`.
 """
 
 RETIRED = (
@@ -46,6 +51,10 @@ RETIRED = (
     "libdoc-explain",
     "rf-test-design",
     "rf-keyword-design",
+    "rf-libdoc",
+    "rf-results",
+    "rf-robotcode",
+    "rf-keyword-consultant",
 )
 PRE_RENAME_RE = re.compile(r"robotframework-[a-z-]*-skill\b|robotframework-libdoc")
 RF_NAME_RE = re.compile(r"(?<![\w/-])rf-[a-z][a-z-]*[a-z]\b")
@@ -88,7 +97,7 @@ def _robocop() -> list[str] | None:
     return [sys.executable, "-m", "robocop"] if rc == 0 else None
 
 
-def test_agent_set_is_the_expected_four() -> None:
+def test_agent_set_is_the_expected_three() -> None:
     assert sorted(p.stem for p in AGENTS_DIR.glob("*.md")) == sorted(AGENT_NAMES)
 
 
@@ -100,11 +109,24 @@ def test_body_line_budget(name: str) -> None:
 
 @pytest.mark.parametrize("name", AGENT_NAMES)
 def test_frontmatter_is_portable(name: str) -> None:
-    """Only keys every target agent understands; no Claude-only `skills:` preload."""
+    """Only keys every target agent understands (`tools` takes Claude tool names, which
+    Copilot accepts as aliases); no Claude-only `skills:` preload."""
     front, _ = _split(name)
     keys = {ln.split(":", 1)[0] for ln in front.splitlines() if re.match(r"^[a-z_-]+:", ln)}
-    assert keys == {"name", "description"}, keys
+    assert keys == {"name", "description"} | ({"tools"} if name in TOOLS else set()), keys
     assert re.search(rf"^name: {name}$", front, re.M)
+    if name in TOOLS:
+        assert re.search(rf"^tools: {re.escape(TOOLS[name])}$", front, re.M)
+
+
+@pytest.mark.parametrize("name", AGENT_NAMES)
+def test_description_names_situations(name: str) -> None:
+    front, _ = _split(name)
+    desc = re.search(r"^description: (.*)$", front, re.M).group(1)
+    assert len(desc) <= MAX_DESCRIPTION, (name, len(desc))
+    assert re.match(r"^[A-Z][a-z]+s ", desc), f"{name}: third-person capability first: {desc[:40]}"
+    assert "Use when" in desc and "Returns" in desc or "reports" in desc, desc
+    assert desc.count(",") + desc.count(" or ") >= 2, f"{name}: name at least two situations"
 
 
 @pytest.mark.parametrize("name", AGENT_NAMES)
@@ -130,7 +152,7 @@ def test_routing_table_present(name: str) -> None:
     rows = [ln for ln in routing.splitlines() if ln.startswith("| ") and "---" not in ln][1:]
     assert len(rows) >= 4, rows
     for row in rows:
-        assert RF_NAME_RE.search(row), f"{name}: routing row without a skill: {row}"
+        assert RF_NAME_RE.search(row) or "`robotcode " in row, f"{name}: routing row without a skill: {row}"
 
 
 @pytest.mark.parametrize("name", AGENT_NAMES)
@@ -139,12 +161,13 @@ def test_no_invalid_typed_arguments(name: str) -> None:
         assert not TYPED_ARG_RE.search(line), f"{name}: invalid typed argument form: {line}"
 
 
-@pytest.mark.parametrize("name", AGENT_NAMES)
+@pytest.mark.parametrize("name", WRITERS)
 def test_verification_loop_is_canonical(name: str) -> None:
     body = _body(name)
     assert VERIFICATION_LOOP in body, f"{name}: verification loop differs from the canonical text"
     loop = _section(body, "Verification loop")
-    order = ["Write the change", "robotcode libdoc", "robot --dryrun", "robocop check", "robot -t", "`rf-results` skill"]
+    order = ["Write the change", "robotcode doc keyword", "robotcode analyze code", "robocop check",
+             "robotcode robot -bl", "robotcode results show --failed"]
     positions = [loop.index(step) for step in order]
     assert positions == sorted(positions)
     for blind in ("undefined variables", "named arguments", "embedded-argument", "union-with-`str`"):
@@ -224,25 +247,12 @@ def test_no_comma_select_anywhere() -> None:
 def test_test_architect_routes_design_to_skills() -> None:
     body = _body("rf-test-architect")
     routing = _section(body, "Routing")
-    for skill in ("rf-language", "rf-python-library", "rf-setup", "rf-browser", "rf-requests", "rf-libdoc"):
+    for skill in ("rf-language", "rf-python-library", "rf-setup", "rf-browser", "rf-requests", "robotcode doc keyword"):
         assert skill in routing, skill
     assert "4KB" not in body and "SKILL.md" not in body
     assert "Browser" in body and "RESTinstance" in body  # library-selection criteria stay
     assert "resources/" in body  # project layout stays
     assert "[Template]" not in body, "template advice lives in rf-language"
-
-
-def test_keyword_consultant_has_no_catalog() -> None:
-    body = _body("rf-keyword-consultant")
-    for legacy in ("Run Keyword If", "Create List", "Set Variable"):
-        assert legacy not in body, legacy
-    assert "| Browser Library | SeleniumLibrary |" not in body
-    assert "Standard Libraries Quick Reference" not in body
-    routing = _section(body, "Routing")
-    for skill in ("rf-libdoc", "rf-robotcode", "rf-language", "rf-python-library"):
-        assert skill in routing, skill
-    assert "search command" in body and "explain command" in body
-    assert "Browser.Click" in body  # library-prefix disambiguation rule stays
 
 
 def test_migration_guide_uses_deterministic_checker() -> None:
@@ -294,7 +304,22 @@ def test_debug_expert_routes_failure_classes() -> None:
     assert re.search(r"contains no keywords.*rf-python-library", joined)
     assert re.search(r"(?i)name conflict.*rf-language", joined)
     assert re.search(r"(?i)__init__\.robot.*rf-language", joined)
-    assert re.search(r"(?i)step.*rf-robotcode", joined)
-    assert "rf-results" in joined
-    assert "with the `rf-results` skill" in body
-    assert "FAILURE:" in body and "CATEGORY:" in body
+    assert re.search(r"(?i)stepping.*robotcode robot-debug -bl", joined)
+    assert "FAILURE:" in body and "CATEGORY:" in body and "PREVENTION:" in body
+
+
+def test_debug_expert_is_a_read_only_diagnostician() -> None:
+    body = _body("rf-debug-expert")
+    method = _section(body, "Diagnosis method (agent-owned)")
+    order = ["robotcode results summary --failed", "Group failures by cause", "Classify each cause",
+             'robotcode robot-debug -bl "<longname>" --output NONE --log NONE --report NONE', "Flakiness: structural"]
+    positions = [method.index(step) for step in order]
+    assert positions == sorted(positions)
+    for category in ("Locator", "Timing", "Assertion", "Environment", "Keyword resolution", "Library", "Driver",
+                     "Flakiness"):
+        assert f"| {category} |" in method, category
+    rules = _section(body, "Constraints")
+    assert "Never propose changing an assertion, expected value or tag" in rules
+    assert "Never recommend `Sleep`" in rules and "Don't write or edit files" in rules
+    assert "one debugger session at a time" in " ".join(method.split())
+    assert "Verification loop" not in body  # it does not write files

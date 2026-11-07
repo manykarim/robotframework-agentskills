@@ -55,7 +55,6 @@ COMPANION_SKILLS = {
     "rf-requests",
     "rf-restinstance",
     "rf-platynui",
-    "rf-robotcode",
 }
 
 
@@ -177,11 +176,35 @@ def test_browser_documents_both_install_paths() -> None:
     assert "rfbrowser init" in text and "Browser.entry" in text
 
 
-def test_robotcode_skill_links_back() -> None:
-    content = (ROOT / "skills" / "rf-robotcode" / "SKILL.md").read_text(
-        encoding="utf-8"
-    )
-    assert "rf-setup" in content
+def test_every_other_skill_links_to_setup() -> None:
+    for md in sorted((ROOT / "skills").glob("*/SKILL.md")):
+        if md.parent.name == "rf-setup":
+            continue
+        companion = md.read_text(encoding="utf-8").split("## Companion Skills", 1)[-1]
+        assert "`rf-setup`" in companion, md.parent.name
+
+
+def test_robotcode_is_a_prerequisite_step() -> None:
+    text = _skill_text()
+    step = text.split("## Required: robotcode in the project environment", 1)[1].split("\n## ", 1)[0]
+    for cmd in ('uv add --dev "robotcode[all]>=2.8"', 'poetry add --group dev "robotcode[all]>=2.8"',
+                'pip install "robotcode[all]>=2.8"'):
+        assert cmd in step, cmd
+    for word in ("`runner`", "`analyze`", "`repl`", "Robocop", "robotcode[runner]", "robotcode discover info"):
+        assert word in step, word
+    step3 = text.split("## Step 3", 1)[1].split("\n## ", 1)[0]
+    assert 'uv add --dev "robotcode[all]>=2.8"' in step3 and "uv run robotcode --version" in step3
+
+
+def test_library_table_has_no_robotcode_or_robocop_row() -> None:
+    table = _skill_text().split("## Step 4", 1)[1].split("\n## ", 1)[0]
+    assert "rf-robotcode" not in table
+    assert "| Robocop" not in table and "| robotcode" not in table
+
+
+def test_verification_uses_robotcode() -> None:
+    step5 = _skill_text().split("## Step 5", 1)[1].split("\n## ", 1)[0]
+    assert "robotcode discover info" in step5 and "robotcode analyze code" in step5
 
 
 # --- Example validity -----------------------------------------------------

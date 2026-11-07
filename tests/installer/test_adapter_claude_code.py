@@ -25,11 +25,11 @@ def test_plan_writes_skills_agents_and_plugin_files(install_prefix: Path) -> Non
     # (where ``str(WindowsPath)`` would use ``\``).
     dst_paths = [t.dst.as_posix() for t in plan.targets]
     # Skills tree
-    assert any("/skills/rf-libdoc/SKILL.md" in p for p in dst_paths)
+    assert any("/skills/rf-python-library/SKILL.md" in p for p in dst_paths)
     assert any("/agents/rf-test-architect.md" in p for p in dst_paths)
     # Co-located hook scripts (and the skill scripts the Stop hook runs)
     assert any("/rf-agentskills-files/scripts/" in p for p in dst_paths)
-    assert any("/rf-agentskills-files/skills/rf-results/scripts/rf_results.py" in p
+    assert any("/rf-agentskills-files/skills/rf-language/scripts/rf_conventions.py" in p
                for p in dst_paths)
     # The rf-tools MCP server is gone
     assert not any("/servers/" in p or p.endswith(".mcp.json") for p in dst_paths)
@@ -132,7 +132,7 @@ def test_end_to_end_install_and_uninstall(install_prefix: Path, fake_home: Path)
     assert rc == 0
 
     # Verify some real files landed
-    assert (install_prefix / "skills" / "rf-libdoc" / "SKILL.md").is_file()
+    assert (install_prefix / "skills" / "rf-python-library" / "SKILL.md").is_file()
     assert (install_prefix / "settings.json").is_file()
     settings = json.loads((install_prefix / "settings.json").read_text())
     assert "hooks" in settings
@@ -170,7 +170,7 @@ def test_install_warns_on_conflict_without_force(
     """A pre-existing file at a destination path should not be silently overwritten."""
     from rf_agentskills.cli import main
 
-    target = install_prefix / "skills" / "rf-libdoc" / "SKILL.md"
+    target = install_prefix / "skills" / "rf-python-library" / "SKILL.md"
     target.parent.mkdir(parents=True)
     target.write_text("USER OWNED CONTENT")
 
@@ -188,7 +188,7 @@ def test_install_warns_on_conflict_without_force(
 def test_install_force_overwrites_conflict(install_prefix: Path, fake_home: Path) -> None:
     from rf_agentskills.cli import main
 
-    target = install_prefix / "skills" / "rf-libdoc" / "SKILL.md"
+    target = install_prefix / "skills" / "rf-python-library" / "SKILL.md"
     target.parent.mkdir(parents=True)
     target.write_text("USER OWNED CONTENT")
 
@@ -370,11 +370,11 @@ def test_claude_code_keeps_skill_dir_variable(install_prefix: Path, fake_home: P
 
     assert by_name("claude-code")().expands_skill_dir is True
     assert cli_main(["install", "--agent", "claude-code", "--prefix", str(install_prefix)]) == 0
-    md = install_prefix / "skills" / "rf-libdoc" / "SKILL.md"
+    md = install_prefix / "skills" / "rf-python-library" / "SKILL.md"
     text = md.read_text(encoding="utf-8")
-    assert 'uv run python "${CLAUDE_SKILL_DIR}/scripts/rf_libdoc.py"' in text
+    assert 'uv run python "${CLAUDE_SKILL_DIR}/scripts/check_library.py"' in text
     assert "${CLAUDE_PLUGIN_ROOT}" not in text
-    assert (md.parent / "scripts" / "rf_libdoc.py").is_file()
+    assert (md.parent / "scripts" / "check_library.py").is_file()
 
 
 def test_project_install_ships_language_skill_in_manifest(fake_home: Path) -> None:

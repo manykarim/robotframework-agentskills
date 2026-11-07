@@ -2,7 +2,7 @@
 # Tune descriptions on the train split only; never edit validation queries
 # to make a description pass (rotate them only when the skill's intent changes).
 skill: rf-browser
-model: claude-haiku-4-5-20251001
+model: claude-haiku-5-5
 runs: 3
 threshold: 0.5
 queries:
@@ -43,3 +43,7 @@ queries:
   - {id: br-h08, split: train, should_trigger: false, note: "sibling rf-setup; retired holdout (2026-09-30 evidence)", query: "After upgrading robotframework-browser, robot says the Playwright browsers are missing; reinstall them in our uv environment"}
   - {id: br-h09, split: train, should_trigger: false, note: "non-RF look-alike; retired holdout (2026-09-30 evidence)", query: "Write a Puppeteer script that screenshots our landing page every hour"}
   - {id: br-h10, split: train, should_trigger: false, note: "non-RF look-alike; retired holdout (2026-09-30 evidence)", query: "Set up Playwright Test sharding across 4 GitHub Actions runners"}
+  # Co-installed robotcode-plugin near-misses (delegate-robotcode-skills): CLI work the robotcode skill owns.
+  - {id: br-r01, split: holdout3, should_trigger: false, note: "sibling robotcode-plugin (co-installed near-miss)", query: "Run the web smoke tests headless with the ci profile and tell me what failed"}
+  - {id: br-r02, split: holdout3, should_trigger: false, note: "sibling robotcode-plugin (co-installed near-miss)", query: "List every test under tests/web that is tagged checkout"}
+  - {id: br-r03, split: holdout3, should_trigger: false, note: "sibling robotcode-plugin (co-installed near-miss)", query: "Compare yesterday's and today's results of the web UI suite"}

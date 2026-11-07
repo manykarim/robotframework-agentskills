@@ -2,7 +2,7 @@
 # Tune descriptions on the train split only; never edit validation queries
 # to make a description pass (rotate them only when the skill's intent changes).
 skill: rf-setup
-model: claude-haiku-4-5-20251001
+model: claude-haiku-5-5
 runs: 3
 threshold: 0.5
 queries:
@@ -22,8 +22,8 @@ queries:
   # should NOT trigger (train): sibling skills + non-RF look-alikes
   - {id: su-n01, split: train, should_trigger: false, note: "sibling rf-browser", query: "Write a Browser library login test for http://localhost:8000"}
   - {id: su-n02, split: train, should_trigger: false, note: "sibling rf-requests", query: "Write RequestsLibrary tests for GET /users and a 404 case"}
-  - {id: su-n03, split: train, should_trigger: false, note: "sibling rf-robotcode", query: "Run the ci profile from robot.toml with robotcode"}
-  - {id: su-n04, split: train, should_trigger: false, note: "sibling rf-results", query: "Summarise the failures in output.xml from the last run"}
+  - {id: su-n03, split: train, should_trigger: false, note: "sibling robotcode-plugin", query: "Run the ci profile from robot.toml with robotcode"}
+  - {id: su-n04, split: train, should_trigger: false, note: "sibling robotcode-plugin", query: "Summarise the failures in output.xml from the last run"}
   - {id: su-n05, split: train, should_trigger: false, note: "non-RF look-alike", query: "pip install requirements for our Django app fails on psycopg2"}
   - {id: su-n06, split: train, should_trigger: false, note: "non-RF look-alike", query: "Create a conda environment for a data-science notebook with pandas and scikit-learn"}
   # should NOT trigger (validation)
@@ -40,7 +40,7 @@ queries:
   - {id: su-h05, split: train, should_trigger: true, note: "indirect: symptom only; retired holdout (2026-09-30 evidence)", query: "robot works in my shell but the IDE terminal says No module named robot; how do I make both use the project venv?"}
   - {id: su-h06, split: train, should_trigger: false, note: "sibling rf-browser; retired holdout (2026-09-30 evidence)", query: "Browser library is installed now; write the first login test for http://localhost:3000"}
   - {id: su-h07, split: train, should_trigger: false, note: "sibling rf-language; retired holdout (2026-09-30 evidence)", query: "Write a data-driven robot test for the login form with five username/password pairs"}
-  - {id: su-h08, split: train, should_trigger: false, note: "sibling rf-robotcode; retired holdout (2026-09-30 evidence)", query: "Use robotcode to discover which tests carry the wip tag"}
+  - {id: su-h08, split: train, should_trigger: false, note: "sibling robotcode-plugin; retired holdout (2026-09-30 evidence)", query: "Use robotcode to discover which tests carry the wip tag"}
   - {id: su-h09, split: train, should_trigger: false, note: "non-RF look-alike; retired holdout (2026-09-30 evidence)", query: "Install CUDA-enabled PyTorch into a conda environment"}
   - {id: su-h10, split: train, should_trigger: false, note: "non-RF look-alike; retired holdout (2026-09-30 evidence)", query: "Fix gem install permission errors for Jekyll on macOS"}
   # holdout2 (add-sibling-cues-to-descriptions task 1.3): fresh queries written 2026-10-01,
@@ -51,7 +51,7 @@ queries:
   - {id: su-k04, split: holdout2, should_trigger: true, note: "edit existing file", query: "Our requirements-dev.txt pins robotframework 6.1; bump it to 7.x and make sure all our libraries still install"}
   - {id: su-k05, split: holdout2, should_trigger: true, note: "driver", query: "Which Appium 2 driver does AppiumLibrary need for iOS, and how do I install the XCUITest driver on the Mac mini?"}
   - {id: su-k06, split: holdout2, should_trigger: false, note: "sibling rf-appium (writing tests near-miss)", query: "Write an AppiumLibrary test that fills the signup form in our Android app and taps Register"}
-  - {id: su-k07, split: holdout2, should_trigger: false, note: "sibling rf-robotcode (robotcode near-miss)", query: "Run the smoke profile from robot.toml via robotcode and stop at the first failure"}
-  - {id: su-k08, split: holdout2, should_trigger: false, note: "sibling rf-libdoc (keyword docs near-miss)", query: "What are the arguments of Wait Until Keyword Succeeds and how is the retry value written?"}
+  - {id: su-k07, split: holdout2, should_trigger: false, note: "sibling robotcode-plugin (robotcode near-miss)", query: "Run the smoke profile from robot.toml via robotcode and stop at the first failure"}
+  - {id: su-k08, split: holdout2, should_trigger: false, note: "sibling robotcode-plugin (keyword docs near-miss)", query: "What are the arguments of Wait Until Keyword Succeeds and how is the retry value written?"}
   - {id: su-k09, split: holdout2, should_trigger: false, note: "sibling rf-selenium (writing tests near-miss)", query: "chromedriver works now; make the SeleniumLibrary login test wait for the dashboard before clicking Logout"}
   - {id: su-k10, split: holdout2, should_trigger: false, note: "non-RF look-alike", query: "Install Homebrew and set up rbenv with Ruby 3.3 on a new Mac"}

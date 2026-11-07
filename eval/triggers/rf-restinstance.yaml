@@ -2,7 +2,7 @@
 # Tune descriptions on the train split only; never edit validation queries
 # to make a description pass (rotate them only when the skill's intent changes).
 skill: rf-restinstance
-model: claude-haiku-4-5-20251001
+model: claude-haiku-5-5
 runs: 3
 threshold: 0.5
 queries:
@@ -28,7 +28,7 @@ queries:
   - {id: ri-n06, split: train, should_trigger: false, note: "non-RF look-alike", query: "Fuzz our OpenAPI endpoints with Schemathesis in CI"}
   # should NOT trigger (validation)
   - {id: ri-n07, split: validation, should_trigger: false, note: "sibling rf-requests", query: "RequestsLibrary: assert that GET On Session returns status 404 for an unknown id"}
-  - {id: ri-n08, split: validation, should_trigger: false, note: "sibling rf-results", query: "Merge the output.xml files of our API test shards into one report"}
+  - {id: ri-n08, split: validation, should_trigger: false, note: "sibling robotcode-plugin", query: "Merge the output.xml files of our API test shards into one report"}
   - {id: ri-n09, split: validation, should_trigger: false, note: "non-RF look-alike", query: "Write a Postman test script that checks response time is below 200 ms"}
   - {id: ri-n10, split: validation, should_trigger: false, note: "non-RF look-alike", query: "Generate a TypeScript client from our OpenAPI spec"}
   # retired holdout (tune-skill-descriptions task 7.1): its results were inspected in the
@@ -40,6 +40,6 @@ queries:
   - {id: ri-h05, split: train, should_trigger: true, note: "retired holdout (2026-09-30 evidence)", query: "Robot test with the REST library: PATCH /users/7 and assert the returned object has exactly these properties"}
   - {id: ri-h06, split: train, should_trigger: false, note: "sibling rf-requests; retired holdout (2026-09-30 evidence)", query: "RequestsLibrary: keep cookies between two requests in the same session"}
   - {id: ri-h07, split: train, should_trigger: false, note: "sibling rf-requests; retired holdout (2026-09-30 evidence)", query: "Write Robot Framework tests for our /health and /version endpoints, just the status and one field"}
-  - {id: ri-h08, split: train, should_trigger: false, note: "sibling rf-results; retired holdout (2026-09-30 evidence)", query: "How many API suites failed in last night's output.xml?"}
+  - {id: ri-h08, split: train, should_trigger: false, note: "sibling robotcode-plugin; retired holdout (2026-09-30 evidence)", query: "How many API suites failed in last night's output.xml?"}
   - {id: ri-h09, split: train, should_trigger: false, note: "non-RF look-alike; retired holdout (2026-09-30 evidence)", query: "Validate a YAML config against a JSON schema with ajv in Node"}
   - {id: ri-h10, split: train, should_trigger: false, note: "non-RF look-alike; retired holdout (2026-09-30 evidence)", query: "Write Pact consumer tests in JavaScript for the orders service"}

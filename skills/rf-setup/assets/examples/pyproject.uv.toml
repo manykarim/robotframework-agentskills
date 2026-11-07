@@ -2,7 +2,7 @@
 # Created with:
 #   uv init --bare --python 3.12 && uv python pin 3.12
 #   uv add robotframework robotframework-requests
-#   uv add --dev "robotcode[all]" robotframework-robocop
+#   uv add --dev "robotcode[all]>=2.8"
 # Reproduce elsewhere with: uv sync --locked
 [project]
 name = "my-tests"
@@ -16,6 +16,5 @@ dependencies = [
 
 [dependency-groups]
 dev = [
-    "robotcode[all]>=2.7.0",
-    "robotframework-robocop>=9.1.0",
+    "robotcode[all]>=2.8.0",  # includes Robocop
 ]

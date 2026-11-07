@@ -179,7 +179,7 @@ STANDARD_LIBRARIES = {
     "Screenshot", "Telnet", "Dialogs",
 }
 EIGHT_SKILLS = (
-    "rf-setup", "rf-robotcode", "rf-browser", "rf-selenium",
+    "rf-setup", "rf-python-library", "rf-browser", "rf-selenium",
     "rf-appium", "rf-requests", "rf-restinstance", "rf-platynui",
 )
 LANGUAGE_NEED = "Write tests, suites, user keywords, resources and variables in Robot Framework syntax"
@@ -299,7 +299,7 @@ def test_frontmatter_and_layout() -> None:
     assert fm["license"] == "Apache-2.0"
     compat = fm["compatibility"]
     assert len(compat) <= 500
-    for word in ("Python", "robotframework>=7", "version-gated", "robocop", "optional"):
+    for word in ("Python", "robotframework>=7", "version-gated", "robotcode[all]>=2.8"):
         assert word in compat, word
     assert fm["metadata"]["author"] and fm["metadata"]["version"] == _text(ROOT / "VERSION").strip()
     assert SCRIPT.is_file() and (SKILL / "references").is_dir() and EXAMPLES.is_dir()
@@ -526,11 +526,16 @@ def test_agent_workflow_order_and_blind_spots() -> None:
                   "union-with-`str`", "RF < 7.3", "real run"):
         assert blind in dry, blind
     lint = joined[idx["robocop check"]]
-    assert "skipped" in lint and "rf-setup" in lint and "--target-version" in lint
+    assert "--target-version" in lint
+    tail = wf.split("9. ", 1)[1]
+    assert "skipped" in tail and "rf-setup" in tail and "robotcode[all]" in tail
     assert "--no-cache" in lint, "robocop leaves .robocop_cache/ in the project without --no-cache"
     assert lint.count(" -s ") >= 4 and "DEPR" in lint and "ORD02" in lint and "NAME" in lint
     assert not re.search(r"-s\s+\S*,\S*", lint), "comma-separated robocop selection is rejected by robocop 9"
-    assert "robotcode analyze code" in wf and "rf-libdoc" in wf and "rf-results" in wf
+    assert "robotcode analyze code" in wf and "robotcode robot -bl" in wf and "robotcode results show --failed" in wf
+    assert 'robotcode doc keyword' in joined[1]
+    for retired in ("rf-libdoc", "rf-results", "rf-robotcode"):
+        assert retired not in wf, retired
 
 
 def test_gotchas() -> None:
@@ -608,8 +613,11 @@ def test_house_style() -> None:
 
 def test_companion_rows() -> None:
     sec = _section(_text(SKILL_MD), "Companion Skills")
-    for skill in ("rf-setup", "rf-libdoc", "rf-results", "rf-robotcode", "rf-browser", "rf-requests"):
+    for skill in ("rf-setup", "rf-python-library", "rf-browser", "rf-requests"):
         assert f"`{skill}`" in sec, skill
+    for retired in ("rf-libdoc", "rf-results", "rf-robotcode"):
+        assert retired not in sec, retired
+    assert "robotcode@robotframework-agent-plugins" in sec
     for skill in EIGHT_SKILLS:
         other = _section(_text(ROOT / "skills" / skill / "SKILL.md"), "Companion Skills")
         row = [r for r in _rows(other) if r[0] == LANGUAGE_NEED]

@@ -2,7 +2,7 @@
 name: rf-appium
 description: "Use first, before answering, for RF mobile tests with AppiumLibrary. Not installs/drivers: rf-setup."
 license: Apache-2.0
-compatibility: Requires Python 3.8+, robotframework>=7 and robotframework-appiumlibrary 3.x, an Appium server 2+/3 (Node.js) with the UiAutomator2 or XCUITest driver, the Android SDK or Xcode, and a device or emulator.
+compatibility: Requires Python 3.10+, robotframework>=7, robotcode[all]>=2.8 in the project environment and robotframework-appiumlibrary 3.x, an Appium server 2+/3 (Node.js) with the UiAutomator2 or XCUITest driver, the Android SDK or Xcode, and a device or emulator.
 metadata:
   author: manykarim
   version: "2.0.0"
@@ -82,12 +82,12 @@ Open Android App
 
 ## Agent workflow
 
-1. Look up each keyword before you use it: `robotcode libdoc AppiumLibrary show "<Keyword>"`; find names with `robotcode libdoc AppiumLibrary list "*<text>*"`. Without robotcode, use the rf-libdoc skill. Copy names and arguments exactly as libdoc shows them.
+1. Look up each keyword before you use it: `robotcode doc keyword AppiumLibrary "<Keyword>"`; find names with `robotcode doc keywords AppiumLibrary "<text>"`. Copy names and arguments exactly as robotcode shows them.
 2. Write the test with the defaults above and the decision table.
-3. Dry run the changed suites: `robot --dryrun --outputdir results/dryrun <suite>` (through the project environment, e.g. `uv run robot …`). Fix every error it reports.
-4. Run them: `robot --outputdir results <suite>` (or `robotcode robot …`).
-5. Read the results: `robotcode results summary --failed`, then `robotcode results log --failed`; without robotcode, use the rf-results skill. Don't parse output.xml by hand.
-6. Fix the cause and go back to step 3 (dry run). Stop when the tests pass or the failure is shown to be in the system under test, and say which.
+3. Check the changed files statically: `robotcode analyze code <changed files>` (through the project environment, e.g. `uv run robotcode …`). Fix every error it reports.
+4. Run them by longname: `robotcode robot -bl "<Suite.Sub.Test>"` (longnames from `robotcode discover tests`), or pass a whole directory. Don't pass a single `.robot` file: it skips the parent `__init__.robot`.
+5. Read the results: `robotcode results show --failed`, then `robotcode results log -bl "<longname>"`. Don't parse output.xml by hand.
+6. Fix the cause and go back to step 3 (static check). Stop when the tests pass or the failure is shown to be in the system under test, and say which.
 
 ## Gotchas
 
@@ -128,7 +128,6 @@ Examples in `assets/examples/`: `android-basic.robot`, `ios-basic.robot`, `gestu
 |------|-------|
 | Native desktop tests with PlatynUI | `rf-platynui` |
 | Install Robot Framework or a library, fix the environment | `rf-setup` |
-| Look up keyword names, arguments and docs | `rf-libdoc` (or `rf-robotcode`: `robotcode libdoc`) |
-| Analyze output.xml results | `rf-results` (or `rf-robotcode`: `robotcode results`) |
-| Discover, run, debug and statically check with the robotcode CLI | `rf-robotcode` |
 | Write tests, suites, user keywords, resources and variables in Robot Framework syntax | `rf-language` |
+
+For running, discovering, keyword documentation, result analysis and debugging with the robotcode CLI, use the `robotcode` skill of the robotcode plugin (`robotcode@robotframework-agent-plugins`); the commands above work without it.

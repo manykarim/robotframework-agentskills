@@ -112,11 +112,11 @@ def test_budget_stops_trigger_runs(tmp_path: Path) -> None:
 
 def test_results_json_round_trip(tmp_path: Path) -> None:
     result = evaluate_trigger_sets([_set()], _run_fn(tmp_path, {"p0": 3}), name_to_dir=_NAMES,
-                                   model="claude-haiku-4-5-20251001")
+                                   model="claude-haiku-5-5")
     path = result.write(tmp_path / "trigger-results.json", harness_version="0.1.0")
     again = TriggerEvalResult.from_json(json.loads(path.read_text()))
     assert again.outcomes == result.outcomes
-    assert again.model == "claude-haiku-4-5-20251001"
+    assert again.model == "claude-haiku-5-5"
 
 
 def test_trigger_report_snapshot() -> None:
@@ -131,7 +131,7 @@ def test_trigger_report_snapshot() -> None:
         QueryOutcome("rf-selenium", "se-n01", "validation", False, 0, 0, 0.5, incomplete=3,
                      query="Record a Playwright trace"),
     ]
-    result = TriggerEvalResult(outcomes=outcomes, model="claude-haiku-4-5-20251001")
+    result = TriggerEvalResult(outcomes=outcomes, model="claude-haiku-5-5")
     stored = {"skills": {"rf-browser": {"validation": {"accuracy": 1.0}}}}
     md = render_trigger_markdown(result, baseline=stored)
     path = _SNAPSHOTS / "trigger-report.md"

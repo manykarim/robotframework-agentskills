@@ -29,7 +29,7 @@ runner = CliRunner()
 def _task(task_id: str) -> Task:
     return Task(
         id=task_id,
-        skill="rf-results",
+        skill="rf-requests",
         prompt="write out.txt",
         primary_metric="file_exists",
         grader_checks=[{"type": "file_exists", "path": "out.txt"}],
@@ -90,7 +90,7 @@ def test_runner_error_is_recorded_as_incomplete(tmp_path: Path) -> None:
 
 
 def test_runtime_model_policy() -> None:
-    check_runtime_model("claude-sonnet-5", allow_opus=False, max_cost_usd=None)
+    check_runtime_model("claude-sonnet-5-5", allow_opus=False, max_cost_usd=None)
     with pytest.raises(ModelNotAllowedError, match="--allow-opus and --max-cost-usd"):
         check_runtime_model("claude-opus-5-5", allow_opus=False, max_cost_usd=None)
     with pytest.raises(ModelNotAllowedError, match="--max-cost-usd"):
@@ -119,7 +119,7 @@ def _tasks_dir(tmp_path: Path, n: int = 2) -> Path:
             yaml.safe_dump(
                 {
                     "id": f"narrow-t{i}",
-                    "skill": "rf-results",
+                    "skill": "rf-requests",
                     "tier": "narrow",
                     "prompt": "x",
                     "primary_metric": "file_exists",

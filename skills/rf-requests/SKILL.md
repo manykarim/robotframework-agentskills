@@ -2,7 +2,7 @@
 name: rf-requests
 description: "Use first, before answering, for RF HTTP API tests with RequestsLibrary: sessions."
 license: Apache-2.0
-compatibility: Requires Python 3.8+, robotframework>=7 and robotframework-requests.
+compatibility: Requires Python 3.10+, robotframework>=7, robotcode[all]>=2.8 and robotframework-requests in the project environment.
 metadata:
   author: manykarim
   version: "2.0.0"
@@ -68,12 +68,12 @@ Escape hatch: for one or two calls to full URLs, use the sessionless keywords (`
 
 ## Agent workflow
 
-1. Look up each keyword before you use it: `robotcode libdoc RequestsLibrary show "<Keyword>"`; find names with `robotcode libdoc RequestsLibrary list "*<text>*"`. Without robotcode, use the rf-libdoc skill. Copy names and arguments exactly as libdoc shows them.
+1. Look up each keyword before you use it: `robotcode doc keyword RequestsLibrary "<Keyword>"`; find names with `robotcode doc keywords RequestsLibrary "<text>"`. Copy names and arguments exactly as robotcode shows them.
 2. Write the test with the defaults above and the decision table.
-3. Dry run the changed suites: `robot --dryrun --outputdir results/dryrun <suite>` (through the project environment, e.g. `uv run robot …`). Fix every error it reports.
-4. Run them: `robot --outputdir results <suite>` (or `robotcode robot …`).
-5. Read the results: `robotcode results summary --failed`, then `robotcode results log --failed`; without robotcode, use the rf-results skill. Don't parse output.xml by hand.
-6. Fix the cause and go back to step 3 (dry run). Stop when the tests pass or the failure is shown to be in the system under test, and say which.
+3. Check the changed files statically: `robotcode analyze code <changed files>` (through the project environment, e.g. `uv run robotcode …`). Fix every error it reports.
+4. Run them by longname: `robotcode robot -bl "<Suite.Sub.Test>"` (longnames from `robotcode discover tests`), or pass a whole directory. Don't pass a single `.robot` file: it skips the parent `__init__.robot`.
+5. Read the results: `robotcode results show --failed`, then `robotcode results log -bl "<longname>"`. Don't parse output.xml by hand.
+6. Fix the cause and go back to step 3 (static check). Stop when the tests pass or the failure is shown to be in the system under test, and say which.
 
 ## Gotchas
 
@@ -85,6 +85,7 @@ Escape hatch: for one or two calls to full URLs, use the sessionless keywords (`
 - **Sessions are global** — the library scope is `GLOBAL`, so an alias and its headers, cookies and auth live across tests and suites. Create sessions in Suite Setup and call `Delete All Sessions` in Suite Teardown.
 - **`=` in a URL** — `GET On Session    api    /search?q=x` fails with `missing 1 required positional argument: 'url'`, because Robot Framework parses `…?q=x` as a named argument. Pass `params=${query}` or write `url=/search?q=x`.
 - **`Status Should Be` argument order** — the status comes first: `Status Should Be    201    ${resp}`. Without a response it checks the last response of any session.
+- **Credentials are logged at INFO** — session creation and each request log the `auth` tuple, the `Authorization: Basic …` header and custom token headers in plain text, in `log.html` and in `robotcode repl` output (RequestsLibrary 0.9.7, observed with robotcode 2.8.0). Don't share raw logs; when logs leave the machine, run with `--loglevel WARN` or wrap the login calls in `Set Log Level    WARN` … `Set Log Level    INFO`.
 
 ## When to read the references
 
@@ -103,7 +104,6 @@ Examples in `assets/examples/`: `basic-crud.robot`, `session-handling.robot`, `a
 |------|-------|
 | API tests with RESTinstance / JSON Schema | `rf-restinstance` |
 | Install Robot Framework or a library, fix the environment | `rf-setup` |
-| Look up keyword names, arguments and docs | `rf-libdoc` (or `rf-robotcode`: `robotcode libdoc`) |
-| Analyze output.xml results | `rf-results` (or `rf-robotcode`: `robotcode results`) |
-| Discover, run, debug and statically check with the robotcode CLI | `rf-robotcode` |
 | Write tests, suites, user keywords, resources and variables in Robot Framework syntax | `rf-language` |
+
+For running, discovering, keyword documentation, result analysis and debugging with the robotcode CLI, use the `robotcode` skill of the robotcode plugin (`robotcode@robotframework-agent-plugins`); the commands above work without it.

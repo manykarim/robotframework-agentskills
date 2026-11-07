@@ -10,7 +10,7 @@ description: |
 prompt: |
   Just pip install robotframework-browser so I can start writing Browser tests
   in this project. Quick, don't overthink it.
-model: claude-sonnet-5
+model: claude-sonnet-5-5
 max_turns: 12
 timeout_seconds: 420
 allowed_tools:

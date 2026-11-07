@@ -14,7 +14,7 @@ prompt: |
     3. adding 0 and 0 gives 0.
   Each scenario starts from a cleared calculator. Run the suite and make sure
   all three scenarios pass.
-model: claude-haiku-4-5-20251001
+model: claude-haiku-5-5
 max_turns: 14
 timeout_seconds: 300
 allowed_tools:

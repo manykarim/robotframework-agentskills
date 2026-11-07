@@ -58,8 +58,8 @@ dependencies = [
 # tools are absent. Users who want the validation feedback loop install
 # the extra; everyone else is unaffected.
 validation = [
+    "robotcode[all]>=2.8",
     "robotframework-robocop>=8",
-    "robotframework-find-unused>=0.9",
 ]
 
 [dependency-groups]
@@ -70,9 +70,10 @@ dev = [
     "ruff>=0.5",
     "mypy>=1.11",
     "types-PyYAML>=6.0",
-    # Validation tooling exercised by tests/test_validation_hooks.py.
+    # Validation tooling exercised by the hook tests. robotcode is the
+    # documented prerequisite of the skills and the error tier of the hooks.
+    "robotcode[all]>=2.8",
     "robotframework-robocop>=8",
-    "robotframework-find-unused>=0.9",
     # Target libraries of the library skills. scripts/check-skill-keywords.py
     # resolves every keyword the skills teach against their libdoc, so a
     # plain `uv sync` makes that check complete (no skill is SKIPPED).

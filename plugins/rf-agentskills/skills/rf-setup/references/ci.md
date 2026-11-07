@@ -38,7 +38,7 @@ Notes:
 - Browser binaries live inside `.venv`, so they must be installed in every job (the uv cache doesn't cover them). `--with-deps` also installs the Linux system libraries Chromium needs. Drop the step when Browser isn't used.
 - Headed browsers in CI need a virtual display: `xvfb-run -a uv run robot …` (Ubuntu runners have `xvfb`), or run headless.
 - Robot's exit code is the number of failed tests, so a failing test fails the step. `if: always()` still uploads the results.
-- With robotcode in the dev group, `uv run robotcode -p ci robot` uses a `ci` profile from `robot.toml`, and `uv run robotcode analyze code --output-format github` adds annotations to the PR (see `rf-robotcode`).
+- With robotcode in the dev group, `uv run robotcode -p ci robot` uses a `ci` profile from `robot.toml`, and `uv run robotcode analyze code --output-format github` adds annotations to the PR. A job that only runs tests can install `robotcode[runner]` instead of `[all]`.
 
 ## Poetry or pip in CI
 

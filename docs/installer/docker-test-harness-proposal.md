@@ -48,7 +48,7 @@ Those are exactly the kinds of failures that the eval harness's PR #2/#3 dance k
 
 | Agent | OpenRouter setup | Notes |
 |---|---|---|
-| **Claude Code** | `ANTHROPIC_BASE_URL=https://openrouter.ai/api/v1` + `ANTHROPIC_AUTH_TOKEN=$OPENROUTER_API_KEY` + `ANTHROPIC_MODEL=anthropic/claude-haiku-4-5` | Locked to `anthropic/*` models on OR (gateway-mode constraint). Source: code.claude.com/docs/en/llm-gateway |
+| **Claude Code** | `ANTHROPIC_BASE_URL=https://openrouter.ai/api/v1` + `ANTHROPIC_AUTH_TOKEN=$OPENROUTER_API_KEY` + `ANTHROPIC_MODEL=anthropic/claude-haiku-5-5` | Locked to `anthropic/*` models on OR (gateway-mode constraint). Source: code.claude.com/docs/en/llm-gateway |
 | **Codex CLI** | `[model_providers.openrouter]` block in `config.toml` (`base_url`, `wire_api="responses"`); `OPENROUTER_API_KEY` env | Free choice of any OR model. Source: developers.openai.com/codex/config-reference |
 | **Goose** | `GOOSE_PROVIDER=openrouter`, `GOOSE_MODEL=...`, `OPENROUTER_API_KEY`. Set `GOOSE_DISABLE_KEYRING=1` for headless | Native first-class provider |
 | **OpenCode** | `provider.openrouter` block in `opencode.json` + `OPENROUTER_API_KEY` | Native first-class; broadest model coverage |
@@ -169,13 +169,13 @@ base_url = "https://openrouter.ai/api/v1"
 env_key = "OPENROUTER_API_KEY"
 wire_api = "responses"
 model_provider = "openrouter"
-model = "anthropic/claude-haiku-4-5"
+model = "anthropic/claude-haiku-5-5"
 EOF
 export ANTHROPIC_BASE_URL=https://openrouter.ai/api/v1
 export ANTHROPIC_AUTH_TOKEN="$OPENROUTER_API_KEY"
-export ANTHROPIC_MODEL=anthropic/claude-haiku-4-5
+export ANTHROPIC_MODEL=anthropic/claude-haiku-5-5
 export GOOSE_PROVIDER=openrouter
-export GOOSE_MODEL=anthropic/claude-haiku-4-5
+export GOOSE_MODEL=anthropic/claude-haiku-5-5
 export GOOSE_DISABLE_KEYRING=1
 # … plus opencode.json provider block …
 
@@ -257,7 +257,7 @@ A contributor running this 100 times a month spends < $1.
 ## Risks and open questions
 
 1. **OpenRouter outages.** If OR is down, the harness fails. Mitigation: `--skip-on-network-error` flag for CI-equivalent contributors who need a local-only smoke. Network failure is correctly classified as flake, not a regression.
-2. **Model drift on OpenRouter.** OR may stop offering `anthropic/claude-haiku-4-5` at the same price tier. Mitigation: pin the model in the entrypoint, version-bump as needed.
+2. **Model drift on OpenRouter.** OR may stop offering `anthropic/claude-haiku-5-5` at the same price tier. Mitigation: pin the model in the entrypoint, version-bump as needed.
 3. **Agent-version drift.** The agents auto-update their internal logic. Init-event format could change (it has, even between Claude Code minor versions). Mitigation: Dockerfile pins agent versions, contributors bump explicitly, and the harness reports version at start so a regression-vs-version-drift is distinguishable.
 4. **Tier-2 fallback.** If a contributor *does* have Anthropic / OpenAI / GitHub tokens, should the harness optionally use them for higher-fidelity testing? Lean: yes, behind `RF_HARNESS_USE_VENDOR_TOKENS=1`, but defer to Phase 4.
 5. **Goose configure step.** The release install script wants a connected configure flow. We sidestep with `CONFIGURE=false` (verified in the probe) and a mounted config.yaml — but if Goose changes that env-var name, the build breaks. Mitigation: lock the install URL to a specific release tag.
