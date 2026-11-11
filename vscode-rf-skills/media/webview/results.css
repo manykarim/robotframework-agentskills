@@ -1,0 +1,436 @@
+/* ==========================================================================
+   RF Skills - Shared Webview Styles
+   Uses VS Code CSS variables for automatic theme integration.
+   ========================================================================== */
+
+/* -- Reset & Base --------------------------------------------------------- */
+
+*,
+*::before,
+*::after {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    padding: 20px;
+    font-family: var(--vscode-font-family, -apple-system, BlinkMacSystemFont, sans-serif);
+    font-size: var(--vscode-font-size, 13px);
+    color: var(--vscode-foreground);
+    background: var(--vscode-editor-background);
+    line-height: 1.5;
+}
+
+/* -- Typography ----------------------------------------------------------- */
+
+h1 {
+    font-size: 1.5em;
+    font-weight: 600;
+    margin-bottom: 4px;
+    color: var(--vscode-foreground);
+}
+
+h2 {
+    font-size: 1.15em;
+    font-weight: 600;
+    margin: 24px 0 12px;
+    color: var(--vscode-foreground);
+    border-bottom: 1px solid var(--vscode-panel-border);
+    padding-bottom: 4px;
+}
+
+h3 {
+    font-size: 1em;
+    font-weight: 600;
+    margin: 16px 0 8px;
+    color: var(--vscode-foreground);
+}
+
+p {
+    margin-bottom: 8px;
+}
+
+a {
+    color: var(--vscode-textLink-foreground);
+    text-decoration: none;
+}
+
+a:hover {
+    text-decoration: underline;
+    color: var(--vscode-textLink-activeForeground);
+}
+
+code {
+    font-family: var(--vscode-editor-font-family, 'Consolas', 'Courier New', monospace);
+    font-size: 0.9em;
+    background: var(--vscode-textCodeBlock-background);
+    padding: 1px 4px;
+    border-radius: 3px;
+}
+
+pre {
+    background: var(--vscode-textCodeBlock-background);
+    padding: 12px;
+    border-radius: 4px;
+    overflow-x: auto;
+    margin: 8px 0;
+}
+
+pre code {
+    background: none;
+    padding: 0;
+}
+
+/* -- Summary Cards -------------------------------------------------------- */
+
+.cards {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-bottom: 8px;
+}
+
+.card {
+    flex: 1;
+    min-width: 120px;
+    padding: 16px;
+    border-radius: 6px;
+    text-align: center;
+    background: var(--vscode-editorWidget-background);
+    border: 1px solid var(--vscode-panel-border);
+}
+
+.card-value {
+    font-size: 2em;
+    font-weight: bold;
+    line-height: 1.2;
+}
+
+.card-label {
+    font-size: 0.85em;
+    color: var(--vscode-descriptionForeground);
+    margin-top: 4px;
+}
+
+.card.total .card-value {
+    color: var(--vscode-foreground);
+}
+
+.card.passed .card-value {
+    color: var(--vscode-testing-iconPassed, #73c991);
+}
+
+.card.failed .card-value {
+    color: var(--vscode-testing-iconFailed, #f14c4c);
+}
+
+.card.skipped .card-value {
+    color: var(--vscode-testing-iconSkipped, #cca700);
+}
+
+/* -- Tables --------------------------------------------------------------- */
+
+.results-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 8px;
+}
+
+.results-table th,
+.results-table td {
+    padding: 8px 10px;
+    text-align: left;
+    border-bottom: 1px solid var(--vscode-panel-border);
+}
+
+.results-table th {
+    background: var(--vscode-editorWidget-background);
+    font-weight: 600;
+    position: sticky;
+    top: 0;
+    z-index: 1;
+}
+
+.results-table tbody tr:hover {
+    background: var(--vscode-list-hoverBackground);
+}
+
+.results-table .test-name {
+    font-weight: 500;
+}
+
+.results-table .error-msg {
+    color: var(--vscode-testing-iconFailed, #f14c4c);
+    font-size: 0.9em;
+    max-width: 400px;
+    word-break: break-word;
+}
+
+.results-table .duration {
+    white-space: nowrap;
+    color: var(--vscode-descriptionForeground);
+}
+
+.pass-count {
+    color: var(--vscode-testing-iconPassed, #73c991);
+    font-weight: 500;
+}
+
+.fail-count {
+    color: var(--vscode-testing-iconFailed, #f14c4c);
+    font-weight: 500;
+}
+
+/* -- Timing Chart (CSS-only horizontal bars) ------------------------------ */
+
+.timing-chart {
+    margin-bottom: 8px;
+}
+
+.timing-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 6px;
+}
+
+.timing-label {
+    width: 260px;
+    min-width: 160px;
+    text-overflow: ellipsis;
+    overflow: hidden;
+    white-space: nowrap;
+    font-size: 0.9em;
+}
+
+.timing-bar-container {
+    flex: 1;
+    height: 18px;
+    background: var(--vscode-editorWidget-background);
+    border-radius: 3px;
+    overflow: hidden;
+}
+
+.timing-bar {
+    height: 100%;
+    border-radius: 3px;
+    transition: width 0.3s ease;
+}
+
+.bar-pass {
+    background: var(--vscode-testing-iconPassed, #73c991);
+    opacity: 0.8;
+}
+
+.bar-fail {
+    background: var(--vscode-testing-iconFailed, #f14c4c);
+    opacity: 0.8;
+}
+
+.bar-skip {
+    background: var(--vscode-testing-iconSkipped, #cca700);
+    opacity: 0.8;
+}
+
+.timing-value {
+    width: 60px;
+    text-align: right;
+    font-size: 0.85em;
+    color: var(--vscode-descriptionForeground);
+    white-space: nowrap;
+}
+
+/* -- Buttons -------------------------------------------------------------- */
+
+.btn {
+    padding: 4px 12px;
+    background: var(--vscode-button-background);
+    color: var(--vscode-button-foreground);
+    border: none;
+    border-radius: 3px;
+    cursor: pointer;
+    font-size: 0.85em;
+    font-family: inherit;
+}
+
+.btn:hover {
+    background: var(--vscode-button-hoverBackground);
+}
+
+.btn-secondary {
+    background: var(--vscode-button-secondaryBackground);
+    color: var(--vscode-button-secondaryForeground);
+}
+
+.btn-secondary:hover {
+    background: var(--vscode-button-secondaryHoverBackground);
+}
+
+/* -- Source Link ---------------------------------------------------------- */
+
+.source-link {
+    color: var(--vscode-textLink-foreground);
+    text-decoration: none;
+    cursor: pointer;
+    white-space: nowrap;
+    font-size: 0.85em;
+}
+
+.source-link:hover {
+    text-decoration: underline;
+    color: var(--vscode-textLink-activeForeground);
+}
+
+/* -- Badges --------------------------------------------------------------- */
+
+.badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 0.8em;
+    font-weight: 500;
+}
+
+.badge-pass {
+    background: var(--vscode-testing-iconPassed, #73c991);
+    color: var(--vscode-editor-background);
+}
+
+.badge-fail {
+    background: var(--vscode-testing-iconFailed, #f14c4c);
+    color: var(--vscode-editor-background);
+}
+
+.badge-skip {
+    background: var(--vscode-testing-iconSkipped, #cca700);
+    color: var(--vscode-editor-background);
+}
+
+.badge-info {
+    background: var(--vscode-badge-background);
+    color: var(--vscode-badge-foreground);
+}
+
+/* -- Tags ----------------------------------------------------------------- */
+
+.tags {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin-bottom: 8px;
+}
+
+.tag {
+    display: inline-block;
+    background: var(--vscode-editorWidget-background);
+    border: 1px solid var(--vscode-panel-border);
+    padding: 1px 8px;
+    border-radius: 3px;
+    font-size: 0.8em;
+    color: var(--vscode-descriptionForeground);
+}
+
+/* -- Diff View ------------------------------------------------------------ */
+
+.diff-before,
+.diff-after {
+    padding: 4px 8px;
+    border-radius: 3px;
+    margin-bottom: 4px;
+    overflow-x: auto;
+    font-family: var(--vscode-editor-font-family, 'Consolas', monospace);
+    font-size: 0.85em;
+}
+
+.diff-before {
+    background: var(--vscode-diffEditor-removedLineBackground, rgba(255, 0, 0, 0.1));
+}
+
+.diff-after {
+    background: var(--vscode-diffEditor-insertedLineBackground, rgba(0, 255, 0, 0.1));
+}
+
+.diff-label {
+    font-weight: 600;
+    font-size: 0.8em;
+    margin-right: 6px;
+    color: var(--vscode-descriptionForeground);
+}
+
+/* -- Progress Bar --------------------------------------------------------- */
+
+.progress-container {
+    height: 8px;
+    background: var(--vscode-editorWidget-background);
+    border-radius: 4px;
+    overflow: hidden;
+    margin-bottom: 4px;
+}
+
+.progress-bar {
+    height: 100%;
+    background: var(--vscode-testing-iconPassed, #73c991);
+    border-radius: 4px;
+    transition: width 0.3s ease;
+}
+
+.progress-text {
+    font-size: 0.85em;
+    color: var(--vscode-descriptionForeground);
+    margin-bottom: 12px;
+}
+
+/* -- Responsive Layout ---------------------------------------------------- */
+
+@media (max-width: 600px) {
+    body {
+        padding: 12px;
+    }
+
+    .cards {
+        flex-direction: column;
+    }
+
+    .card {
+        min-width: auto;
+    }
+
+    .timing-label {
+        width: 120px;
+        min-width: 80px;
+    }
+
+    .results-table {
+        font-size: 0.9em;
+    }
+
+    .results-table .error-msg {
+        max-width: 200px;
+    }
+}
+
+/* -- Utility Classes ------------------------------------------------------ */
+
+.text-muted {
+    color: var(--vscode-descriptionForeground);
+}
+
+.text-pass {
+    color: var(--vscode-testing-iconPassed, #73c991);
+}
+
+.text-fail {
+    color: var(--vscode-testing-iconFailed, #f14c4c);
+}
+
+.text-skip {
+    color: var(--vscode-testing-iconSkipped, #cca700);
+}
+
+.mt-sm { margin-top: 8px; }
+.mt-md { margin-top: 16px; }
+.mt-lg { margin-top: 24px; }
+.mb-sm { margin-bottom: 8px; }
+.mb-md { margin-bottom: 16px; }
+.mb-lg { margin-bottom: 24px; }

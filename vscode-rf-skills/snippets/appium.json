@@ -1,0 +1,84 @@
+{
+    "Appium Android Setup": {
+        "prefix": "rf-appium-android",
+        "scope": "robotframework",
+        "body": [
+            "*** Settings ***",
+            "Library    AppiumLibrary",
+            "",
+            "*** Variables ***",
+            "\\${APPIUM_SERVER}    http://127.0.0.1:4723",
+            "",
+            "*** Test Cases ***",
+            "${1:Android Test}",
+            "    Open Application    \\${APPIUM_SERVER}",
+            "    ...    platformName=Android",
+            "    ...    platformVersion=${2:13}",
+            "    ...    deviceName=${3:emulator-5554}",
+            "    ...    automationName=UiAutomator2",
+            "    ...    app=${4:\\${CURDIR\\}/app.apk}",
+            "    $0",
+            "    [Teardown]    Close Application"
+        ],
+        "description": "Android app setup with Open Application, UiAutomator2 capabilities, and Close Application teardown"
+    },
+    "Appium iOS Setup": {
+        "prefix": "rf-appium-ios",
+        "scope": "robotframework",
+        "body": [
+            "*** Settings ***",
+            "Library    AppiumLibrary",
+            "",
+            "*** Variables ***",
+            "\\${APPIUM_SERVER}    http://127.0.0.1:4723",
+            "",
+            "*** Test Cases ***",
+            "${1:iOS Test}",
+            "    Open Application    \\${APPIUM_SERVER}",
+            "    ...    platformName=iOS",
+            "    ...    platformVersion=${2:17.0}",
+            "    ...    deviceName=${3:iPhone 15}",
+            "    ...    automationName=XCUITest",
+            "    ...    app=${4:\\${CURDIR\\}/MyApp.app}",
+            "    $0",
+            "    [Teardown]    Close Application"
+        ],
+        "description": "iOS app setup with Open Application, XCUITest capabilities, and Close Application teardown"
+    },
+    "Appium Click Element": {
+        "prefix": "rf-appium-click",
+        "scope": "robotframework",
+        "body": [
+            "Click Element    ${1|accessibility_id=,id=,xpath=|}${2:locator}$0"
+        ],
+        "description": "Click Element on mobile with locator strategy (accessibility_id=, id=, xpath=)"
+    },
+    "Appium Swipe Gesture": {
+        "prefix": "rf-appium-swipe",
+        "scope": "robotframework",
+        "body": [
+            "Swipe    start_x=${1:500}    start_y=${2:1500}    end_x=${3:500}    end_y=${4:500}    duration=${5:0:00:01}$0"
+        ],
+        "description": "Swipe gesture with start/end coordinates and duration timedelta"
+    },
+    "Appium Switch Context Hybrid App": {
+        "prefix": "rf-appium-context",
+        "scope": "robotframework",
+        "body": [
+            "\\${context}=    Get Current Context",
+            "Log    Current: \\${context}",
+            "@{contexts}=    Get Contexts",
+            "Log Many    @{contexts}",
+            "Switch To Context    ${1|WEBVIEW_,NATIVE_APP|}${2:com.example.app}$0"
+        ],
+        "description": "Switch context in hybrid app: Get Current Context, list all contexts, Switch To Context (WEBVIEW_ or NATIVE_APP)"
+    },
+    "Appium Wait Until Element Is Visible": {
+        "prefix": "rf-appium-wait",
+        "scope": "robotframework",
+        "body": [
+            "Wait Until Element Is Visible    ${1:locator}    timeout=${2:10s}$0"
+        ],
+        "description": "Wait Until Element Is Visible for mobile elements with configurable timeout"
+    }
+}

@@ -1,0 +1,82 @@
+{
+    "RESTinstance Library Setup": {
+        "prefix": "rf-rest-setup",
+        "scope": "robotframework",
+        "body": [
+            "*** Settings ***",
+            "Library    REST    ${1:https://api.example.com}",
+            "",
+            "*** Test Cases ***",
+            "${2:Test Name}",
+            "    GET    ${3:/endpoint}",
+            "    Integer    response status    ${4:200}",
+            "    $0"
+        ],
+        "description": "RESTinstance setup with Library REST base URL and a basic GET with status assertion"
+    },
+    "RESTinstance GET with Assertions": {
+        "prefix": "rf-rest-get",
+        "scope": "robotframework",
+        "body": [
+            "GET    ${1:/endpoint}",
+            "Integer    response status    ${2:200}",
+            "String     response body ${3:name}    ${4:expected}",
+            "Integer    response body ${5:id}    ${6:1}$0"
+        ],
+        "description": "GET request with Integer/String type-checked assertions on status and body fields"
+    },
+    "RESTinstance CRUD Operations": {
+        "prefix": "rf-rest-crud",
+        "scope": "robotframework",
+        "body": [
+            "# Create",
+            "POST    /${1:users}    {\"name\": \"${2:John}\", \"email\": \"${3:john@test.com}\"}",
+            "Integer    response status    201",
+            "\\${id}=    Integer    response body id",
+            "",
+            "# Read",
+            "GET    /$1/\\${id}",
+            "Integer    response status    200",
+            "String    response body name    $2",
+            "",
+            "# Update",
+            "PUT    /$1/\\${id}    {\"name\": \"${4:Updated}\"}",
+            "Integer    response status    200",
+            "String    response body name    $4",
+            "",
+            "# Delete",
+            "DELETE    /$1/\\${id}",
+            "Integer    response status    204$0"
+        ],
+        "description": "Full CRUD lifecycle with POST, GET, PUT, DELETE and Integer/String response assertions"
+    },
+    "RESTinstance JSON Schema Validation": {
+        "prefix": "rf-rest-schema",
+        "scope": "robotframework",
+        "body": [
+            "# Validate response body against JSON Schema file",
+            "Expect Response Body    ${1:\\${CURDIR\\}/schemas/${2:schema}.json}",
+            "GET    ${3:/endpoint}",
+            "Integer    response status    ${4:200}$0"
+        ],
+        "description": "Expect Response Body sets a JSON Schema file expectation BEFORE the GET request for contract validation"
+    },
+    "RESTinstance Authentication with Bearer Token": {
+        "prefix": "rf-rest-auth",
+        "scope": "robotframework",
+        "body": [
+            "# Login to get token",
+            "POST    /auth/login    {\"username\": \"\\${${1:USERNAME}}\", \"password\": \"\\${${2:PASSWORD}}\"}",
+            "Integer    response status    200",
+            "\\${token}=    String    response body ${3:access_token}",
+            "",
+            "# Set token for subsequent requests",
+            "Set Headers    {\"Authorization\": \"Bearer \\${token}\"}",
+            "",
+            "# Use authenticated endpoint",
+            "GET    ${4:/users/me}",
+            "Integer    response status    200$0"
+        ],
+        "description": "Login flow: POST credentials, extract token with String, Set Headers with Bearer token, then call protected endpoint"
+    }
+}

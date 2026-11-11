@@ -1,0 +1,99 @@
+{
+    "Requests Create Session": {
+        "prefix": "rf-requests-setup",
+        "scope": "robotframework",
+        "body": [
+            "*** Settings ***",
+            "Library    RequestsLibrary",
+            "Library    Collections",
+            "",
+            "*** Variables ***",
+            "\\${API_URL}    ${1:https://api.example.com}",
+            "",
+            "*** Keywords ***",
+            "${2:Setup API Session}",
+            "    Create Session    ${3:api}    \\${API_URL}    verify=\\${True}$0"
+        ],
+        "description": "RequestsLibrary setup with Create Session, base URL, and SSL verification enabled"
+    },
+    "Requests GET with Status Assertion": {
+        "prefix": "rf-requests-get",
+        "scope": "robotframework",
+        "body": [
+            "\\${response}=    GET    ${1:\\${API_URL\\}/endpoint}    expected_status=${2:200}",
+            "Should Be Equal    \\${response.json()}[${3:key}]    ${4:expected}$0"
+        ],
+        "description": "Sessionless GET request with expected_status and JSON response field assertion"
+    },
+    "Requests POST with JSON Body": {
+        "prefix": "rf-requests-post",
+        "scope": "robotframework",
+        "body": [
+            "&{body}=    Create Dictionary    ${1:name}=${2:value}    ${3:email}=${4:test@example.com}",
+            "\\${response}=    POST    ${5:\\${API_URL\\}/endpoint}    json=\\${body}    expected_status=${6:201}",
+            "Dictionary Should Contain Key    \\${response.json()}    ${7:id}$0"
+        ],
+        "description": "POST request with JSON body from dictionary and response validation"
+    },
+    "Requests CRUD Lifecycle": {
+        "prefix": "rf-requests-crud",
+        "scope": "robotframework",
+        "body": [
+            "# Create",
+            "&{${1:data}}=    Create Dictionary    name=${2:John}    email=${3:john@test.com}",
+            "\\${response}=    POST    \\${API_URL}/${4:users}    json=\\${$1}    expected_status=201",
+            "\\${id}=    Set Variable    \\${response.json()}[id]",
+            "",
+            "# Read",
+            "\\${response}=    GET    \\${API_URL}/$4/\\${id}    expected_status=200",
+            "Should Be Equal    \\${response.json()}[name]    $2",
+            "",
+            "# Update",
+            "&{updates}=    Create Dictionary    name=${5:Updated Name}",
+            "\\${response}=    PUT    \\${API_URL}/$4/\\${id}    json=\\${updates}    expected_status=200",
+            "Should Be Equal    \\${response.json()}[name]    $5",
+            "",
+            "# Delete",
+            "\\${response}=    DELETE    \\${API_URL}/$4/\\${id}    expected_status=204$0"
+        ],
+        "description": "Full CRUD lifecycle: POST create, GET read, PUT update, DELETE with status assertions"
+    },
+    "Requests Bearer Token Authentication": {
+        "prefix": "rf-requests-bearer",
+        "scope": "robotframework",
+        "body": [
+            "&{headers}=    Create Dictionary",
+            "...    Authorization=Bearer \\${${1:TOKEN}}",
+            "...    Content-Type=application/json",
+            "...    Accept=application/json",
+            "\\${response}=    GET    ${2:\\${API_URL\\}/endpoint}    headers=\\${headers}    expected_status=${3:200}$0"
+        ],
+        "description": "Bearer token authentication with Authorization header, Content-Type, and Accept"
+    },
+    "Requests Session-Based API Calls": {
+        "prefix": "rf-requests-session",
+        "scope": "robotframework",
+        "body": [
+            "*** Settings ***",
+            "Library    RequestsLibrary",
+            "Library    Collections",
+            "Suite Setup    Create API Session",
+            "",
+            "*** Variables ***",
+            "\\${API_URL}    ${1:https://api.example.com}",
+            "",
+            "*** Keywords ***",
+            "Create API Session",
+            "    &{headers}=    Create Dictionary",
+            "    ...    Authorization=Bearer \\${${2:TOKEN}}",
+            "    ...    Content-Type=application/json",
+            "    Create Session    api    \\${API_URL}    headers=\\${headers}    verify=\\${True}",
+            "",
+            "*** Test Cases ***",
+            "${3:Test API Endpoint}",
+            "    \\${response}=    GET On Session    api    ${4:/endpoint}    expected_status=${5:200}",
+            "    Should Be Equal    \\${response.json()}[${6:key}]    ${7:expected}$0"
+        ],
+        "description": "Session-based API test with Create Session, shared headers, and GET On Session calls"
+    }
+}
